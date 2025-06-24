@@ -1,7 +1,7 @@
 <template>
-  <div>
-    <NuxtWelcome />
-  </div>
+  <main>
+    <HomeHero />
+  </main>
 </template>
 
 <script lang="ts" setup></script>
