@@ -3,6 +3,7 @@
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev --inspect",
+    "start": "node .output/server/index.mjs",
     "generate": "nuxt generate",
     "postinstall": "nuxt prepare",
     "typecheck": "nuxt typecheck",
