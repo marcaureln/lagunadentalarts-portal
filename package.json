@@ -1,0 +1,45 @@
+{
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev --inspect",
+    "generate": "nuxt generate",
+    "postinstall": "nuxt prepare",
+    "typecheck": "nuxt typecheck",
+    "lint": "eslint .",
+    "lint:fix": "eslint --fix .",
+    "test": "echo \"No test specified\" && exit 0"
+  },
+  "dependencies": {
+    "@nuxt/fonts": "0.11.4",
+    "@nuxt/icon": "^1.13.0",
+    "@nuxt/image": "1.10.0",
+    "@nuxt/scripts": "0.11.8",
+    "@nuxtjs/seo": "^3.0.3",
+    "@tailwindcss/vite": "^4.1.10",
+    "@unhead/vue": "^2.0.10",
+    "@vueuse/core": "^13.3.0",
+    "@vueuse/nuxt": "^13.3.0",
+    "nuxt": "^3.17.5",
+    "nuxt-mcp": "^0.2.2",
+    "tailwindcss": "^4.1.10"
+  },
+  "devDependencies": {
+    "@nuxt/eslint": "^1.4.1",
+    "eslint": "^9.29.0",
+    "eslint-config-prettier": "^10.1.5",
+    "eslint-plugin-prettier": "^5.4.1",
+    "prettier": "^3.5.3",
+    "prettier-plugin-tailwindcss": "^0.6.12",
+    "typescript": "^5.8.3",
+    "vue-tsc": "^2.2.10"
+  },
+  "packageManager": "pnpm@10.12.1",
+  "engines": {
+    "node": "22.x"
+  },
+  "volta": {
+    "node": "22.16.0",
+    "pnpm": "10.12.1"
+  }
+}
