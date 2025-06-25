@@ -5,4 +5,8 @@
   </main>
 </template>
 
-<script lang="ts" setup></script>
+<script lang="ts" setup>
+useSeoMeta({
+  title: 'Your Trusted Dental Lab',
+});
+</script>
