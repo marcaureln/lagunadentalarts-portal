@@ -3,6 +3,7 @@
     <HomeHero />
     <HomeAbout />
     <HomeProducts />
+    <HomeTeam />
   </main>
 </template>
 
