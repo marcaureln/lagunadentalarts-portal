@@ -26,7 +26,7 @@
             consistent quality, fast turnarounds, and seamless digital integration—always with a focus on care and
             communication.
           </p>
-          <button class="rounded-4xl bg-blue-700 px-5 py-2 text-sm text-white hover:bg-blue-800">Learn More</button>
+          <button class="rounded-4xl bg-blue-700 px-6 py-3 text-white hover:bg-blue-800">Learn More</button>
         </div>
       </div>
 

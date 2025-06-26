@@ -8,7 +8,7 @@
       </div>
 
       <NuxtLink :to="linkedIn" class="text-gray-500 transition hover:text-blue-700" aria-label="LinkedIn Profile">
-        <Icon name="i-formkit-linkedin" size="20px" />
+        <Icon name="ri:linkedin-fill" size="20px" />
       </NuxtLink>
     </div>
   </div>
