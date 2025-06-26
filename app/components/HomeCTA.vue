@@ -32,6 +32,4 @@
   </section>
 </template>
 
-<script setup lang="ts">
-// No script needed for this CTA component
-</script>
+<script setup lang="ts"></script>
