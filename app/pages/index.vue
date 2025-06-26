@@ -4,6 +4,8 @@
     <HomeAbout />
     <HomeProducts />
     <HomeTeam />
+    <HomeTestimonials />
+    <HomeCTA />
   </main>
 </template>
 
