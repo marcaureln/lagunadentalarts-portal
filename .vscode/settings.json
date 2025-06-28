@@ -60,5 +60,8 @@
   "typescript.format.enable": false,
 
   // CSS
-  "css.lint.unknownAtRules": "ignore"
+  "css.lint.unknownAtRules": "ignore",
+
+  // Use project's TypeScript
+  "typescript.tsdk": "node_modules/typescript/lib"
 }
