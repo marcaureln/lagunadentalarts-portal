@@ -13,30 +13,12 @@
 </template>
 
 <script setup lang="ts">
-const team = [
-  {
-    name: 'Jeton Zajmi',
-    role: 'President',
-    linkedIn: 'https://www.linkedin.com',
-    photo: 'https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/male/512/56.jpg',
-  },
-  {
-    name: 'Joey Kong',
-    role: 'General Manager',
-    linkedIn: 'https://www.linkedin.com',
-    photo: 'https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/female/512/58.jpg',
-  },
-  {
-    name: 'Julian Inthavongxay',
-    role: 'Manager',
-    linkedIn: 'https://www.linkedin.com',
-    photo: 'https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/female/512/56.jpg',
-  },
-  {
-    name: 'Cheer Cha',
-    role: 'Manager',
-    linkedIn: 'https://www.linkedin.com',
-    photo: 'https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/female/512/10.jpg',
-  },
-];
+defineProps<{
+  team: {
+    name: string;
+    role: string;
+    linkedIn: string;
+    photo: string;
+  }[];
+}>();
 </script>

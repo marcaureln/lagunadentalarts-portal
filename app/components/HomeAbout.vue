@@ -41,9 +41,10 @@
 </template>
 
 <script setup lang="ts">
-const featuredNumbers = ref([
-  { value: '95%', label: 'Client Satisfaction Rate' },
-  { value: '30yr+', label: 'Combined industry experience' },
-  { value: '10,000+', label: 'Clients helped across California and the U.S.' },
-]);
+defineProps<{
+  featuredNumbers?: {
+    value: number;
+    label: string;
+  }[];
+}>();
 </script>

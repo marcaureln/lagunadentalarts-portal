@@ -48,13 +48,14 @@ export default defineNuxtConfig({
   },
   modules: [
     '@nuxtjs/seo',
+    '@nuxt/content',
     '@nuxt/eslint',
     '@nuxt/icon',
     '@nuxt/fonts',
+    '@nuxt/scripts',
+    '@nuxt/image',
     '@vueuse/nuxt',
     'nuxt-mcp',
-    '@nuxt/image',
-    '@nuxt/scripts',
   ],
   site: {
     url: 'https://lagunadentalarts.com/',
@@ -67,5 +68,8 @@ export default defineNuxtConfig({
       weights: [100, 300, 400, 500, 600, 700],
       styles: ['normal', 'italic'],
     },
+  },
+  linkChecker: {
+    enabled: false, // TODO: Enable this in production
   },
 });

@@ -1,10 +1,10 @@
 <template>
   <main>
     <HomeHero />
-    <HomeAbout />
+    <HomeAbout :featured-numbers="index?.featuredNumbers ?? []" />
     <HomeProducts />
-    <HomeTeam />
-    <HomeTestimonials />
+    <HomeTeam :team="team?.team?.slice(0, 4) ?? []" />
+    <HomeTestimonials :testimonials="index?.testimonials ?? []" />
     <HomeCTA />
   </main>
 </template>
@@ -13,4 +13,7 @@
 useSeoMeta({
   title: 'Your Trusted Dental Lab',
 });
+
+const { data: index } = await useAsyncData('index', () => queryCollection('index').first());
+const { data: team } = await useAsyncData('team', () => queryCollection('team').first());
 </script>
