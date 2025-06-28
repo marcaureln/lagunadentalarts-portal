@@ -9,7 +9,7 @@
         <NuxtLink to="#" class="hover:text-blue-700">About</NuxtLink>
         <NuxtLink to="#" class="hover:text-blue-700">Products</NuxtLink>
         <NuxtLink to="/downloads" class="hover:text-blue-700">Downloads</NuxtLink>
-        <NuxtLink to="#" class="hover:text-blue-700">Contact</NuxtLink>
+        <NuxtLink to="/contact" class="hover:text-blue-700">Contact</NuxtLink>
       </nav>
       <div class="flex gap-3">
         <NuxtLink to="/digital-upload" class="rounded-4xl bg-blue-700 px-4 py-2 text-xs text-white hover:bg-blue-800">
