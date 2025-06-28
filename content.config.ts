@@ -36,9 +36,23 @@ const team = defineCollection({
   }),
 });
 
+const downloads = defineCollection({
+  type: 'data',
+  source: 'downloads.yml',
+  schema: z.object({
+    files: z.array(
+      z.object({
+        title: z.string(),
+        link: z.string(),
+      })
+    ),
+  }),
+});
+
 export default defineContentConfig({
   collections: {
     index,
     team,
+    downloads,
   },
 });

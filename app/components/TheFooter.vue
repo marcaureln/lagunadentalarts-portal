@@ -48,7 +48,7 @@ const menuSections = [
       { label: 'Rush Cases', to: '#' },
       { label: 'Digital Workflow', to: '#' },
       { label: 'Turnaround Times', to: '#' },
-      { label: 'Rx Form Download', to: '#' },
+      { label: 'Rx Form Download', to: '/downloads' },
     ],
   },
   {

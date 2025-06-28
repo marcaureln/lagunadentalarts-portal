@@ -8,7 +8,7 @@
         <NuxtLink to="/" class="hover:text-blue-700">Home</NuxtLink>
         <NuxtLink to="#" class="hover:text-blue-700">About</NuxtLink>
         <NuxtLink to="#" class="hover:text-blue-700">Products</NuxtLink>
-        <NuxtLink to="#" class="hover:text-blue-700">Downloads</NuxtLink>
+        <NuxtLink to="/downloads" class="hover:text-blue-700">Downloads</NuxtLink>
         <NuxtLink to="#" class="hover:text-blue-700">Contact</NuxtLink>
       </nav>
       <div class="flex gap-3">
