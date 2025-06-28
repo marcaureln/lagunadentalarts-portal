@@ -12,7 +12,7 @@
         <NuxtLink to="#" class="hover:text-blue-700">Contact</NuxtLink>
       </nav>
       <div class="flex gap-3">
-        <NuxtLink to="#" class="rounded-4xl bg-blue-700 px-4 py-2 text-xs text-white hover:bg-blue-800">
+        <NuxtLink to="/digital-upload" class="rounded-4xl bg-blue-700 px-4 py-2 text-xs text-white hover:bg-blue-800">
           Digital Upload
         </NuxtLink>
         <NuxtLink
