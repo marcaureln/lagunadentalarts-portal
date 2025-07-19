@@ -1,5 +1,5 @@
 <template>
-  <section class="bg-white py-16 md:py-24">
+  <section id="why-choose-us" class="bg-white py-16 md:py-24">
     <div class="container mx-auto px-4 md:px-8">
       <div class="flex flex-col items-start gap-16 lg:flex-row lg:gap-24">
         <div class="lg:w-1/3">

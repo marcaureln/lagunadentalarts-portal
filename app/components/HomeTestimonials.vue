@@ -1,5 +1,5 @@
 <template>
-  <section class="container mx-auto px-4 py-12 md:px-8">
+  <section id="testimonials" class="container mx-auto px-4 py-12 md:px-8">
     <div class="mb-16 grid grid-cols-2 items-end">
       <div>
         <h2 class="mb-2 text-lg font-semibold uppercase text-blue-700">Testimonials</h2>

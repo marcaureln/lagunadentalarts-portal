@@ -56,9 +56,9 @@ const menuSections = [
     items: [
       { label: 'About Us', to: '/about' },
       { label: 'Our Team', to: '/team' },
-      { label: 'Why Choose Us', to: '#' },
+      { label: 'Why Choose Us', to: '/about#why-choose-us' },
       { label: 'Careers', to: '/careers' },
-      { label: 'Testimonials', to: '#' },
+      { label: 'Testimonials', to: '/#testimonials' },
     ],
   },
   {
