@@ -3,18 +3,46 @@ team:
     role: 'President'
     linkedIn: 'https://www.linkedin.com'
     photo: 'https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/male/512/56.jpg'
+    showOnHome: true
 
   - name: 'Joey Kong'
     role: 'General Manager'
     linkedIn: 'https://www.linkedin.com'
     photo: 'https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/female/512/58.jpg'
+    showOnHome: true
 
   - name: 'Julian Inthavongxay'
     role: 'Manager'
     linkedIn: 'https://www.linkedin.com'
     photo: 'https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/female/512/56.jpg'
+    showOnHome: true
 
   - name: 'Cheer Cha'
     role: 'Manager'
     linkedIn: 'https://www.linkedin.com'
     photo: 'https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/female/512/10.jpg'
+    showOnHome: true
+
+  - name: 'Maria Rodriguez'
+    role: 'Senior Dental Technician'
+    linkedIn: 'https://www.linkedin.com'
+    photo: 'https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/female/512/12.jpg'
+    showOnHome: false
+
+  - name: 'David Chen'
+    role: 'Digital Workflow Specialist'
+    linkedIn: 'https://www.linkedin.com'
+    photo: 'https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/male/512/23.jpg'
+    showOnHome: false
+
+  - name: 'Sarah Johnson'
+    role: 'Quality Assurance Manager'
+    linkedIn: 'https://www.linkedin.com'
+    photo: 'https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/female/512/34.jpg'
+    showOnHome: false
+
+  - name: 'Michael Thompson'
+    role: 'Customer Relations Coordinator'
+    linkedIn: 'https://www.linkedin.com'
+    photo: 'https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/male/512/45.jpg'
+    showOnHome: false

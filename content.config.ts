@@ -31,6 +31,7 @@ const team = defineCollection({
         role: z.string(),
         photo: z.string(),
         linkedIn: z.string(),
+        showOnHome: z.boolean(),
       })
     ),
   }),

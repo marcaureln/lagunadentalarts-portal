@@ -15,5 +15,10 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{ name: string; role: string; linkedIn: string; photo: string }>();
+defineProps<{
+  name: string;
+  role: string;
+  linkedIn: string;
+  photo: string;
+}>();
 </script>
