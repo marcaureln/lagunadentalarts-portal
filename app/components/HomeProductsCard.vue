@@ -9,7 +9,7 @@
       class="mt-3 flex h-fit w-fit items-center justify-center rounded-full border-[1px] border-blue-700 text-blue-700 transition duration-300 group-hover:bg-blue-700 group-hover:text-white"
       aria-label="Learn more about {{ title }}"
     >
-      <Icon name="i-ph-arrow-up-right" size="16px" class="m-3" />
+      <Icon name="ri:arrow-right-up-long-line" size="16px" class="m-3" />
     </div>
   </NuxtLink>
 </template>
