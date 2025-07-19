@@ -4,7 +4,7 @@
       <div class="flex flex-col gap-4 md:w-1/3">
         <div class="mb-2 flex items-center gap-2">
           <NuxtLink to="/">
-            <NuxtImg src="/logo.png" height="200" alt="Laguna Dental Arts Logo" />
+            <NuxtImg src="/logo.png" width="200" alt="Laguna Dental Arts Logo" />
           </NuxtLink>
         </div>
         <div class="text-gray-500">© 2025 Laguna Dental Arts. All rights reserved.</div>
@@ -54,7 +54,7 @@ const menuSections = [
   {
     title: 'About the Lab',
     items: [
-      { label: 'About Us', to: '#' },
+      { label: 'About Us', to: '/about' },
       { label: 'Our Team', to: '#' },
       { label: 'Why Choose Us', to: '#' },
       { label: 'Careers', to: '#' },

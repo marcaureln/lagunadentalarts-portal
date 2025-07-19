@@ -6,7 +6,7 @@
       </NuxtLink>
       <nav class="hidden gap-9 text-sm text-gray-700 md:flex">
         <NuxtLink to="/" class="hover:text-blue-700">Home</NuxtLink>
-        <NuxtLink to="#" class="hover:text-blue-700">About</NuxtLink>
+        <NuxtLink to="/about" class="hover:text-blue-700">About</NuxtLink>
         <NuxtLink to="#" class="hover:text-blue-700">Products</NuxtLink>
         <NuxtLink to="/downloads" class="hover:text-blue-700">Downloads</NuxtLink>
         <NuxtLink to="/contact" class="hover:text-blue-700">Contact</NuxtLink>
