@@ -68,11 +68,30 @@ const careers = defineCollection({
   }),
 });
 
+const faq = defineCollection({
+  type: 'data',
+  source: 'faq.yml',
+  schema: z.object({
+    categories: z.array(
+      z.object({
+        title: z.string(),
+        questions: z.array(
+          z.object({
+            question: z.string(),
+            answer: z.string(),
+          })
+        ),
+      })
+    ),
+  }),
+});
+
 export default defineContentConfig({
   collections: {
     index,
     team,
     downloads,
     careers,
+    faq,
   },
 });

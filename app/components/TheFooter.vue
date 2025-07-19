@@ -65,7 +65,7 @@ const menuSections = [
     title: 'Contact & Support',
     items: [
       { label: 'Contact Us', to: '/contact' },
-      { label: 'FAQ', to: '#' },
+      { label: 'FAQ', to: '/faq' },
       { label: 'Schedule a Call', to: '#' },
     ],
   },
