@@ -24,9 +24,9 @@
     "@unhead/vue": "^2.0.10",
     "@vueuse/core": "^13.3.0",
     "@vueuse/nuxt": "^13.3.0",
-    "better-sqlite3": "^12.2.0",
+    "better-sqlite3": "^11.10.0",
     "nuxt": "^3.17.5",
-    "nuxt-mcp": "^0.2.2",
+    "nuxt-mcp": "^0.2.3",
     "tailwindcss": "^4.1.10"
   },
   "devDependencies": {
