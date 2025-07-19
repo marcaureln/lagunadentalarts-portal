@@ -1,5 +1,14 @@
 import { defineContentConfig, defineCollection, z } from '@nuxt/content';
 
+const pages = defineCollection({
+  type: 'page',
+  source: 'pages/*.md',
+  schema: z.object({
+    title: z.string(),
+    description: z.string().optional(),
+  }),
+});
+
 const index = defineCollection({
   type: 'data',
   source: 'index.yml',
@@ -88,6 +97,7 @@ const faq = defineCollection({
 
 export default defineContentConfig({
   collections: {
+    pages,
     index,
     team,
     downloads,

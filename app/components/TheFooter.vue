@@ -72,8 +72,8 @@ const menuSections = [
   {
     title: 'Legal',
     items: [
-      { label: 'Terms & Conditions', to: '#' },
-      { label: 'Privacy Policy', to: '#' },
+      { label: 'Terms & Conditions', to: '/terms' },
+      { label: 'Privacy Policy', to: '/privacy' },
     ],
   },
 ];
