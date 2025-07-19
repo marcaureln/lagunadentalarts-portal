@@ -1,0 +1,24 @@
+jobs:
+  - title: 'Dental Technician'
+    department: 'Lab'
+    location: 'Elk Grove, CA'
+    type: 'Full-Time'
+    expiresAt: '2025-09-01'
+
+  - title: 'Customer Service Representative'
+    department: 'Customer Service'
+    location: 'Elk Grove, CA'
+    type: 'Full-Time'
+    expiresAt: '2025-07-01'
+
+  - title: 'Account Executive'
+    department: 'Sales'
+    location: 'Elk Grove, CA'
+    type: 'Full-Time'
+    expiresAt: '2025-10-01'
+
+  - title: 'Digital Scan & CAD/CAM Specialists'
+    department: 'Lab'
+    location: 'Elk Grove, CA'
+    type: 'Full-Time'
+    expiresAt: '2025-08-30'

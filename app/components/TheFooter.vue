@@ -55,9 +55,9 @@ const menuSections = [
     title: 'About the Lab',
     items: [
       { label: 'About Us', to: '/about' },
-      { label: 'Our Team', to: '#' },
+      { label: 'Our Team', to: '/team' },
       { label: 'Why Choose Us', to: '#' },
-      { label: 'Careers', to: '#' },
+      { label: 'Careers', to: '/careers' },
       { label: 'Testimonials', to: '#' },
     ],
   },

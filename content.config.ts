@@ -50,10 +50,29 @@ const downloads = defineCollection({
   }),
 });
 
+const careers = defineCollection({
+  type: 'data',
+  source: 'careers.yml',
+  schema: z.object({
+    jobs: z.array(
+      z.object({
+        title: z.string(),
+        department: z.string(),
+        location: z.string(),
+        type: z.string(),
+        expiresAt: z.string(),
+        description: z.string().optional(),
+        requirements: z.array(z.string()).optional(),
+      })
+    ),
+  }),
+});
+
 export default defineContentConfig({
   collections: {
     index,
     team,
     downloads,
+    careers,
   },
 });
