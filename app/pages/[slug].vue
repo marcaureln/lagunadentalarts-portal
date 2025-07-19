@@ -5,7 +5,7 @@
         <div
           class="prose prose-lg prose-headings:text-gray-900 prose-p:text-gray-600 prose-a:text-blue-600 prose-a:no-underline prose-strong:text-gray-900 prose-ul:text-gray-600 prose-li:text-gray-600 mx-auto max-w-4xl"
         >
-          <ContentRenderer :value="post" />
+          <ContentRenderer v-if="page" :value="page" />
         </div>
       </div>
     </div>
@@ -14,12 +14,16 @@
 
 <script lang="ts" setup>
 const slug = useRoute().params.slug;
-const { data: post } = await useAsyncData(`page-${slug}`, () => {
+const { data: page } = await useAsyncData(`page-${slug}`, () => {
   return queryCollection('pages').path(`/pages/${slug}`).first();
 });
 
+if (!page.value) {
+  throw createError({ statusCode: 404, statusMessage: 'Page not found', fatal: true });
+}
+
 useSeoMeta({
-  title: post.value?.title,
-  description: post.value?.description,
+  title: page.value?.title,
+  description: page.value?.description,
 });
 </script>
