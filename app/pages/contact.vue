@@ -83,15 +83,17 @@
       <div class="mt-8 min-w-[220px] max-w-sm flex-1 md:mt-0">
         <h3 class="mb-5 text-base font-semibold">Get in Touch?</h3>
         <ul class="space-y-6 text-base text-gray-800">
-          <li class="flex items-center gap-3">
-            <div class="flex h-9 w-9 items-center justify-center rounded-full bg-gray-200">
-              <Icon name="ri:store-line" />
-            </div>
-            <div>
-              <span class="font-semibold">Address</span><br />
-              9152 Elkmont Way, Elk Grove, CA 95624
-            </div>
-          </li>
+          <NuxtLink to="geo:38.38453315466721, -121.359543909792" class="inline-block hover:text-blue-700">
+            <li class="flex items-center gap-3">
+              <div class="flex h-9 w-9 items-center justify-center rounded-full bg-gray-200">
+                <Icon name="ri:store-line" />
+              </div>
+              <div>
+                <span class="font-semibold">Address</span><br />
+                9152 Elkmont Way, Elk Grove, CA 95624
+              </div>
+            </li>
+          </NuxtLink>
           <NuxtLink to="tel:+19166881333" class="inline-block hover:text-blue-700">
             <li class="flex items-center gap-3">
               <div class="flex h-9 w-9 items-center justify-center rounded-full bg-gray-200">
