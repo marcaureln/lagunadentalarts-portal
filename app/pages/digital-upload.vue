@@ -20,6 +20,19 @@
               style="border: none"
               height="413"
             ></iframe>
+            <div class="mt-4 text-center">
+              <p class="mb-2 text-sm text-gray-600">
+                Having trouble with the upload form above?
+                <NuxtLink
+                  to="https://lagunadentalarts.app.box.com/f/a19b1b7497bd432bb8bdfa683dc8eab0"
+                  target="_blank"
+                  class="text-blue-700 hover:underline"
+                  :external="true"
+                >
+                  Click here.
+                </NuxtLink>
+              </p>
+            </div>
           </div>
         </div>
         <div class="flex-1 md:pl-8">
