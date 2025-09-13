@@ -45,7 +45,7 @@ const menuSections = [
   {
     title: 'For Dentists',
     items: [
-      { label: 'Send a Case', to: '#' },
+      { label: 'Send a Case', to: '/digital-upload' },
       // { label: 'Rush Cases', to: '#' },
       // { label: 'Digital Workflow', to: '#' },
       // { label: 'Turnaround Times', to: '#' },
