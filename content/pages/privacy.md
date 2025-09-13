@@ -17,7 +17,9 @@ As a dental laboratory, we are subject to the Health Insurance Portability and A
 ## Information We Collect
 
 ### Personal Information
+
 We may collect the following types of personal information:
+
 - Name and contact information (address, phone number, email)
 - Professional credentials and license information (for dental professionals)
 - Billing and payment information
@@ -25,14 +27,18 @@ We may collect the following types of personal information:
 - Website usage data and analytics
 
 ### Protected Health Information (PHI)
+
 As a HIPAA-covered entity, we collect and process protected health information including:
+
 - Patient dental records and case information
 - Treatment plans and prescriptions
 - Digital impressions and diagnostic images
 - Communication related to patient care
 
 ### Website Information
+
 When you visit our website, we automatically collect:
+
 - IP address and browser information
 - Pages visited and time spent on site
 - Referring websites and search terms
@@ -43,6 +49,7 @@ When you visit our website, we automatically collect:
 We use collected information for the following purposes:
 
 ### Dental Laboratory Services
+
 - Processing and completing dental cases
 - Quality assurance and case management
 - Communication with dental practices
@@ -50,12 +57,14 @@ We use collected information for the following purposes:
 - Compliance with regulatory requirements
 
 ### Business Operations
+
 - Improving our services and website
 - Customer support and technical assistance
 - Marketing communications (with consent)
 - Legal compliance and business administration
 
 ### Website Enhancement
+
 - Analyzing website performance and user experience
 - Personalizing content and services
 - Preventing fraud and ensuring security
@@ -65,6 +74,7 @@ We use collected information for the following purposes:
 We may share your information in the following circumstances:
 
 ### HIPAA-Permitted Disclosures
+
 - With dental practices for treatment purposes
 - For payment and healthcare operations
 - As required by law or court order
@@ -72,14 +82,18 @@ We may share your information in the following circumstances:
 - With business associates under HIPAA-compliant agreements
 
 ### Service Providers
+
 We may share information with trusted third-party service providers who:
+
 - Assist in our business operations
 - Provide technology and security services
 - Process payments and handle shipping
 - Comply with our privacy and security standards
 
 ### Legal Requirements
+
 We may disclose information when required to:
+
 - Comply with applicable laws and regulations
 - Respond to legal process or government requests
 - Protect our rights and property
@@ -90,18 +104,21 @@ We may disclose information when required to:
 We implement comprehensive security measures to protect your information:
 
 ### Technical Safeguards
+
 - Encryption of data in transit and at rest
 - Secure network infrastructure and firewalls
 - Regular security monitoring and updates
 - Access controls and authentication systems
 
 ### Administrative Safeguards
+
 - Employee training on privacy and security
 - Written policies and procedures
 - Regular risk assessments and audits
 - Incident response and breach notification procedures
 
 ### Physical Safeguards
+
 - Secure facilities with controlled access
 - Protection of computer systems and media
 - Secure disposal of sensitive information
@@ -112,17 +129,21 @@ We implement comprehensive security measures to protect your information:
 Under HIPAA and applicable privacy laws, you have the right to:
 
 ### Access and Correction
+
 - Request access to your protected health information
 - Request corrections to inaccurate information
 - Receive a copy of this Privacy Policy
 
 ### Restrictions and Communications
+
 - Request restrictions on use and disclosure of PHI
 - Request confidential communications
 - File complaints regarding privacy practices
 
 ### California Privacy Rights
+
 If you are a California resident, you may have additional rights under the California Consumer Privacy Act (CCPA), including:
+
 - Right to know what personal information we collect
 - Right to delete personal information
 - Right to opt-out of sale of personal information
@@ -131,6 +152,7 @@ If you are a California resident, you may have additional rights under the Calif
 ## Cookies and Tracking Technologies
 
 Our website uses cookies and similar technologies to:
+
 - Remember your preferences and settings
 - Analyze website traffic and performance
 - Provide personalized content and advertisements
@@ -153,6 +175,7 @@ Your information may be transferred to and processed in the United States or oth
 ## Data Retention
 
 We retain personal information for as long as necessary to:
+
 - Provide our services and fulfill contractual obligations
 - Comply with legal and regulatory requirements
 - Resolve disputes and enforce agreements
@@ -163,6 +186,7 @@ For protected health information, we follow HIPAA retention requirements and app
 ## Changes to This Privacy Policy
 
 We may update this Privacy Policy periodically to reflect changes in our practices or applicable laws. We will notify you of material changes by:
+
 - Posting the updated policy on our website
 - Sending email notifications to registered users
 - Providing notice as required by law
@@ -172,13 +196,12 @@ We may update this Privacy Policy periodically to reflect changes in our practic
 If you have questions about this Privacy Policy or wish to exercise your privacy rights, please contact us:
 
 **Laguna Dental Arts**  
-Email: privacy@lagunadentalarts.com  
-Phone: (916) XXX-XXXX  
-Address: [Your Address]  
-Elk Grove, CA
+Email: dev@lagunadentalarts.com  
+Phone: (916) 688-1333
+Address: 9152 Elkmont Way, Elk Grove, CA 95624
 
-**Privacy Officer:** [Name]  
-Email: privacy@lagunadentalarts.com
+**Privacy Officer:** Tomi Odunlami
+Email: todunlami@lagunadentalarts.com
 
 For HIPAA-related complaints, you may also contact:
 **U.S. Department of Health and Human Services**  
@@ -187,4 +210,4 @@ Website: www.hhs.gov/ocr/privacy/
 
 ---
 
-*This Privacy Policy is designed to comply with HIPAA, CCPA, and other applicable privacy laws. It should be reviewed by legal counsel to ensure compliance with all applicable requirements.*
+_This Privacy Policy is designed to comply with HIPAA, CCPA, and other applicable privacy laws. It should be reviewed by legal counsel to ensure compliance with all applicable requirements._
