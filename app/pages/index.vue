@@ -4,7 +4,7 @@
     <HomeAbout :featured-numbers="index?.featuredNumbers ?? []" />
     <HomeProducts />
     <HomeTeam v-if="showcasedTeamMembers.length > 0" :team="showcasedTeamMembers" />
-    <HomeTestimonials :testimonials="index?.testimonials ?? []" />
+    <HomeTestimonials v-if="index?.testimonials && index.testimonials.length > 0" :testimonials="index.testimonials" />
     <HomeCTA />
   </main>
 </template>

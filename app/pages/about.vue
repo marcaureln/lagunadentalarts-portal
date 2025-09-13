@@ -3,7 +3,7 @@
     <AboutHero />
     <AboutWhatSetsUsApart />
     <AboutCommitment />
-    <AboutTeam :team="team?.team ?? []" />
+    <AboutTeam v-if="teamCollection?.team && teamCollection.team.length > 0" :team="teamCollection.team" />
     <AboutCTA />
   </main>
 </template>
@@ -15,5 +15,5 @@ useSeoMeta({
     'Learn about our precision-driven, relationship-focused, patient-inspired approach to dental laboratory services.',
 });
 
-const { data: team } = await useAsyncData('team-about', () => queryCollection('team').first());
+const { data: teamCollection } = await useAsyncData('team', () => queryCollection('team').first());
 </script>
