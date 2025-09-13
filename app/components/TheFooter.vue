@@ -9,13 +9,14 @@
         </div>
         <div class="text-gray-500">© 2025 Laguna Dental Arts. All rights reserved.</div>
         <div class="mt-2 flex gap-9">
-          <NuxtLink to="#" class="text-gray-500 hover:text-blue-700" external>
-            <Icon name="ri:facebook-fill" size="24px" />
-          </NuxtLink>
-          <NuxtLink to="#" class="text-gray-500 hover:text-blue-700" external>
+          <NuxtLink to="https://instagram.com/lagunadentalarts" class="text-gray-500 hover:text-blue-700" external>
             <Icon name="ri:instagram-line" size="24px" />
           </NuxtLink>
-          <NuxtLink to="#" class="text-gray-500 hover:text-blue-700" external>
+          <NuxtLink
+            to="https://www.linkedin.com/company/laguna-dental-arts"
+            class="text-gray-500 hover:text-blue-700"
+            external
+          >
             <Icon name="ri:linkedin-fill" size="24px" />
           </NuxtLink>
         </div>
