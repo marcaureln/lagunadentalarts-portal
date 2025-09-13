@@ -26,7 +26,14 @@
           <div class="mb-3 text-gray-500">{{ section.title }}</div>
           <ul class="space-y-1">
             <li v-for="(item, j) in section.items" :key="j">
-              <NuxtLink :to="item.to" class="leading-7 hover:text-blue-700">{{ item.label }}</NuxtLink>
+              <NuxtLink
+                :to="item.to"
+                class="leading-7 hover:text-blue-700"
+                :target="item.to.startsWith('http') ? '_blank' : '_self'"
+                :external="item.to.startsWith('http')"
+              >
+                {{ item.label }}
+              </NuxtLink>
             </li>
           </ul>
         </div>
