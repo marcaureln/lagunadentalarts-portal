@@ -3,10 +3,7 @@
     <HomeHero />
     <HomeAbout :featured-numbers="index?.featuredNumbers ?? []" />
     <HomeProducts />
-    <HomeTeam
-      v-if="teamData && !teamData.team.length"
-      :team="teamData.team.filter((member: any) => member.showOnHome)"
-    />
+    <HomeTeam v-if="showcasedTeamMembers.length > 0" :team="showcasedTeamMembers" />
     <HomeTestimonials :testimonials="index?.testimonials ?? []" />
     <HomeCTA />
   </main>
@@ -18,5 +15,11 @@ useSeoMeta({
 });
 
 const { data: index } = await useAsyncData('index', () => queryCollection('index').first());
-const { data: teamData } = await useAsyncData('team', () => queryCollection('team').first());
+const { data: teamCollection } = await useAsyncData('team', () => queryCollection('team').first());
+
+const showcasedTeamMembers = computed(() => {
+  if (!teamCollection.value?.team) return [];
+
+  return teamCollection.value.team.filter((member) => member.showOnHome);
+});
 </script>
