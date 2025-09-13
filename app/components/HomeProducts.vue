@@ -39,9 +39,5 @@ const products = [
     title: 'Orthodontics',
     desc: 'Clear aligners, retainers, and appliances for every age—customized for comfort and compliance.',
   },
-  {
-    title: 'Chair Side Conversations',
-    desc: 'We support your team with digital case planning, communication, and education for better patient outcomes.',
-  },
 ];
 </script>
