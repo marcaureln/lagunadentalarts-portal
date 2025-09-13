@@ -67,7 +67,7 @@ const menuSections = [
     items: [
       { label: 'Contact Us', to: '/contact' },
       // { label: 'FAQ', to: '/faq' },
-      { label: 'Schedule a Call', to: '#' },
+      { label: 'Schedule a Call', to: 'https://calendly.com/jzajmi-lagunadentalarts/15min' },
     ],
   },
   {
