@@ -87,28 +87,28 @@
             </div>
             <div>
               <span class="font-semibold">Address</span><br />
-              8821 Sheldon Rd # 100, Elk Grove, CA 95624
+              9152 Elkmont Way, Elk Grove, CA 95624
             </div>
           </li>
-          <NuxtLink to="tel:+19166881323" class="inline-block hover:text-blue-700">
+          <NuxtLink to="tel:+19166881333" class="inline-block hover:text-blue-700">
             <li class="flex items-center gap-3">
               <div class="flex h-9 w-9 items-center justify-center rounded-full bg-gray-200">
                 <Icon name="ri:phone-fill" />
               </div>
               <div>
                 <span class="font-semibold">Phone</span><br />
-                +1 (916) 688-1323
+                +1 (916) 688-1333
               </div>
             </li>
           </NuxtLink>
-          <NuxtLink to="mailto:info@lagunadentalarts.com" class="inline-block hover:text-blue-700">
+          <NuxtLink to="mailto:digital@lagunadentalarts.com" class="inline-block hover:text-blue-700">
             <li class="flex items-center gap-3">
               <div class="flex h-9 w-9 items-center justify-center rounded-full bg-gray-200">
                 <Icon name="ri:mail-fill" />
               </div>
               <div>
                 <span class="font-semibold">Email</span><br />
-                info@lagunadentalarts.com
+                digital@lagunadentalarts.com
               </div>
             </li>
           </NuxtLink>
