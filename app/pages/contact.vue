@@ -9,7 +9,9 @@
     <div class="flex flex-wrap gap-12">
       <div class="min-w-sm max-w-xl flex-1">
         <h2 class="mb-4 text-lg font-semibold">Work with us</h2>
-        <form class="flex flex-col gap-3" action="https://formspree.io/f/mnnvlwyk" method="POST">
+        <form class="flex flex-col gap-3" action="https://api.web3forms.com/submit" method="POST">
+          <input type="hidden" name="access_key" value="11f34bcf-e686-4be4-92c0-d6ad00d27cd6" />
+
           <div class="flex gap-3">
             <input
               type="text"
