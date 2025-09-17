@@ -95,6 +95,19 @@ const faq = defineCollection({
   }),
 });
 
+const products = defineCollection({
+  type: 'data',
+  source: 'products.yml',
+  schema: z.object({
+    products: z.array(
+      z.object({
+        title: z.string(),
+        desc: z.string(),
+      })
+    ),
+  }),
+});
+
 export default defineContentConfig({
   collections: {
     pages,
@@ -103,5 +116,6 @@ export default defineContentConfig({
     downloads,
     careers,
     faq,
+    products,
   },
 });
