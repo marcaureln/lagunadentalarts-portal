@@ -99,10 +99,16 @@ const products = defineCollection({
   type: 'data',
   source: 'products.yml',
   schema: z.object({
+    hero: z.object({
+      title: z.string(),
+      description: z.string(),
+    }),
     products: z.array(
       z.object({
         title: z.string(),
         desc: z.string(),
+        detailedDesc: z.string(),
+        image: z.string().optional(),
       })
     ),
   }),

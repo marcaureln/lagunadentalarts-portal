@@ -15,7 +15,9 @@
         <p class="mb-12 font-light text-gray-800">
           We’re here to make your work easier—with responsive support and exceptional results, every time.
         </p>
-        <button class="rounded-4xl bg-blue-700 px-6 py-3 text-white hover:bg-blue-800">See what we do</button>
+        <NuxtLink to="/products" class="rounded-4xl bg-blue-700 px-6 py-3 text-white hover:bg-blue-800">
+          See what we do
+        </NuxtLink>
       </div>
     </div>
   </section>
