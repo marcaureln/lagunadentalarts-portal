@@ -6,13 +6,13 @@
       telephone. Our drivers are in the Sacramento area daily, so dropping off supplies or picking up cases are right on
       our way! Please contact us and let us know when is a good time to get back to you.
     </p>
-    <div class="flex flex-wrap gap-12">
+    <div class="flex flex-col gap-12 lg:flex-row">
       <div class="min-w-sm max-w-xl flex-1">
         <h2 class="mb-4 text-lg font-semibold">Work with us</h2>
         <form class="flex flex-col gap-3" action="https://api.web3forms.com/submit" method="POST">
           <input type="hidden" name="access_key" value="11f34bcf-e686-4be4-92c0-d6ad00d27cd6" />
 
-          <div class="flex gap-3">
+          <div class="flex flex-col gap-3 sm:flex-row">
             <input
               type="text"
               name="dentist_name"
@@ -28,7 +28,7 @@
               required
             />
           </div>
-          <div class="flex gap-3">
+          <div class="flex flex-col gap-3 sm:flex-row">
             <input
               type="email"
               name="email"
@@ -44,7 +44,7 @@
               required
             />
           </div>
-          <div class="flex gap-3">
+          <div class="flex flex-col gap-3 sm:flex-row">
             <input
               type="text"
               name="practice_city"
@@ -80,7 +80,7 @@
           />
         </form>
       </div>
-      <div class="mt-8 min-w-[220px] max-w-sm flex-1 md:mt-0">
+      <div class="min-w-[220px] max-w-sm flex-1">
         <h3 class="mb-5 text-base font-semibold">Get in Touch?</h3>
         <ul class="space-y-6 text-base text-gray-800">
           <NuxtLink to="geo:38.38453315466721, -121.359543909792" class="inline-block hover:text-blue-700">
