@@ -4,7 +4,7 @@
       class="container mx-auto flex flex-col items-center justify-around gap-9 rounded-xl bg-gray-50 p-12 px-4 md:flex-row md:px-8"
     >
       <NuxtImg
-        src="/dental-lab.jpg"
+        src="/dental-lab.webp"
         alt="Laguna Dental Arts Building"
         height="500"
         width="500"

@@ -9,7 +9,7 @@
 
       <div class="mb-8 flex flex-col items-center gap-8 md:flex-row">
         <NuxtImg
-          src="/home-about.jpg"
+          src="/home-about.webp"
           alt="Jonathan Borba Yui on Unsplash"
           width="500"
           height="500"

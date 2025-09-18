@@ -11,7 +11,7 @@
 
       <div class="mb-12">
         <NuxtImg
-          src="/dental-lab.jpg"
+          src="/dental-lab.webp"
           alt="Laguna Dental Arts Building"
           height="400"
           class="w-full rounded-2xl object-cover"

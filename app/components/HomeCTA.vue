@@ -19,7 +19,7 @@
       </div>
       <div class="flex flex-1 flex-col items-center">
         <div class="relative flex w-full max-w-lg flex-col items-center overflow-hidden rounded-2xl">
-          <NuxtImg src="/home-about.jpg" alt="Dental Lab" class="aspect-square w-full object-cover" />
+          <NuxtImg src="/home-about.webp" alt="Dental Lab" class="aspect-square w-full object-cover" />
           <NuxtLink
             to="/digital-upload"
             class="absolute bottom-6 rounded-full bg-white px-6 py-3 text-blue-700 transition-colors hover:bg-blue-50"
