@@ -30,6 +30,7 @@
               {{ product.detailedDesc }}
             </p>
             <button
+              v-if="false"
               class="inline-flex items-center gap-2 rounded-full bg-blue-600 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-700"
             >
               Learn More
