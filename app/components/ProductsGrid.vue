@@ -27,7 +27,7 @@
               {{ product.title }}
             </h2>
             <p class="text-lg leading-relaxed text-gray-600">
-              {{ product.detailedDesc }}
+              {{ product.desc }}
             </p>
             <button
               v-if="false"
@@ -47,7 +47,6 @@
 interface Product {
   title: string;
   desc: string;
-  detailedDesc: string;
   image?: string;
 }
 

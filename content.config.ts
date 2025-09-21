@@ -107,7 +107,6 @@ const products = defineCollection({
       z.object({
         title: z.string(),
         desc: z.string(),
-        detailedDesc: z.string(),
         image: z.string().optional(),
       })
     ),

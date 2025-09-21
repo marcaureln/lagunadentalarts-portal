@@ -5,25 +5,20 @@ hero:
 products:
   - title: Crown & Bridge
     desc: From full-contour to highly esthetic work and Zirconia, our team delivers beautiful, strong, and consistent results.
-    detailedDesc: Our crown and bridge solutions are designed digitally and milled for the best fit, while the finishing touches are added by hand.
     image: /products/crown_&_bridge.webp
 
   - title: Implant Supported
-    desc: Precise implant analogs and confidence back to your cases, including custom abutments and digital workflows.
-    detailedDesc: Our crown and bridge solutions are designed digitally and milled for the best fit, while the finishing touches are added by hand.
+    desc: Reliable, esthetic, and durable restorations designed to integrate seamlessly with implant systems, providing long-term stability and patient satisfaction.
     image: /products/implant_supported.webp
 
-  - title: Removeables
-    desc: From partials to dentures and flexible options, our lab balances esthetics and function for every patient.
-    detailedDesc: Our crown and bridge solutions are designed digitally and milled for the best fit, while the finishing touches are added by hand.
+  - title: Removable
+    desc: From partials to full dentures, our removable solutions combine comfort, function, and esthetics for predictable patient outcomes.
     image: /products/removables.webp
 
   - title: Surgical Guides
-    desc: We design and fabricate guides for predictable, accurate implant placement and restorative success.
-    detailedDesc: Our crown and bridge solutions are designed digitally and milled for the best fit, while the finishing touches are added by hand.
+    desc: Digitally designed guides that enhance accuracy, efficiency, and confidence during implant placement, reducing chair time and complications.
     image: /products/surgical_guides.webp
 
   - title: Orthodontics
-    desc: Clear aligners, retainers, and appliances for every age—customized for comfort and compliance.
-    detailedDesc: Our crown and bridge solutions are designed digitally and milled for the best fit, while the finishing touches are added by hand.
+    desc: A full line of orthodontic appliances — including retainers, expanders, and splints — crafted with precision to support predictable treatment results.
     image: /products/orthodontics.webp
