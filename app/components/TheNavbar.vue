@@ -6,7 +6,7 @@
       </NuxtLink>
 
       <!-- Desktop Navigation -->
-      <nav class="hidden gap-9 text-sm text-gray-700 md:flex">
+      <nav class="hidden gap-9 text-gray-700 md:flex">
         <NuxtLink to="/" class="hover:text-blue-700">Home</NuxtLink>
         <NuxtLink to="/about" class="hover:text-blue-700">About</NuxtLink>
         <NuxtLink to="/products" class="hover:text-blue-700">Products</NuxtLink>
@@ -16,12 +16,15 @@
 
       <!-- Desktop Buttons -->
       <div class="hidden gap-3 md:flex">
-        <NuxtLink to="/digital-upload" class="rounded-4xl bg-blue-700 px-4 py-2 text-xs text-white hover:bg-blue-800">
+        <NuxtLink
+          to="/digital-upload"
+          class="rounded-4xl bg-blue-700 px-4 py-2 font-normal text-white hover:bg-blue-800"
+        >
           Digital Upload
         </NuxtLink>
         <NuxtLink
           to="https://lagunadentalarts.absevolutionwebservices.com"
-          class="rounded-4xl border border-blue-700 px-4 py-2 text-xs text-blue-700 hover:bg-blue-50"
+          class="rounded-4xl border border-blue-700 px-4 py-2 font-medium text-blue-700 hover:bg-blue-50"
           external
         >
           Doctor Login
@@ -32,70 +35,50 @@
       <button
         ref="mobileMenuButton"
         class="flex flex-col items-center justify-center p-2 md:hidden"
-        @click="toggleMenu"
         aria-label="Toggle mobile menu"
+        @click="toggleMenu"
       >
-        <div class="w-6 h-0.5 bg-gray-700 mb-1 transition-transform duration-300 hamburger-line-1"></div>
-        <div class="w-6 h-0.5 bg-gray-700 mb-1 transition-opacity duration-300 hamburger-line-2"></div>
-        <div class="w-6 h-0.5 bg-gray-700 transition-transform duration-300 hamburger-line-3"></div>
+        <div class="hamburger-line-1 mb-1 h-0.5 w-6 bg-gray-700 transition-transform duration-300"></div>
+        <div class="hamburger-line-2 mb-1 h-0.5 w-6 bg-gray-700 transition-opacity duration-300"></div>
+        <div class="hamburger-line-3 h-0.5 w-6 bg-gray-700 transition-transform duration-300"></div>
       </button>
     </div>
 
     <!-- Mobile Navigation Menu -->
     <div
       ref="mobileMenu"
-      class="md:hidden transition-all duration-300 ease-in-out bg-white border-t border-gray-200 max-h-0 opacity-0 overflow-hidden"
+      class="max-h-0 overflow-hidden border-t border-gray-200 bg-white opacity-0 transition-all duration-300 ease-in-out md:hidden"
     >
       <nav class="container mx-auto px-4 py-4">
         <div class="flex flex-col gap-4">
-          <NuxtLink
-            to="/"
-            class="py-2 text-gray-700 hover:text-blue-700 transition-colors"
-            @click="closeMenu"
-          >
+          <NuxtLink to="/" class="py-2 text-gray-700 transition-colors hover:text-blue-700" @click="closeMenu">
             Home
           </NuxtLink>
-          <NuxtLink
-            to="/about"
-            class="py-2 text-gray-700 hover:text-blue-700 transition-colors"
-            @click="closeMenu"
-          >
+          <NuxtLink to="/about" class="py-2 text-gray-700 transition-colors hover:text-blue-700" @click="closeMenu">
             About
           </NuxtLink>
-          <NuxtLink
-            to="/products"
-            class="py-2 text-gray-700 hover:text-blue-700 transition-colors"
-            @click="closeMenu"
-          >
+          <NuxtLink to="/products" class="py-2 text-gray-700 transition-colors hover:text-blue-700" @click="closeMenu">
             Products
           </NuxtLink>
-          <NuxtLink
-            to="/downloads"
-            class="py-2 text-gray-700 hover:text-blue-700 transition-colors"
-            @click="closeMenu"
-          >
+          <NuxtLink to="/downloads" class="py-2 text-gray-700 transition-colors hover:text-blue-700" @click="closeMenu">
             Downloads
           </NuxtLink>
-          <NuxtLink
-            to="/contact"
-            class="py-2 text-gray-700 hover:text-blue-700 transition-colors"
-            @click="closeMenu"
-          >
+          <NuxtLink to="/contact" class="py-2 text-gray-700 transition-colors hover:text-blue-700" @click="closeMenu">
             Contact
           </NuxtLink>
 
           <!-- Mobile Buttons -->
-          <div class="flex flex-col gap-3 mt-4 pt-4 border-t border-gray-200">
+          <div class="mt-4 flex flex-col gap-3 border-t border-gray-200 pt-4">
             <NuxtLink
               to="/digital-upload"
-              class="rounded-4xl bg-blue-700 px-4 py-3 text-center text-white hover:bg-blue-800 transition-colors"
+              class="rounded-4xl bg-blue-700 px-4 py-3 text-center text-white transition-colors hover:bg-blue-800"
               @click="closeMenu"
             >
               Digital Upload
             </NuxtLink>
             <NuxtLink
               to="https://lagunadentalarts.absevolutionwebservices.com"
-              class="rounded-4xl border border-blue-700 px-4 py-3 text-center text-blue-700 hover:bg-blue-50 transition-colors"
+              class="rounded-4xl border border-blue-700 px-4 py-3 text-center text-blue-700 transition-colors hover:bg-blue-50"
               external
               @click="closeMenu"
             >
@@ -118,7 +101,7 @@ function toggleMenu() {
 
   if (mobileMenu.value) {
     if (isMenuOpen) {
-      mobileMenu.value.style.maxHeight = '24rem';
+      mobileMenu.value.style.maxHeight = '28rem';
       mobileMenu.value.style.opacity = '1';
     } else {
       mobileMenu.value.style.maxHeight = '0';
