@@ -2,147 +2,194 @@
   <header class="bg-white">
     <div class="container mx-auto flex items-center justify-between px-4 py-4 md:px-8">
       <NuxtLink to="/">
-        <NuxtImg src="/logo.png" alt="Laguna Dental Arts Logo" height="100" />
+        <NuxtImg src="/logo.png" alt="Laguna Dental Arts Logo" class="h-12 w-auto md:h-16" />
       </NuxtLink>
 
       <!-- Desktop Navigation -->
-      <nav class="hidden gap-9 text-gray-700 md:flex">
-        <NuxtLink to="/" class="hover:text-blue-700">Home</NuxtLink>
-        <NuxtLink to="/about" class="hover:text-blue-700">About</NuxtLink>
-        <NuxtLink to="/products" class="hover:text-blue-700">Products</NuxtLink>
-        <NuxtLink to="/downloads" class="hover:text-blue-700">Downloads</NuxtLink>
-        <NuxtLink to="/contact" class="hover:text-blue-700">Contact</NuxtLink>
+      <nav v-if="navLinks.length" class="hidden gap-6 text-sm text-gray-700 lg:flex xl:gap-9">
+        <NuxtLink
+          v-for="link in navLinks"
+          :key="link.to"
+          :to="link.to"
+          class="transition-colors hover:text-blue-700"
+          :class="{ 'font-semibold text-blue-700': route.path === link.to }"
+        >
+          {{ link.label }}
+        </NuxtLink>
       </nav>
 
-      <!-- Desktop Buttons -->
-      <div class="hidden gap-3 md:flex">
+      <!-- Desktop Actions -->
+      <div v-if="actions.length" class="hidden gap-2 md:flex md:gap-3">
         <NuxtLink
-          to="/digital-upload"
-          class="rounded-4xl bg-blue-700 px-4 py-2 font-normal text-white hover:bg-blue-800"
+          v-for="action in actions"
+          :key="action.to"
+          :to="action.to"
+          :external="action.external || false"
+          class="rounded-4xl px-3 py-2 text-xs font-medium transition-colors md:px-4"
+          :class="action.classes"
         >
-          Digital Upload
-        </NuxtLink>
-        <NuxtLink
-          to="https://lagunadentalarts.absevolutionwebservices.com"
-          class="rounded-4xl border border-blue-700 px-4 py-2 font-medium text-blue-700 hover:bg-blue-50"
-          external
-        >
-          Doctor Login
+          <span class="hidden sm:inline">{{ action.label }}</span>
+          <span class="sm:hidden">{{ action.short }}</span>
         </NuxtLink>
       </div>
 
       <!-- Mobile Menu Button -->
       <button
-        ref="mobileMenuButton"
-        class="flex flex-col items-center justify-center p-2 md:hidden"
-        aria-label="Toggle mobile menu"
-        @click="toggleMenu"
+        class="flex h-10 w-10 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 lg:hidden"
+        aria-label="Toggle navigation menu"
+        :aria-expanded="isMenuOpen"
+        aria-controls="mobile-menu"
+        @click="isMenuOpen = !isMenuOpen"
       >
-        <div class="hamburger-line-1 mb-1 h-0.5 w-6 bg-gray-700 transition-transform duration-300"></div>
-        <div class="hamburger-line-2 mb-1 h-0.5 w-6 bg-gray-700 transition-opacity duration-300"></div>
-        <div class="hamburger-line-3 h-0.5 w-6 bg-gray-700 transition-transform duration-300"></div>
+        <Icon :name="isMenuOpen ? 'ri:close-line' : 'ri:menu-line'" size="24px" />
       </button>
     </div>
 
     <!-- Mobile Navigation Menu -->
-    <div
-      ref="mobileMenu"
-      class="max-h-0 overflow-hidden border-t border-gray-200 bg-white opacity-0 transition-all duration-300 ease-in-out md:hidden"
-    >
-      <nav class="container mx-auto px-4 py-4">
-        <div class="flex flex-col gap-4">
-          <NuxtLink to="/" class="py-2 text-gray-700 transition-colors hover:text-blue-700" @click="closeMenu">
-            Home
-          </NuxtLink>
-          <NuxtLink to="/about" class="py-2 text-gray-700 transition-colors hover:text-blue-700" @click="closeMenu">
-            About
-          </NuxtLink>
-          <NuxtLink to="/products" class="py-2 text-gray-700 transition-colors hover:text-blue-700" @click="closeMenu">
-            Products
-          </NuxtLink>
-          <NuxtLink to="/downloads" class="py-2 text-gray-700 transition-colors hover:text-blue-700" @click="closeMenu">
-            Downloads
-          </NuxtLink>
-          <NuxtLink to="/contact" class="py-2 text-gray-700 transition-colors hover:text-blue-700" @click="closeMenu">
-            Contact
-          </NuxtLink>
-
-          <!-- Mobile Buttons -->
-          <div class="mt-4 flex flex-col gap-3 border-t border-gray-200 pt-4">
+    <Transition name="mobile-nav" appear>
+      <div
+        v-if="isMenuOpen && (navLinks.length || actions.length)"
+        id="mobile-menu"
+        class="border-t border-gray-200 bg-white lg:hidden"
+      >
+        <nav class="container mx-auto px-4 py-4">
+          <div class="space-y-1">
             <NuxtLink
-              to="/digital-upload"
-              class="rounded-4xl bg-blue-700 px-4 py-3 text-center text-white transition-colors hover:bg-blue-800"
-              @click="closeMenu"
+              v-for="link in navLinks"
+              :key="link.to"
+              :to="link.to"
+              class="block rounded-lg px-3 py-2 text-gray-700 transition-colors hover:bg-gray-100 hover:text-blue-700"
+              :class="{ 'bg-blue-50 font-medium text-blue-700': route.path === link.to }"
+              @click="closeMenu()"
             >
-              Digital Upload
-            </NuxtLink>
-            <NuxtLink
-              to="https://lagunadentalarts.absevolutionwebservices.com"
-              class="rounded-4xl border border-blue-700 px-4 py-3 text-center text-blue-700 transition-colors hover:bg-blue-50"
-              external
-              @click="closeMenu"
-            >
-              Doctor Login
+              {{ link.label }}
             </NuxtLink>
           </div>
-        </div>
-      </nav>
-    </div>
+
+          <!-- Mobile Actions -->
+          <div class="space-y-3 border-gray-200 pt-4 md:hidden">
+            <NuxtLink
+              v-for="action in actions"
+              :key="action.to"
+              :to="action.to"
+              :external="action.external || false"
+              class="rounded-4xl block px-4 py-2 text-center text-sm font-medium transition-colors"
+              :class="action.classes"
+              @click="closeMenu()"
+            >
+              {{ action.label }}
+            </NuxtLink>
+          </div>
+        </nav>
+      </div>
+    </Transition>
   </header>
 </template>
 
 <script setup lang="ts">
-const mobileMenu = ref<HTMLElement>();
-const mobileMenuButton = ref<HTMLElement>();
-let isMenuOpen = false;
-
-function toggleMenu() {
-  isMenuOpen = !isMenuOpen;
-
-  if (mobileMenu.value) {
-    if (isMenuOpen) {
-      mobileMenu.value.style.maxHeight = '28rem';
-      mobileMenu.value.style.opacity = '1';
-    } else {
-      mobileMenu.value.style.maxHeight = '0';
-      mobileMenu.value.style.opacity = '0';
-    }
-  }
-
-  // Animate hamburger button
-  if (mobileMenuButton.value) {
-    const lines = mobileMenuButton.value.querySelectorAll('div');
-    if (isMenuOpen) {
-      lines[0]?.classList.add('rotate-45', 'translate-y-1.5');
-      lines[1]?.classList.add('opacity-0');
-      lines[2]?.classList.add('-rotate-45', '-translate-y-1.5');
-    } else {
-      lines[0]?.classList.remove('rotate-45', 'translate-y-1.5');
-      lines[1]?.classList.remove('opacity-0');
-      lines[2]?.classList.remove('-rotate-45', '-translate-y-1.5');
-    }
-  }
+interface NavLink {
+  to: string;
+  label: string;
+}
+interface ActionLink {
+  to: string;
+  label: string;
+  short?: string;
+  external?: boolean;
+  classes: string;
 }
 
-function closeMenu() {
-  if (isMenuOpen) {
-    toggleMenu();
-  }
+interface Props {
+  navLinks?: NavLink[];
+  actions?: ActionLink[]; // desktop actions
 }
 
-// Close mobile menu when clicking outside
+withDefaults(defineProps<Props>(), {
+  navLinks: () => [
+    { to: '/', label: 'Home' },
+    { to: '/about', label: 'About' },
+    { to: '/products', label: 'Products' },
+    { to: '/downloads', label: 'Downloads' },
+    { to: '/contact', label: 'Contact' },
+  ],
+  actions: () => [
+    {
+      to: '/digital-upload',
+      label: 'Digital Upload',
+      short: 'Upload',
+      classes: 'bg-blue-700 text-white hover:bg-blue-800',
+    },
+    {
+      to: 'https://lagunadentalarts.absevolutionwebservices.com',
+      label: 'Doctor Login',
+      short: 'Login',
+      external: true,
+      classes: 'border border-blue-700 text-blue-700 hover:bg-blue-50',
+    },
+  ],
+});
+
+const isMenuOpen = ref(false);
+
+// Route + close behavior
+const route = useRoute();
+const closeMenu = () => {
+  isMenuOpen.value = false;
+  enableScroll();
+};
+watch(
+  () => route.path,
+  () => closeMenu()
+);
+
+// Scroll lock when menu open
+const disableScroll = () => {
+  document.documentElement.style.overflow = 'hidden';
+};
+const enableScroll = () => {
+  document.documentElement.style.overflow = '';
+};
+watch(isMenuOpen, (open) => {
+  if (open) disableScroll();
+  else enableScroll();
+});
+
+// Escape key to close
 onMounted(() => {
-  const handleClickOutside = (event: Event) => {
-    const target = event.target as Element;
-    if (isMenuOpen && !target.closest('header')) {
-      closeMenu();
-    }
+  const handler = (e: KeyboardEvent) => {
+    if (e.key === 'Escape' && isMenuOpen.value) closeMenu();
   };
-
-  document.addEventListener('click', handleClickOutside);
-
-  onUnmounted(() => {
-    document.removeEventListener('click', handleClickOutside);
-  });
+  window.addEventListener('keydown', handler);
+  onBeforeUnmount(() => window.removeEventListener('keydown', handler));
 });
 </script>
+
+<style scoped>
+/* Mobile nav transition */
+.mobile-nav-enter-active,
+.mobile-nav-leave-active {
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+.mobile-nav-enter-from,
+.mobile-nav-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+.mobile-nav-enter-to,
+.mobile-nav-leave-from {
+  opacity: 1;
+  transform: translateY(0);
+}
+@media (prefers-reduced-motion: reduce) {
+  .mobile-nav-enter-active,
+  .mobile-nav-leave-active {
+    transition: opacity 120ms linear;
+  }
+  .mobile-nav-enter-from,
+  .mobile-nav-leave-to {
+    transform: none;
+  }
+}
+</style>

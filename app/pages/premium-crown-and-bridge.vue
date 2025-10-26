@@ -1,6 +1,9 @@
 <template>
   <main>
-    <LandingNavbar />
+    <TheNavbar
+      :nav-links="[]"
+      :actions="[{ to: '#quote', label: 'Send a Case', classes: 'bg-blue-700 text-white hover:bg-blue-800' }]"
+    />
     <LandingHero />
     <LandingWhy />
     <LandingTestimonial />
