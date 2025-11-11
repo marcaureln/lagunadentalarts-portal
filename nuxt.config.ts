@@ -24,6 +24,9 @@ export default defineNuxtConfig({
     },
   },
   vite: {
+    server: {
+      // allowedHosts: true, // Uncomment this line if you are using a local tunnel like ngrok
+    },
     plugins: [
       tailwindcss(),
       {
