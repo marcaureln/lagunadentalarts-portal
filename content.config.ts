@@ -30,6 +30,14 @@ const index = defineCollection({
   }),
 });
 
+export type TeamMember = {
+  name: string;
+  role: string;
+  photo: string;
+  linkedIn?: string;
+  isShowcased: boolean;
+};
+
 const team = defineCollection({
   type: 'data',
   source: 'team.yml',
@@ -39,8 +47,8 @@ const team = defineCollection({
         name: z.string(),
         role: z.string(),
         photo: z.string(),
-        linkedIn: z.string(),
-        showOnHome: z.boolean(),
+        linkedIn: z.string().optional(),
+        isShowcased: z.boolean().default(false),
       })
     ),
   }),

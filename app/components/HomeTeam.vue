@@ -13,12 +13,9 @@
 </template>
 
 <script setup lang="ts">
+import type { TeamMember } from '~~/content.config';
+
 defineProps<{
-  team: {
-    name: string;
-    role: string;
-    linkedIn: string;
-    photo: string;
-  }[];
+  team: TeamMember[];
 }>();
 </script>

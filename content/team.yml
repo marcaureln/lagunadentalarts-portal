@@ -1,48 +1,42 @@
 team:
-  # - name: 'Jeton Zajmi'
-  #   role: 'President'
-  #   linkedIn: 'https://www.linkedin.com'
-  #   photo: 'https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/male/512/56.jpg'
-  #   showOnHome: true
+  - name: 'Jeton Zajmi'
+    role: 'President'
+    # linkedIn: 'https://www.linkedin.com'
+    photo: '/team/Jeton.webp'
+    isShowcased: false
 
-  # - name: 'Joey Kong'
-  #   role: 'General Manager'
-  #   linkedIn: 'https://www.linkedin.com'
-  #   photo: 'https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/female/512/58.jpg'
-  #   showOnHome: true
+  - name: 'Joey Kong'
+    role: 'General Manager'
+    # linkedIn: 'https://www.linkedin.com'
+    photo: '/team/Joey.webp'
+    isShowcased: false
 
-  # - name: 'Julian Inthavongxay'
-  #   role: 'Manager'
-  #   linkedIn: 'https://www.linkedin.com'
-  #   photo: 'https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/female/512/56.jpg'
-  #   showOnHome: true
+  - name: 'Umar Khan'
+    role: 'Office Manager'
+    # linkedIn: 'https://www.linkedin.com'
+    photo: '/team/Umar.webp'
+    isShowcased: false
 
-  # - name: 'Cheer Cha'
-  #   role: 'Manager'
-  #   linkedIn: 'https://www.linkedin.com'
-  #   photo: 'https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/female/512/10.jpg'
-  #   showOnHome: true
+  - name: 'Sheila Reis'
+    role: 'Sales Manager'
+    # linkedIn: 'https://www.linkedin.com'
+    photo: '/team/Sheila.webp'
+    isShowcased: false
 
-  # - name: 'Maria Rodriguez'
-  #   role: 'Senior Dental Technician'
-  #   linkedIn: 'https://www.linkedin.com'
-  #   photo: 'https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/female/512/12.jpg'
-  #   showOnHome: false
+  - name: 'Carrie Smith'
+    role: 'Orthodontics Manager'
+    # linkedIn: 'https://www.linkedin.com'
+    photo: '/team/Carrie.webp'
+    isShowcased: false
 
-  # - name: 'David Chen'
-  #   role: 'Digital Workflow Specialist'
-  #   linkedIn: 'https://www.linkedin.com'
-  #   photo: 'https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/male/512/23.jpg'
-  #   showOnHome: false
+  - name: 'Julian Inthvongxay'
+    role: 'Removable Manager'
+    # linkedIn: 'https://www.linkedin.com'
+    photo: '/team/Julian.webp'
+    isShowcased: false
 
-  # - name: 'Sarah Johnson'
-  #   role: 'Quality Assurance Manager'
-  #   linkedIn: 'https://www.linkedin.com'
-  #   photo: 'https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/female/512/34.jpg'
-  #   showOnHome: false
-
-  # - name: 'Michael Thompson'
-  #   role: 'Customer Relations Coordinator'
-  #   linkedIn: 'https://www.linkedin.com'
-  #   photo: 'https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/male/512/45.jpg'
-  #   showOnHome: false
+  - name: 'Cheer Cha'
+    role: 'Aesthetic Finishing Manager'
+    # linkedIn: 'https://www.linkedin.com'
+    photo: '/team/Cheer.webp'
+    isShowcased: false

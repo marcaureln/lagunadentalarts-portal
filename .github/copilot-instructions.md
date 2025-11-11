@@ -53,7 +53,7 @@ pnpm lint               # ESLint with Prettier
 
 - **Business content**: Edit `content/*.yml` files
 - **Page content**: Add/edit `content/pages/*.md` files
-- **Team members**: Update `content/team.yml` (set `showOnHome: true` for homepage display)
+- **Team members**: Update `content/team.yml` (set `isShowcased: true` for homepage display)
 - **Navigation**: Modify `app/components/TheNavbar.vue`
 
 ### Adding New Content Types

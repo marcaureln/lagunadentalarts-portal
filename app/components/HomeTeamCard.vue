@@ -7,7 +7,12 @@
         <div class="text-sm text-gray-500">{{ role }}</div>
       </div>
 
-      <NuxtLink :to="linkedIn" class="text-gray-500 transition hover:text-blue-700" aria-label="LinkedIn Profile">
+      <NuxtLink
+        v-if="linkedIn"
+        :to="linkedIn"
+        class="text-gray-500 transition hover:text-blue-700"
+        aria-label="LinkedIn Profile"
+      >
         <Icon name="ri:linkedin-fill" size="20px" />
       </NuxtLink>
     </div>
@@ -15,10 +20,7 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{
-  name: string;
-  role: string;
-  linkedIn: string;
-  photo: string;
-}>();
+import type { TeamMember } from '~~/content.config';
+
+defineProps<TeamMember>();
 </script>

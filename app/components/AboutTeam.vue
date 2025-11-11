@@ -16,7 +16,7 @@
             :alt="member.name"
             width="300"
             height="300"
-            class="mb-4 h-80 w-full rounded-lg bg-gray-200 object-cover"
+            class="mx-auto mb-4 h-80 w-auto rounded-lg bg-gray-200 md:object-cover"
           />
           <h3 class="mb-1 text-xl font-semibold text-gray-900">{{ member.name }}</h3>
           <p class="mb-3 text-gray-600">{{ member.role }}</p>
@@ -35,12 +35,9 @@
 </template>
 
 <script setup lang="ts">
+import type { TeamMember } from '~~/content.config';
+
 defineProps<{
-  team?: {
-    name: string;
-    role: string;
-    photo: string;
-    linkedIn?: string;
-  }[];
+  team?: TeamMember[];
 }>();
 </script>

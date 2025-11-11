@@ -108,6 +108,7 @@ withDefaults(defineProps<Props>(), {
   navLinks: () => [
     { to: '/', label: 'Home' },
     { to: '/about', label: 'About' },
+    { to: '/team', label: 'Team' },
     { to: '/products', label: 'Products' },
     { to: '/downloads', label: 'Downloads' },
     { to: '/contact', label: 'Contact' },

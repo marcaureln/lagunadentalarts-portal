@@ -20,6 +20,6 @@ const { data: teamCollection } = await useAsyncData('team', () => queryCollectio
 const showcasedTeamMembers = computed(() => {
   if (!teamCollection.value?.team) return [];
 
-  return teamCollection.value.team.filter((member) => member.showOnHome);
+  return teamCollection.value.team.filter((member) => member.isShowcased);
 });
 </script>
