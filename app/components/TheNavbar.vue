@@ -121,10 +121,9 @@ withDefaults(defineProps<Props>(), {
       classes: 'bg-blue-700 text-white hover:bg-blue-800',
     },
     {
-      to: 'https://lagunadentalarts.absevolutionwebservices.com',
+      to: '/portal/login',
       label: 'Doctor Login',
       short: 'Login',
-      external: true,
       classes: 'border border-blue-700 text-blue-700 hover:bg-blue-50',
     },
   ],
