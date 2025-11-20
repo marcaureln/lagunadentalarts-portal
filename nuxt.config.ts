@@ -59,6 +59,7 @@ export default defineNuxtConfig({
     '@nuxt/image',
     '@vueuse/nuxt',
     'nuxt-mcp',
+    'nuxt-auth-utils',
   ],
   site: {
     url: 'https://lagunadentalarts.com/',
