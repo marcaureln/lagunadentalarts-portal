@@ -2,7 +2,6 @@
   "private": true,
   "scripts": {
     "build": "prisma generate && nuxt build",
-    "heroku-postbuild": "prisma generate",
     "dev": "nuxt dev --inspect",
     "start": "node .output/server/index.mjs",
     "generate": "nuxt generate",
