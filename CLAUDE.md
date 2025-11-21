@@ -18,38 +18,56 @@ MUST FOLLOW THESE RULES, NO EXCEPTIONS
 
 ## Project Structure
 
-Keep this section up to date with the project structure. Use it as a reference to find files and directories. 
+Keep this section up to date with the project structure. Use it as a reference to find files and directories.
 
 EXAMPLES are there to illustrate the structure, not to be implemented as-is.
+
+> **⚠️ IMPORTANT: Nuxt 4 Directory Structure**
+>
+> This project uses `compatibilityVersion: 4` in `nuxt.config.ts`, which means it follows the **Nuxt 4 directory structure**.
+>
+> **Key differences from Nuxt 3:**
+>
+> - Most directories (pages, components, layouts, middleware, etc.) are now inside the `app/` folder
+> - Server-side code remains in the `server/` folder at the root
+> - Configuration files remain at the root
 
 ```
 ├── .nuxt/              # Generated files (ignored)
 ├── public/             # Static files (favicon, robots.txt)
-├── server/
+├── server/             # Server-side code (API routes, middleware, utils)
 │   ├── api/            # Server endpoints (e.g., /api/users.ts)
 │   │   ├── users.ts    # EXAMPLE file for user-related API endpoints
 │   │   └── posts.ts    # EXAMPLE file for post-related API endpoints
-│   └── middleware/     # Server middleware
-├── components/         # Reusable Vue components (auto-imported)
-│   ├── ui/             # Base UI components
-│   ├── layout/         # Layout components
-│   └── features/       # Feature-specific components
-│       └── home/
-├── composables/        # Composition functions (auto-imported)
-├── stores/             # Pinia stores
+│   ├── routes/         # Server routes (e.g., /auth/login)
+│   ├── middleware/     # Server middleware
+│   └── utils/          # Server utilities
+├── app/                # ⚠️ NUXT 4: Client-side code goes here
+│   ├── components/     # Reusable Vue components (auto-imported)
+│   │   ├── ui/         # Base UI components
+│   │   ├── layout/     # Layout components
+│   │   └── features/   # Feature-specific components
+│   │       └── home/
+│   ├── composables/    # Composition functions (auto-imported)
+│   ├── layouts/        # ⚠️ NUXT 4: Layouts are in app/layouts/
+│   │   ├── default.vue
+│   │   └── portal.vue
+│   ├── middleware/     # ⚠️ NUXT 4: Middleware is in app/middleware/
+│   │   └── auth-guard.global.ts
+│   ├── pages/          # ⚠️ NUXT 4: Pages are in app/pages/
+│   │   ├── (home).vue  # Renders at /
+│   │   ├── users/
+│   │   │   └── index.vue   # Renders at /users
+│   │   │   └── [userId].vue# Renders at /users/:userId
+│   │   └── about.vue   # Renders at /about
+│   ├── plugins/        # Vue plugins (auto-loaded)
+│   ├── utils/          # Client-side utility pure functions (auto-imported)
+│   └── app.vue         # Root Vue component
+├── assets/             # Vite-processed assets (CSS/SCSS)
+├── stores/             # Pinia stores (at root or in app/)
 ├── queries/            # Pinia Colada queries (optional, but retained for data separation)
 │   ├── users.ts        # EXAMPLE file for user-related queries
 │   └── posts.ts        # EXAMPLE file for post-related queries
-├── pages/              # Vue Router pages (file-based routing)
-│   ├── (home).vue      # Renders at /
-│   ├── users/
-│   │   └── index.vue   # Renders at /users
-│   │   └── [userId].vue# Renders at /users/:userId
-│   └── about.vue       # Renders at /about
-├── plugins/            # Vue plugins (auto-loaded)
-├── utils/              # Global utility pure functions (auto-imported)
-├── assets/             # Vite-processed assets (CSS/SCSS)
-├── app.vue             # Root Vue component (optional, but standard for custom wrappers)
 └── nuxt.config.ts      # Nuxt configuration
 
 ```
@@ -70,7 +88,6 @@ ALWAYS follow the workflow when implementing a new feature or fixing a bug. This
 1. Plan your tasks, review them with user. Include tests when possible
 2. Write code, following the [project structure](#project-structure) and [conventions](#standards)
 3. Review changes and analyze the need of refactoring
-
 
 ## Research & Documentation
 
