@@ -6,13 +6,13 @@ const navigation = computed(() => [
   {
     name: 'Home',
     href: '/portal',
-    icon: 'i-heroicons-home',
+    icon: 'i-ri-home-line',
     current: useRoute().path === '/portal'
   },
   ...(role.value === 'ADMIN' ? [{
     name: 'User Management',
     href: '/portal/admin/users',
-    icon: 'i-heroicons-users',
+    icon: 'i-ri-user-settings-line',
     current: useRoute().path.startsWith('/portal/admin')
   }] : [])
 ])
@@ -23,7 +23,7 @@ async function logout() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <UApp>
     <!-- Sidebar -->
     <div class="fixed inset-y-0 left-0 w-64 bg-white border-r border-gray-200">
       <div class="flex h-full flex-col">
@@ -57,7 +57,7 @@ async function logout() {
       <!-- Top header -->
       <header class="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-6">
         <div class="flex items-center gap-4">
-          <UIcon name="i-heroicons-magnifying-glass" class="h-5 w-5 text-gray-400" />
+          <UIcon name="i-ri-search-line" class="h-5 w-5 text-gray-400" />
         </div>
 
         <!-- User profile -->
@@ -72,9 +72,9 @@ async function logout() {
             </div>
           </div>
           <UButton
-            color="gray"
+            color="neutral"
             variant="ghost"
-            icon="i-heroicons-arrow-right-on-rectangle"
+            icon="i-ri-logout-box-r-line"
             @click="logout"
           >
             Logout
@@ -84,8 +84,8 @@ async function logout() {
 
       <!-- Page content -->
       <main class="p-6">
-        <slot />
+        <NuxtPage />
       </main>
     </div>
-  </div>
+  </UApp>
 </template>
