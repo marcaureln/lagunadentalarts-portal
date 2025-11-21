@@ -1,6 +1,17 @@
 import { prisma } from '../server/utils/prisma';
 
 async function main() {
+  const adminCount = await prisma.user.count({
+    where: {
+      role: 'ADMIN',
+    },
+  });
+
+  if (adminCount > 0) {
+    console.log(`Seeding admin skipped. ${adminCount} admin already in the database.`);
+    return;
+  }
+
   const adminEmail = 'alexmarcaureln@gmail.com';
 
   console.log(`Seeding admin user: ${adminEmail}`);
