@@ -2,16 +2,18 @@
 const { user } = useUserSession()
 const role = computed(() => (user.value as any)?.role)
 
-const links = computed(() => [
+const navigation = computed(() => [
   {
-    label: 'Dashboard',
+    name: 'Home',
+    href: '/portal',
     icon: 'i-heroicons-home',
-    to: '/portal'
+    current: useRoute().path === '/portal'
   },
   ...(role.value === 'ADMIN' ? [{
-    label: 'Users',
+    name: 'User Management',
+    href: '/portal/admin/users',
     icon: 'i-heroicons-users',
-    to: '/portal/admin/users'
+    current: useRoute().path.startsWith('/portal/admin')
   }] : [])
 ])
 
@@ -21,17 +23,53 @@ async function logout() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-    <header class="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-      <UContainer class="flex items-center justify-between h-16">
-        <div class="flex items-center gap-4">
-          <NuxtLink to="/portal" class="font-bold text-xl">Portal</NuxtLink>
-          <UHorizontalNavigation :links="links" />
+  <div class="min-h-screen bg-gray-50">
+    <!-- Sidebar -->
+    <div class="fixed inset-y-0 left-0 w-64 bg-white border-r border-gray-200">
+      <div class="flex h-full flex-col">
+        <!-- Logo -->
+        <div class="flex h-16 items-center px-6 border-b border-gray-200">
+          <img src="/logo.png" alt="Laguna Dental Arts" class="h-8 w-auto">
         </div>
-        
+
+        <!-- Navigation -->
+        <nav class="flex-1 space-y-1 px-3 py-4">
+          <NuxtLink
+            v-for="item in navigation"
+            :key="item.name"
+            :to="item.href"
+            :class="[
+              item.current
+                ? 'bg-gray-100 text-gray-900'
+                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
+              'group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium'
+            ]"
+          >
+            <UIcon :name="item.icon" class="h-5 w-5" />
+            {{ item.name }}
+          </NuxtLink>
+        </nav>
+      </div>
+    </div>
+
+    <!-- Main content -->
+    <div class="pl-64">
+      <!-- Top header -->
+      <header class="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-6">
         <div class="flex items-center gap-4">
-          <div class="text-sm text-gray-500 dark:text-gray-400">
-            {{ (user as any)?.name }} ({{ role }})
+          <UIcon name="i-heroicons-magnifying-glass" class="h-5 w-5 text-gray-400" />
+        </div>
+
+        <!-- User profile -->
+        <div class="flex items-center gap-4">
+          <div class="flex items-center gap-3">
+            <div class="flex h-10 w-10 items-center justify-center rounded-full bg-purple-600 text-white font-semibold">
+              {{ ((user as any)?.name || 'U').charAt(0).toUpperCase() }}
+            </div>
+            <div class="text-sm">
+              <div class="font-medium text-gray-900">{{ (user as any)?.name || 'User' }}</div>
+              <div class="text-gray-500">{{ role }}</div>
+            </div>
           </div>
           <UButton
             color="gray"
@@ -42,13 +80,12 @@ async function logout() {
             Logout
           </UButton>
         </div>
-      </UContainer>
-    </header>
+      </header>
 
-    <main class="p-4">
-      <UContainer>
+      <!-- Page content -->
+      <main class="p-6">
         <slot />
-      </UContainer>
-    </main>
+      </main>
+    </div>
   </div>
 </template>
