@@ -5,6 +5,8 @@ async function main() {
 
   console.log(`Seeding admin user: ${adminEmail}`);
 
+  console.log('[DEBUG] DATABASE_URL :', await prisma.user.findMany());
+
   const admin = await prisma.user.upsert({
     where: { email: adminEmail },
     update: {
