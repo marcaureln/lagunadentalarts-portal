@@ -1,2 +1,2 @@
-release: pnpm db:migrate && pnpm db:seed
+release: pnpm db:deploy
 web: pnpm start
