@@ -1,16 +1,20 @@
 {
   "private": true,
   "scripts": {
-    "build": "nuxt build",
+    "build": "prisma generate && nuxt build",
     "dev": "nuxt dev --inspect",
     "start": "node .output/server/index.mjs",
     "generate": "nuxt generate",
     "postinstall": "nuxt prepare",
+    "heroku-postbuild": "prisma generate",
     "typecheck": "nuxt typecheck",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "db:migrate:dev": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy && prisma db seed",
     "test": "echo \"No test specified\" && exit 0"
   },
   "dependencies": {
