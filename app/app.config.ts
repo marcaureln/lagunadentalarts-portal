@@ -9,5 +9,10 @@ export default defineAppConfig({
       error: 'red',
       neutral: 'slate',
     },
+    selectMenu: {
+      slots: {
+        content: 'min-w-fit',
+      },
+    },
   },
 });
