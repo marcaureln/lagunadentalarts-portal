@@ -12,6 +12,7 @@ const newUser = reactive({
 
 const isSubmitting = ref(false);
 const error = ref('');
+const toast = useToast();
 
 const resetForm = () => {
   newUser.email = '';
@@ -27,11 +28,13 @@ const addUser = async () => {
       method: 'POST',
       body: newUser,
     });
+    toast.add({ description: 'User added successfully', color: 'success' });
     resetForm();
     emit('success');
   } catch (e: unknown) {
     error.value = 'Failed to add user';
     console.error('Failed to add user', e);
+    toast.add({ description: 'Failed to add user', color: 'error' });
   } finally {
     isSubmitting.value = false;
   }
@@ -75,7 +78,15 @@ const addUser = async () => {
         <template #footer>
           <div class="flex justify-end gap-3">
             <UButton color="neutral" variant="ghost" @click="close"> Cancel </UButton>
-            <UButton :loading="isSubmitting" @click="addUser"> Add User </UButton>
+            <UButton
+              :loading="isSubmitting"
+              @click="
+                addUser();
+                close();
+              "
+            >
+              Add User
+            </UButton>
           </div>
         </template>
       </UCard>

@@ -2,6 +2,7 @@
 import type { User } from '~~/shared/utils/users';
 
 const props = defineProps<{ user: User }>();
+const toast = useToast();
 
 const emit = defineEmits<{
   success: [];
@@ -12,9 +13,11 @@ const deleteUser = async () => {
     await $fetch(`/api/admin/users/${props.user.id}`, {
       method: 'DELETE',
     });
+    toast.add({ description: 'User deleted successfully', color: 'success' });
     emit('success');
   } catch (e) {
     console.error('Failed to delete user', e);
+    toast.add({ description: 'Failed to delete user', color: 'error' });
   }
 };
 </script>
@@ -42,7 +45,15 @@ const deleteUser = async () => {
         <template #footer>
           <div class="flex justify-end gap-3">
             <UButton color="neutral" variant="ghost" @click="close"> Cancel </UButton>
-            <UButton color="error" @click="deleteUser"> Delete </UButton>
+            <UButton
+              color="error"
+              @click="
+                deleteUser();
+                close();
+              "
+            >
+              Delete
+            </UButton>
           </div>
         </template>
       </UCard>
