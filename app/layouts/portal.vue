@@ -1,35 +1,41 @@
 <script setup lang="ts">
-const { user } = useUserSession()
-const role = computed(() => (user.value as any)?.role)
+import { getRoleLabel } from '~~/shared/utils/users';
+
+const { user } = useUserSession();
+const role = computed(() => getRoleLabel(user.value?.role));
 
 const navigation = computed(() => [
   {
     name: 'Home',
     href: '/portal',
     icon: 'i-ri-home-line',
-    current: useRoute().path === '/portal'
+    current: useRoute().path === '/portal',
   },
-  ...(role.value === 'ADMIN' ? [{
-    name: 'User Management',
-    href: '/portal/admin/users',
-    icon: 'i-ri-user-settings-line',
-    current: useRoute().path.startsWith('/portal/admin')
-  }] : [])
-])
+  ...(user.value?.role === 'ADMIN'
+    ? [
+        {
+          name: 'User Management',
+          href: '/portal/admin/users',
+          icon: 'i-ri-user-settings-line',
+          current: useRoute().path.startsWith('/portal/admin'),
+        },
+      ]
+    : []),
+]);
 
 async function logout() {
-  await navigateTo('/auth/logout', { external: true })
+  await navigateTo('/auth/logout', { external: true });
 }
 </script>
 
 <template>
   <UApp>
     <!-- Sidebar -->
-    <div class="fixed inset-y-0 left-0 w-64 bg-white border-r border-gray-200">
+    <div class="fixed inset-y-0 left-0 w-64 border-r border-gray-200 bg-white">
       <div class="flex h-full flex-col">
         <!-- Logo -->
-        <div class="flex h-16 items-center px-6 border-b border-gray-200">
-          <img src="/logo.png" alt="Laguna Dental Arts" class="h-8 w-auto">
+        <div class="flex h-16 items-center border-b border-gray-200 px-6">
+          <img src="/logo.png" alt="Laguna Dental Arts" class="h-8 w-auto" />
         </div>
 
         <!-- Navigation -->
@@ -39,10 +45,8 @@ async function logout() {
             :key="item.name"
             :to="item.href"
             :class="[
-              item.current
-                ? 'bg-gray-100 text-gray-900'
-                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
-              'group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium'
+              item.current ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
+              'group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium',
             ]"
           >
             <UIcon :name="item.icon" class="h-5 w-5" />
@@ -63,7 +67,7 @@ async function logout() {
         <!-- User profile -->
         <div class="flex items-center gap-4">
           <div class="flex items-center gap-3">
-            <div class="flex h-10 w-10 items-center justify-center rounded-full bg-purple-600 text-white font-semibold">
+            <div class="flex h-10 w-10 items-center justify-center rounded-full bg-purple-600 font-semibold text-white">
               {{ ((user as any)?.name || 'U').charAt(0).toUpperCase() }}
             </div>
             <div class="text-sm">
@@ -71,14 +75,7 @@ async function logout() {
               <div class="text-gray-500">{{ role }}</div>
             </div>
           </div>
-          <UButton
-            color="neutral"
-            variant="ghost"
-            icon="i-ri-logout-box-r-line"
-            @click="logout"
-          >
-            Logout
-          </UButton>
+          <UButton color="neutral" variant="ghost" icon="i-ri-logout-box-r-line" @click="logout"> Logout </UButton>
         </div>
       </header>
 

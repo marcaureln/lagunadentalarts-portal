@@ -1,22 +1,18 @@
 <script setup lang="ts">
-const { user } = useUserSession()
-const userData = computed(() => user.value as any)
-const role = computed(() => userData.value?.role)
+import { getRoleLabel } from '~~/shared/utils/users';
+
+const { user } = useUserSession();
 
 definePageMeta({
   layout: 'portal',
-})
+});
 </script>
 
 <template>
   <div>
     <div class="mb-8">
-      <h1 class="text-3xl font-bold text-gray-900">
-        Dashboard
-      </h1>
-      <p class="mt-2 text-sm text-gray-600">
-        Welcome back, {{ userData?.name }}!
-      </p>
+      <h1 class="text-3xl font-bold text-gray-900">Dashboard</h1>
+      <p class="mt-2 text-sm text-gray-600">Welcome back, {{ user?.name }}!</p>
     </div>
 
     <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -33,15 +29,15 @@ definePageMeta({
         <div class="space-y-3">
           <div>
             <p class="text-sm text-gray-500">Name</p>
-            <p class="font-medium">{{ userData?.name }}</p>
+            <p class="font-medium">{{ user?.name }}</p>
           </div>
           <div>
             <p class="text-sm text-gray-500">Email</p>
-            <p class="font-medium">{{ userData?.email }}</p>
+            <p class="font-medium">{{ user?.email }}</p>
           </div>
           <div>
             <p class="text-sm text-gray-500">Role</p>
-            <UBadge color="primary" variant="soft">{{ role }}</UBadge>
+            <UBadge color="primary" variant="soft">{{ getRoleLabel(user.role) }}</UBadge>
           </div>
         </div>
       </UCard>
