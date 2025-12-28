@@ -4,8 +4,10 @@ import type { UserRole } from '~~/server/types/user';
 export type { User, UserRole } from '~~/server/types/user';
 
 export const roleOptions: Array<{ label: string; value: UserRole }> = [
-  { label: 'Practice Staff', value: 'PRACTICESTAFF' },
+  { label: 'Staff', value: 'USER' },
   { label: 'Admin', value: 'ADMIN' },
+  { label: 'Practice Staff', value: 'PRACTICE_STAFF' },
+  { label: 'Practice Admin', value: 'PRACTICE_ADMIN' },
 ];
 
 export function getRoleLabel(role: UserRole | null): string {

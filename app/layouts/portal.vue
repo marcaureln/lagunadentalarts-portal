@@ -1,27 +1,17 @@
 <script setup lang="ts">
 import { getRoleLabel } from '~~/shared/utils/users';
+import { permissions } from '~~/shared/utils/permissions';
 
 const { user } = useUserSession();
 const role = computed(() => getRoleLabel(user.value?.role));
 
-const navigation = computed(() => [
-  {
-    name: 'Home',
-    href: '/portal',
-    icon: 'i-ri-home-line',
-    current: useRoute().path === '/portal',
-  },
-  ...(user.value?.role === 'ADMIN'
-    ? [
-        {
-          name: 'User Management',
-          href: '/portal/admin/users',
-          icon: 'i-ri-user-settings-line',
-          current: useRoute().path.startsWith('/portal/admin'),
-        },
-      ]
-    : []),
-]);
+const navigation = computed(() => {
+  const currentPath = useRoute().path;
+  return permissions.getAccessibleRoutes(user.value?.role).map((item) => ({
+    ...item,
+    current: item.href === currentPath || (item.href !== '/portal' && currentPath.startsWith(item.href)),
+  }));
+});
 
 async function logout() {
   await navigateTo('/auth/logout', { external: true });

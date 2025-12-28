@@ -1,44 +1,81 @@
 <script setup lang="ts">
 import { roleOptions, type UserRole } from '~~/shared/utils/users';
+import type { Practice } from '~~/shared/types/practice';
 
 const emit = defineEmits<{
   success: [];
 }>();
 
+const { data: practices } = await useFetch<Practice[]>('/api/practices');
+
 const newUser = reactive({
   email: '',
-  role: 'PRACTICESTAFF' as UserRole,
+  name: '',
+  role: 'USER' as UserRole,
+  practiceId: '' as string | undefined,
 });
 
 const isSubmitting = ref(false);
 const error = ref('');
 const toast = useToast();
 
+const filteredRoleOptions = computed(() => {
+  return roleOptions.filter(() => {
+    // All roles are available for admin users
+    return true;
+  });
+});
+
+const isPracticeRole = computed(() => {
+  return ['PRACTICE_STAFF', 'PRACTICE_ADMIN'].includes(newUser.role);
+});
+
 const resetForm = () => {
   newUser.email = '';
-  newUser.role = 'PRACTICESTAFF';
+  newUser.name = '';
+  newUser.role = 'USER';
+  newUser.practiceId = '';
   error.value = '';
 };
 
 const addUser = async () => {
   isSubmitting.value = true;
   error.value = '';
+
   try {
+    const payload = {
+      email: newUser.email,
+      name: newUser.name,
+      role: newUser.role,
+      ...(isPracticeRole.value && { practiceId: newUser.practiceId }),
+    };
+
     await $fetch('/api/admin/users', {
       method: 'POST',
-      body: newUser,
+      body: payload,
     });
+
     toast.add({ description: 'User added successfully', color: 'success' });
     resetForm();
     emit('success');
   } catch (e: unknown) {
     error.value = 'Failed to add user';
     console.error('Failed to add user', e);
-    toast.add({ description: 'Failed to add user', color: 'error' });
+    toast.add({ description: error.value, color: 'error' });
   } finally {
     isSubmitting.value = false;
   }
 };
+
+// Reset practiceId when role changes
+watch(
+  () => newUser.role,
+  () => {
+    if (!isPracticeRole.value) {
+      newUser.practiceId = '';
+    }
+  }
+);
 </script>
 
 <template>
@@ -53,7 +90,8 @@ const addUser = async () => {
 
         <div class="space-y-4">
           <p class="text-sm text-gray-600">
-            Add a new user to the allowlist. They will be able to sign in with their Microsoft account.
+            Add a new user to the system. LDA users will sign in with Microsoft, while practice users will use
+            email/password.
           </p>
 
           <div>
@@ -62,14 +100,34 @@ const addUser = async () => {
           </div>
 
           <div>
+            <label for="name" class="mb-1 block text-sm font-medium text-gray-700">Name</label>
+            <UInput id="name" v-model="newUser.name" placeholder="Full name" />
+          </div>
+
+          <div>
             <label for="role" class="mb-1 block text-sm font-medium text-gray-700">Role *</label>
             <USelectMenu
               id="role"
               v-model="newUser.role"
-              :items="roleOptions"
+              :items="filteredRoleOptions"
               value-key="value"
+              label-key="label"
               :search-input="false"
             />
+          </div>
+
+          <div v-if="isPracticeRole">
+            <label for="practice" class="mb-1 block text-sm font-medium text-gray-700">Practice *</label>
+            <USelectMenu
+              id="practice"
+              v-model="newUser.practiceId"
+              :items="practices || []"
+              value-key="id"
+              label-key="name"
+              placeholder="Select a practice"
+              :search-input="false"
+            />
+            <p class="mt-1 text-xs text-gray-500">Practice users will use email/password authentication</p>
           </div>
 
           <UAlert v-if="error" color="error" variant="soft" :title="error" />
@@ -81,8 +139,10 @@ const addUser = async () => {
             <UButton
               :loading="isSubmitting"
               @click="
-                addUser();
-                close();
+                async () => {
+                  await addUser();
+                  if (!error) close();
+                }
               "
             >
               Add User

@@ -1,6 +1,8 @@
-import type { User as PrismaUser } from '@prisma/client';
+import type { User as PrismaUser, Role, Practice as PrismaPractice } from '@prisma/client';
 
-export type UserRole = 'ADMIN' | 'PRACTICESTAFF';
+export type UserRole = Role;
+
+export type Practice = PrismaPractice;
 
 // Server-side type that matches Prisma exactly - source of truth
 export type ServerUser = PrismaUser;
@@ -10,4 +12,5 @@ export type ServerUser = PrismaUser;
 export type User = Omit<PrismaUser, 'createdAt' | 'updatedAt'> & {
   createdAt: string;
   updatedAt: string;
+  practice?: Practice;
 };
