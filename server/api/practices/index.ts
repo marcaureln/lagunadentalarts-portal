@@ -1,5 +1,5 @@
 import { prisma } from '~~/server/utils/prisma';
-import { permissions } from '~~/server/utils/permissions';
+import { permissions } from '~~/shared/utils/permissions';
 
 export default defineEventHandler(async (event) => {
   const { user } = await getUserSession(event);
