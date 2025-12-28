@@ -10,7 +10,7 @@
         >
           <!-- Product Image -->
           <div
-            class="rounded-4xl relative aspect-[4/3] overflow-hidden bg-gray-200"
+            class="rounded-4xl aspect-4/3 relative overflow-hidden bg-gray-200"
             :class="index % 2 === 1 ? 'lg:col-start-2' : ''"
           >
             <NuxtImg
