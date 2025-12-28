@@ -153,52 +153,53 @@ const columns: TableColumn<User>[] = [
 </script>
 
 <template>
-  <div>
-    <div class="mb-8 flex items-center justify-between">
-      <div>
-        <h1 class="text-3xl font-bold text-gray-900">User Management</h1>
-        <p class="mt-2 text-sm text-gray-600">Manage user access and roles for the portal</p>
-      </div>
-      <PortalAdminModalAddUser @success="refresh" />
-    </div>
-
-    <div class="divide-accented border-accented w-full flex-1 divide-y rounded-lg border">
-      <div class="flex items-center gap-2 overflow-x-auto px-4 py-3.5">
-        <USelectMenu
-          v-model="selectedPracticeId"
-          :items="practiceOptions"
-          value-key="value"
-          label-key="label"
-          placeholder="All Practices"
-          size="sm"
-          class="w-48"
-        />
-        <USelectMenu
-          v-model="selectedRole"
-          :items="roleFilterOptions"
-          value-key="value"
-          label-key="label"
-          placeholder="All Roles"
-          size="sm"
-          class="w-48"
-        />
-      </div>
-
-      <UTable ref="table" :data="filteredUsers" :columns="columns" sticky class="h-96">
-        <template #empty-state>
-          <div class="flex flex-col items-center justify-center py-8">
-            <UIcon name="i-ri-user-line" class="mb-3 h-10 w-10 text-gray-400" />
-            <h3 class="mb-1 text-base font-medium text-gray-900">No users found</h3>
-            <p class="max-w-sm text-center text-sm text-gray-500">
-              {{ users ? 'No users exist in the system yet.' : 'Loading users...' }}
-            </p>
-          </div>
+  <UDashboardPanel>
+    <template #header>
+      <UDashboardNavbar title="User Management">
+        <template #leading>
+          <UDashboardSidebarCollapse />
         </template>
-      </UTable>
+        <template #right>
+          <PortalAdminModalAddUser @success="refresh" />
+        </template>
+      </UDashboardNavbar>
+    </template>
 
-      <div class="text-muted px-4 py-3.5 text-sm">
-        {{ table?.tableApi?.getFilteredRowModel().rows.length || 0 }} user(s) total
+    <template #body>
+      <div class="divide-accented border-accented w-full flex-1 divide-y rounded-lg border">
+        <div class="flex items-center gap-2 overflow-x-auto px-4 py-3.5">
+          <USelectMenu
+            v-model="selectedPracticeId"
+            :items="practiceOptions"
+            value-key="value"
+            label-key="label"
+            placeholder="All Practices"
+            size="sm"
+            class="w-48"
+          />
+          <USelectMenu
+            v-model="selectedRole"
+            :items="roleFilterOptions"
+            value-key="value"
+            label-key="label"
+            placeholder="All Roles"
+            size="sm"
+            class="w-48"
+          />
+        </div>
+
+        <UTable ref="table" :data="filteredUsers" :columns="columns">
+          <template #empty-state>
+            <div class="flex flex-col items-center justify-center py-8">
+              <UIcon name="i-ri-user-line" class="mb-3 h-10 w-10 text-gray-400" />
+              <h3 class="mb-1 text-base font-medium text-gray-900">No users found</h3>
+              <p class="max-w-sm text-center text-sm text-gray-500">
+                {{ users ? 'No users exist in the system yet.' : 'Loading users...' }}
+              </p>
+            </div>
+          </template>
+        </UTable>
       </div>
-    </div>
-  </div>
+    </template>
+  </UDashboardPanel>
 </template>

@@ -1,16 +1,64 @@
 <script setup lang="ts">
+import type { NavigationMenuItem } from '@nuxt/ui';
 import { getRoleLabel } from '~~/shared/utils/users';
-import { permissions } from '~~/shared/utils/permissions';
+import { routes } from '~~/shared/config/routes';
 
 const { user } = useUserSession();
 const role = computed(() => getRoleLabel(user.value?.role));
 
-const navigation = computed(() => {
-  const currentPath = useRoute().path;
-  return permissions.getAccessibleRoutes(user.value?.role).map((item) => ({
-    ...item,
-    current: item.href === currentPath || (item.href !== '/portal' && currentPath.startsWith(item.href)),
-  }));
+const open = ref(false);
+
+const links = computed(() => {
+  const accessibleRoutes = routes.getAccessibleRoutes(user.value?.role);
+
+  // Separate home from admin routes
+  const homeRoute = accessibleRoutes.find((r) => r.href === '/portal');
+  const adminRoutes = accessibleRoutes.filter((r) => r.href !== '/portal' && r.href.startsWith('/portal/admin'));
+  const otherRoutes = accessibleRoutes.filter((r) => r.href !== '/portal' && !r.href.startsWith('/portal/admin'));
+
+  const items: NavigationMenuItem[] = [];
+
+  // Add home
+  if (homeRoute) {
+    items.push({
+      label: homeRoute.name,
+      icon: homeRoute.icon,
+      to: homeRoute.href,
+      onSelect: () => {
+        open.value = false;
+      },
+    });
+  }
+
+  // Add administration group if there are admin routes
+  if (adminRoutes.length > 0) {
+    items.push({
+      label: 'Administration',
+      icon: 'i-ri-settings-3-line',
+      children: adminRoutes.map((route) => ({
+        label: route.name,
+        icon: route.icon,
+        to: route.href,
+        onSelect: () => {
+          open.value = false;
+        },
+      })),
+    });
+  }
+
+  // Add other routes
+  otherRoutes.forEach((route) => {
+    items.push({
+      label: route.name,
+      icon: route.icon,
+      to: route.href,
+      onSelect: () => {
+        open.value = false;
+      },
+    });
+  });
+
+  return [items] satisfies NavigationMenuItem[][];
 });
 
 async function logout() {
@@ -20,59 +68,70 @@ async function logout() {
 
 <template>
   <UApp>
-    <!-- Sidebar -->
-    <div class="fixed inset-y-0 left-0 w-64 border-r border-gray-200 bg-white">
-      <div class="flex h-full flex-col">
-        <!-- Logo -->
-        <div class="flex h-16 items-center border-b border-gray-200 px-6">
-          <img src="/logo.png" alt="Laguna Dental Arts" class="h-8 w-auto" />
-        </div>
-
-        <!-- Navigation -->
-        <nav class="flex-1 space-y-1 px-3 py-4">
-          <NuxtLink
-            v-for="item in navigation"
-            :key="item.name"
-            :to="item.href"
-            :class="[
-              item.current ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
-              'group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium',
-            ]"
-          >
-            <UIcon :name="item.icon" class="h-5 w-5" />
-            {{ item.name }}
+    <UDashboardGroup unit="rem">
+      <UDashboardSidebar id="portal" v-model:open="open" collapsible resizable>
+        <template #header="{ collapsed }">
+          <NuxtLink to="/portal" class="mx-auto">
+            <img v-if="!collapsed" src="/logo.png" alt="Laguna Dental Arts" class="h-14" />
+            <img v-else src="/favicon.png" alt="LDA" class="h-8 w-8" />
           </NuxtLink>
-        </nav>
-      </div>
-    </div>
+        </template>
 
-    <!-- Main content -->
-    <div class="pl-64">
-      <!-- Top header -->
-      <header class="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-gray-200 bg-white px-6">
-        <div class="flex items-center gap-4">
-          <UIcon name="i-ri-search-line" class="h-5 w-5 text-gray-400" />
-        </div>
+        <template #default="{ collapsed }">
+          <UNavigationMenu :collapsed="collapsed" :items="links[0]" orientation="vertical" tooltip />
+        </template>
 
-        <!-- User profile -->
-        <div class="flex items-center gap-4">
-          <div class="flex items-center gap-3">
-            <div class="flex h-10 w-10 items-center justify-center rounded-full bg-purple-600 font-semibold text-white">
-              {{ ((user as any)?.name || 'U').charAt(0).toUpperCase() }}
-            </div>
-            <div class="text-sm">
-              <div class="font-medium text-gray-900">{{ (user as any)?.name || 'User' }}</div>
-              <div class="text-gray-500">{{ role }}</div>
-            </div>
-          </div>
-          <UButton color="neutral" variant="ghost" icon="i-ri-logout-box-r-line" @click="logout"> Logout </UButton>
-        </div>
-      </header>
+        <template #footer="{ collapsed }">
+          <UDropdownMenu
+            :items="[
+              [
+                {
+                  label: user?.name || 'User',
+                  slot: 'account',
+                  disabled: true,
+                },
+              ],
+              [
+                {
+                  label: 'Logout',
+                  icon: 'i-ri-logout-box-r-line',
+                  onSelect: logout,
+                },
+              ],
+            ]"
+            :popper="{ strategy: 'absolute', placement: 'top' }"
+          >
+            <template #account>
+              <div class="flex items-center gap-2 text-left">
+                <div
+                  class="bg-primary text-primary-foreground flex h-8 w-8 items-center justify-center rounded-full font-semibold"
+                >
+                  {{ (user?.name || 'U').charAt(0).toUpperCase() }}
+                </div>
+                <div class="flex-1 truncate text-sm">
+                  <div class="text-foreground font-medium">{{ user?.name || 'User' }}</div>
+                  <div class="text-muted">{{ role }}</div>
+                </div>
+              </div>
+            </template>
 
-      <!-- Page content -->
-      <main class="p-6">
-        <NuxtPage />
-      </main>
-    </div>
+            <UButton
+              color="neutral"
+              variant="ghost"
+              class="w-full justify-start"
+              :class="{ 'justify-center': collapsed }"
+            >
+              <UAvatar :alt="user?.name || 'User'" size="sm" />
+              <div v-if="!collapsed" class="flex-1 truncate text-left text-sm">
+                <div class="text-foreground font-medium">{{ user?.name || 'User' }}</div>
+                <div class="text-muted">{{ role }}</div>
+              </div>
+            </UButton>
+          </UDropdownMenu>
+        </template>
+      </UDashboardSidebar>
+
+      <NuxtPage />
+    </UDashboardGroup>
   </UApp>
 </template>

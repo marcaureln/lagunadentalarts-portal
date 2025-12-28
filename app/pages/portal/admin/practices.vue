@@ -111,30 +111,31 @@ const columns: TableColumn<PracticeWithCount>[] = [
 </script>
 
 <template>
-  <div>
-    <div class="mb-8 flex items-center justify-between">
-      <div>
-        <h1 class="text-3xl font-bold text-gray-900">Practice Management</h1>
-        <p class="mt-2 text-sm text-gray-600">Manage dental practices and their staff</p>
-      </div>
-      <PortalAdminModalAddPractice @success="refresh" />
-    </div>
-
-    <div class="divide-accented border-accented w-full flex-1 divide-y overflow-hidden rounded-lg border">
-      <UTable ref="table" :data="practices || []" :columns="columns" sticky>
-        <template #empty-state>
-          <div class="flex flex-col items-center justify-center py-12">
-            <UIcon name="i-ri-building-line" class="mb-4 h-12 w-12 text-gray-400" />
-            <h3 class="mb-2 text-lg font-medium text-gray-900">No practices found</h3>
-            <p class="mb-4 max-w-sm text-center text-gray-500">Get started by adding a new practice.</p>
-            <PortalAdminModalAddPractice @success="refresh" />
-          </div>
+  <UDashboardPanel>
+    <template #header>
+      <UDashboardNavbar title="Practice Management">
+        <template #leading>
+          <UDashboardSidebarCollapse />
         </template>
-      </UTable>
+        <template #right>
+          <PortalAdminModalAddPractice @success="refresh" />
+        </template>
+      </UDashboardNavbar>
+    </template>
 
-      <div class="text-muted px-4 py-3.5 text-sm">
-        {{ table?.tableApi?.getFilteredRowModel().rows.length || 0 }} practice(s) total
+    <template #body>
+      <div class="divide-accented border-accented w-full flex-1 divide-y overflow-hidden rounded-lg border">
+        <UTable ref="table" :data="practices || []" :columns="columns">
+          <template #empty-state>
+            <div class="flex flex-col items-center justify-center py-12">
+              <UIcon name="i-ri-building-line" class="mb-4 h-12 w-12 text-gray-400" />
+              <h3 class="mb-2 text-lg font-medium text-gray-900">No practices found</h3>
+              <p class="mb-4 max-w-sm text-center text-gray-500">Get started by adding a new practice.</p>
+              <PortalAdminModalAddPractice @success="refresh" />
+            </div>
+          </template>
+        </UTable>
       </div>
-    </div>
-  </div>
+    </template>
+  </UDashboardPanel>
 </template>
