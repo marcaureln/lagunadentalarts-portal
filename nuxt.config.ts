@@ -53,4 +53,14 @@ export default defineNuxtConfig({
   linkChecker: {
     enabled: false, // TODO: Enable this in production
   },
+  typescript: {
+    tsConfig: {
+      compilerOptions: {
+        paths: {
+          '@': ['.'],
+          '@/*': ['./*'],
+        },
+      },
+    },
+  },
 });
