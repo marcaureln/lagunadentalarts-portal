@@ -9,8 +9,9 @@ export type ServerUser = PrismaUser;
 
 // Client-safe User type (JSON serializable)
 // Date objects become strings when sent over JSON
-export type User = Omit<PrismaUser, 'createdAt' | 'updatedAt'> & {
+export type User = Omit<PrismaUser, 'createdAt' | 'updatedAt' | 'passwordHash' | 'passwordExpiresAt'> & {
   createdAt: string;
   updatedAt: string;
+  passwordExpiresAt?: string | null;
   practice?: Practice;
 };

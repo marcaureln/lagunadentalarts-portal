@@ -12,6 +12,21 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
   // If user is authenticated
   if (loggedIn.value) {
+    const passwordExpiresAt = user.value?.passwordExpiresAt ? new Date(user.value.passwordExpiresAt).getTime() : null;
+    const isPasswordExpired = passwordExpiresAt !== null && passwordExpiresAt <= Date.now();
+
+    if (to.path.startsWith('/portal')) {
+      if (isPasswordExpired && to.path !== '/portal/password') {
+        console.log('[Auth Guard] Password expired, redirecting to password change');
+        return navigateTo('/portal/password');
+      }
+
+      if (!isPasswordExpired && to.path === '/portal/password') {
+        console.log('[Auth Guard] Password not expired, redirecting away from password change');
+        return navigateTo('/portal');
+      }
+    }
+
     // If trying to access login page, redirect to portal
     if (to.path === '/portal/login') {
       console.log('[Auth Guard] Redirecting logged-in user from login to portal');
@@ -20,7 +35,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
     // Check for admin routes
     if (to.path.startsWith('/portal/admin')) {
-      const role = (user.value as any)?.role;
+      const role = user.value?.role;
       if (role !== 'ADMIN') {
         // Redirect to portal if not admin
         console.log('[Auth Guard] Non-admin trying to access admin route');

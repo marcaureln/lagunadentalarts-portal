@@ -1,6 +1,7 @@
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client';
 import { z } from 'zod';
 import { requireAdmin } from '~~/server/utils/admin';
+import { prisma } from '~~/server/utils/prisma';
 
 const bodySchema = z.object({
   role: z.enum(['PRACTICE_STAFF', 'PRACTICE_ADMIN', 'ADMIN', 'USER']),
@@ -15,6 +16,9 @@ export default defineEventHandler(async (event) => {
   try {
     const user = await prisma.user.findUniqueOrThrow({
       where: { id },
+      select: {
+        role: true,
+      },
     });
 
     // Users cannot transition from practice staff/admin to admin/user
@@ -36,6 +40,16 @@ export default defineEventHandler(async (event) => {
     const updatedUser = await prisma.user.update({
       where: { id },
       data: { role },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        pfp: true,
+        role: true,
+        practiceId: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
     return updatedUser;
   } catch (e: unknown) {

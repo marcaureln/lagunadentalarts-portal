@@ -1,5 +1,6 @@
 import { prisma } from '~~/server/utils/prisma';
 import { permissions } from '~~/shared/utils/permissions';
+import { generateTemporaryPassword } from '~~/server/utils/password';
 
 export default defineEventHandler(async (event) => {
   const { user } = await getUserSession(event);
@@ -85,16 +86,33 @@ export default defineEventHandler(async (event) => {
       });
     }
 
+    const temporaryPassword = generateTemporaryPassword();
+
     const newUser = await prisma.user.create({
       data: {
         email,
         name,
         role,
         practiceId,
+        passwordHash: await hashPassword(temporaryPassword),
+        passwordExpiresAt: new Date(),
+      } as Parameters<typeof prisma.user.create>[0]['data'],
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        pfp: true,
+        role: true,
+        practiceId: true,
+        createdAt: true,
+        updatedAt: true,
       },
     });
 
-    return newUser;
+    return {
+      user: newUser,
+      temporaryPassword,
+    };
   }
 
   throw createError({

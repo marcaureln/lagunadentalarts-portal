@@ -1,5 +1,6 @@
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client';
-import { requireAdmin } from '../../../utils/admin';
+import { prisma } from '~~/server/utils/prisma';
+import { requireAdmin } from '~~/server/utils/admin';
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event);
