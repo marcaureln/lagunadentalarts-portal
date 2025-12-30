@@ -7,8 +7,6 @@ export default defineOAuthMicrosoftEventHandler({
     scope: ['User.Read', 'email', 'profile', 'openid'],
   },
   async onSuccess(event: H3Event, { user, tokens: _tokens }: { user: Record<string, unknown>; tokens: unknown }) {
-    console.log('Raw User Object:', JSON.stringify(user, null, 2));
-
     const email = extractEmailFromMicrosoftUser(user);
     if (!email) {
       throw createError({
@@ -22,7 +20,6 @@ export default defineOAuthMicrosoftEventHandler({
     const dbUser = await prisma.user.findUnique({
       where: { email },
     });
-    console.log('🚀 ~ dbUser:', dbUser);
 
     if (!dbUser) {
       // Reject login if user is not pre-created
