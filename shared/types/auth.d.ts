@@ -5,8 +5,8 @@ declare module '#auth-utils' {
     name: string | null;
     email: string | null;
     pfp: string | null;
-    role: 'ADMIN' | 'PRACTICESTAFF' | null;
-    createdAt: string;
-    updatedAt: string;
+    role: 'USER' | 'ADMIN' | 'PRACTICE_STAFF' | 'PRACTICE_ADMIN' | null;
+    practiceId: string | null;
+    passwordExpiresAt: string | null;
   }
 }
