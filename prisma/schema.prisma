@@ -18,8 +18,10 @@ model User {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
-  practice        Practice?  @relation(fields: [practiceId], references: [id])
-  managedPractice Practice[] @relation("PracticeAdmin")
+  practice        Practice?   @relation(fields: [practiceId], references: [id])
+  managedPractice Practice[]  @relation("PracticeAdmin")
+  cases           Case[]
+  caseEvents      CaseEvent[] @relation("CaseEventCreator")
 }
 
 model Practice {
@@ -33,6 +35,7 @@ model Practice {
 
   staff User[]
   admin User[] @relation("PracticeAdmin")
+  cases Case[]
 }
 
 enum Role {
@@ -40,4 +43,76 @@ enum Role {
   ADMIN
   PRACTICE_STAFF
   PRACTICE_ADMIN
+}
+
+enum CaseStatus {
+  DRAFT
+  SUBMITTED
+  NEEDS_INFO
+  ACCEPTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum CaseEventType {
+  CREATED
+  SUBMITTED
+  STATUS_CHANGED
+  UPDATED
+  FILE_UPLOADED
+  COMMENT_ADDED
+}
+
+model CaseType {
+  id           String   @id @default(cuid())
+  key          String   @unique
+  label        String
+  fields       Json     @default("[]")
+  fileSlots    Json     @default("[]")
+  instructions String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  cases Case[]
+}
+
+model Case {
+  id                String     @id @default(cuid())
+  practiceId        String
+  patientName       String
+  patientExternalId String?
+  caseTypeId        String
+  status            CaseStatus @default(DRAFT)
+  data              Json       @default("{}")
+  files             Json       @default("[]")
+  boxFolderId       String?
+  createdById       String
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  practice  Practice    @relation(fields: [practiceId], references: [id])
+  caseType  CaseType    @relation(fields: [caseTypeId], references: [id])
+  createdBy User        @relation(fields: [createdById], references: [id])
+  events    CaseEvent[]
+
+  @@index([practiceId])
+  @@index([status])
+}
+
+model CaseEvent {
+  id          String        @id @default(cuid())
+  caseId      String
+  type        CaseEventType
+  fromStatus  CaseStatus?
+  toStatus    CaseStatus?
+  message     String?
+  createdById String
+  createdAt   DateTime      @default(now())
+
+  case      Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  createdBy User @relation("CaseEventCreator", fields: [createdById], references: [id])
+
+  @@index([caseId])
 }
