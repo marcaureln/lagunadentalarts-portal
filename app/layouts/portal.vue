@@ -30,6 +30,18 @@ const links = computed(() => {
     });
   }
 
+  // Add other routes
+  otherRoutes.forEach((route) => {
+    items.push({
+      label: route.name,
+      icon: route.icon,
+      to: route.href,
+      onSelect: () => {
+        open.value = false;
+      },
+    });
+  });
+
   // Add administration group if there are admin routes
   if (adminRoutes.length > 0) {
     items.push({
@@ -45,18 +57,6 @@ const links = computed(() => {
       })),
     });
   }
-
-  // Add other routes
-  otherRoutes.forEach((route) => {
-    items.push({
-      label: route.name,
-      icon: route.icon,
-      to: route.href,
-      onSelect: () => {
-        open.value = false;
-      },
-    });
-  });
 
   return [items] satisfies NavigationMenuItem[][];
 });
