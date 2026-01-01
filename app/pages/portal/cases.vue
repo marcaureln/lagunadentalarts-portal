@@ -4,6 +4,8 @@ import type { TableColumn, TableRow } from '@nuxt/ui';
 import { permissions } from '~~/shared/utils/permissions';
 
 const { user } = useUserSession();
+const route = useRoute();
+const router = useRouter();
 
 definePageMeta({
   layout: 'portal',
@@ -13,7 +15,6 @@ const UBadge = resolveComponent('UBadge');
 const UButton = resolveComponent('UButton');
 const UDropdownMenu = resolveComponent('UDropdownMenu');
 
-const canCreateCase = computed(() => permissions.canCreateCase(user.value?.role));
 const isPracticeUser = computed(() => ['PRACTICE_STAFF', 'PRACTICE_ADMIN'].includes(user.value?.role || ''));
 
 interface ApiCase {
@@ -27,51 +28,58 @@ interface ApiCase {
   createdBy: { id: string; name: string };
 }
 
-// Recent cases limit selector
-const recentCasesLimit = ref(5);
-const limitOptions = [
-  { label: '5', value: 5 },
-  { label: '10', value: 10 },
-  { label: '20', value: 20 },
-];
+// Status filter
+type StatusFilter = 'all' | 'DRAFT' | 'SUBMITTED' | 'NEEDS_INFO' | 'IN_PROGRESS' | 'COMPLETED';
 
-// Fetch recent cases from API
+const statusFilter = ref<StatusFilter>((route.query.status as StatusFilter) || 'all');
+
+const statusTabs = [
+  { value: 'all', label: 'All Cases', icon: 'i-ri-list-check' },
+  { value: 'DRAFT', label: 'Drafts', icon: 'i-ri-draft-line' },
+  { value: 'SUBMITTED', label: 'Submitted', icon: 'i-ri-send-plane-line' },
+  { value: 'NEEDS_INFO', label: 'Needs Info', icon: 'i-ri-error-warning-line' },
+  { value: 'IN_PROGRESS', label: 'In Progress', icon: 'i-ri-loader-4-line' },
+  { value: 'COMPLETED', label: 'Completed', icon: 'i-ri-checkbox-circle-line' },
+] as const;
+
+// Update URL when filter changes
+watch(statusFilter, (newStatus) => {
+  router.replace({
+    query: newStatus === 'all' ? {} : { status: newStatus },
+  });
+});
+
+// Fetch cases from API with status filter
 const { data: casesData, refresh: refreshCases } = await useFetch<ApiCase[]>('/api/cases', {
-  query: computed(() => ({ limit: recentCasesLimit.value })),
+  query: computed(() => ({
+    status: statusFilter.value !== 'all' ? statusFilter.value : undefined,
+  })),
 });
 
 const cases = computed(() => casesData.value || []);
 
-// Fetch all cases for status counts
+// Status counts for badges
 const { data: allCasesData } = await useFetch<ApiCase[]>('/api/cases');
-
 const statusCounts = computed(() => {
   const all = allCasesData.value || [];
   return {
+    all: all.length,
     DRAFT: all.filter((c) => c.status === 'DRAFT').length,
     SUBMITTED: all.filter((c) => c.status === 'SUBMITTED').length,
+    NEEDS_INFO: all.filter((c) => c.status === 'NEEDS_INFO').length,
     IN_PROGRESS: all.filter((c) => ['ACCEPTED', 'IN_PROGRESS'].includes(c.status)).length,
     COMPLETED: all.filter((c) => c.status === 'COMPLETED').length,
   };
 });
 
-type DashboardStatus = 'DRAFT' | 'SUBMITTED' | 'IN_PROGRESS' | 'COMPLETED';
-
-const statusConfig: Record<DashboardStatus, { color: string; icon: string; label: string }> = {
-  DRAFT: { color: 'neutral', icon: 'i-ri-draft-line', label: 'Draft' },
-  SUBMITTED: { color: 'primary', icon: 'i-ri-send-plane-line', label: 'Submitted' },
-  IN_PROGRESS: { color: 'warning', icon: 'i-ri-loader-4-line', label: 'In Progress' },
-  COMPLETED: { color: 'success', icon: 'i-ri-checkbox-circle-line', label: 'Completed' },
-};
-
 const allStatusConfig = {
   DRAFT: { color: 'neutral', label: 'Draft' },
   SUBMITTED: { color: 'primary', label: 'Submitted' },
-  NEEDS_INFO: { color: 'warning', label: 'Needs Info' },
+  NEEDS_INFO: { color: 'error', label: 'Needs Info' },
   ACCEPTED: { color: 'info', label: 'Accepted' },
   IN_PROGRESS: { color: 'warning', label: 'In Progress' },
   COMPLETED: { color: 'success', label: 'Completed' },
-  CANCELLED: { color: 'error', label: 'Cancelled' },
+  CANCELLED: { color: 'neutral', label: 'Cancelled' },
 } as const;
 
 const columns = computed<TableColumn<ApiCase>[]>(() => {
@@ -110,7 +118,9 @@ const columns = computed<TableColumn<ApiCase>[]>(() => {
       cell: ({ row }) => {
         const status = row.getValue('status') as ApiCase['status'];
         const config = allStatusConfig[status];
-        return h(UBadge, { color: config.color, variant: 'subtle', label: config.label });
+        // Highlight NEEDS_INFO with solid variant
+        const variant = status === 'NEEDS_INFO' ? 'solid' : 'subtle';
+        return h(UBadge, { color: config.color, variant, label: config.label });
       },
     },
     {
@@ -119,6 +129,14 @@ const columns = computed<TableColumn<ApiCase>[]>(() => {
       cell: ({ row }) => {
         const date = row.getValue('createdAt') as string;
         return h('span', { class: 'text-sm' }, new Date(date).toLocaleDateString());
+      },
+    },
+    {
+      accessorKey: 'updatedAt',
+      header: 'Updated',
+      cell: ({ row }) => {
+        const date = row.getValue('updatedAt') as string;
+        return h('span', { class: 'text-sm text-muted' }, new Date(date).toLocaleDateString());
       },
     },
     {
@@ -136,12 +154,11 @@ const columns = computed<TableColumn<ApiCase>[]>(() => {
     cols.push({
       id: 'actions',
       enableHiding: false,
+      meta: { class: { td: 'w-fit' } },
       cell: ({ row }) => {
         const caseData = row.original;
         const items = [];
 
-        // Only show actions for draft cases for now
-        // TODO: Add 'View details' action for non-draft cases (case detail page)
         if (caseData.status === 'DRAFT') {
           items.push([
             {
@@ -156,9 +173,16 @@ const columns = computed<TableColumn<ApiCase>[]>(() => {
               onSelect: () => deleteDraftCase(caseData.id),
             },
           ]);
+        } else {
+          items.push([
+            {
+              label: 'View details',
+              icon: 'i-ri-eye-line',
+              onSelect: () => openCaseDetail(caseData.id),
+            },
+          ]);
         }
 
-        // Don't render dropdown if no items
         if (items.length === 0) return null;
 
         return h(
@@ -201,6 +225,17 @@ const onEditWizardSuccess = () => {
   refreshCases();
 };
 
+// Case detail modal state
+const viewingCaseId = ref<string | null>(null);
+const caseDetailRef = ref<{ open: () => void } | null>(null);
+
+const openCaseDetail = (caseId: string) => {
+  viewingCaseId.value = caseId;
+  nextTick(() => {
+    caseDetailRef.value?.open();
+  });
+};
+
 const deleteDraftCase = async (caseId: string) => {
   if (!confirm('Are you sure you want to delete this draft?')) return;
 
@@ -216,15 +251,18 @@ const onRowSelect = (_e: Event, row: TableRow<ApiCase>) => {
   const caseData = row.original;
   if (caseData.status === 'DRAFT' && isPracticeUser.value) {
     openEditWizard(caseData.id);
+  } else {
+    openCaseDetail(caseData.id);
   }
-  // TODO: Navigate to case detail page for non-draft cases
 };
+
+const canCreateCase = computed(() => permissions.canCreateCase(user.value?.role));
 </script>
 
 <template>
   <UDashboardPanel>
     <template #header>
-      <UDashboardNavbar :title="`Welcome back, ${user?.name}!`">
+      <UDashboardNavbar title="Cases">
         <template #leading>
           <UDashboardSidebarCollapse />
         </template>
@@ -238,56 +276,50 @@ const onRowSelect = (_e: Event, row: TableRow<ApiCase>) => {
 
     <template #body>
       <div class="space-y-6">
-        <!-- Status Cards -->
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <UCard v-for="(config, status) in statusConfig" :key="status">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-muted text-sm">{{ config.label }}</p>
-                <p class="mt-1 text-2xl font-semibold">{{ statusCounts[status] }}</p>
-              </div>
-              <div class="flex h-12 w-12 items-center justify-center rounded-lg" :class="`bg-${config.color}/10`">
-                <UIcon :name="config.icon" class="h-6 w-6" :class="`text-${config.color}`" />
-              </div>
-            </div>
-          </UCard>
+        <!-- Status Filter Tabs -->
+        <div class="flex flex-wrap gap-2">
+          <UButton
+            v-for="tab in statusTabs"
+            :key="tab.value"
+            :icon="tab.icon"
+            :color="statusFilter === tab.value ? 'primary' : 'neutral'"
+            :variant="statusFilter === tab.value ? 'solid' : 'ghost'"
+            size="sm"
+            @click="statusFilter = tab.value"
+          >
+            {{ tab.label }}
+            <UBadge
+              v-if="statusCounts[tab.value] > 0"
+              :color="tab.value === 'NEEDS_INFO' ? 'error' : 'neutral'"
+              :variant="statusFilter === tab.value ? 'solid' : 'subtle'"
+              size="sm"
+              class="ml-1.5"
+            >
+              {{ statusCounts[tab.value] }}
+            </UBadge>
+          </UButton>
         </div>
 
         <!-- Cases Table -->
         <UCard :ui="{ body: 'p-0!' }">
-          <template #header>
-            <div class="flex items-center justify-between">
-              <h2 class="text-lg font-semibold">Recent Cases</h2>
-              <UButton
-                to="/portal/cases"
-                variant="ghost"
-                color="neutral"
-                size="sm"
-                trailing-icon="i-ri-arrow-right-line"
-              >
-                View All
-              </UButton>
-            </div>
-          </template>
-
-          <UTable :data="cases" :columns="columns" sticky class="max-h-96" @select="onRowSelect">
+          <UTable :data="cases" :columns="columns" @select="onRowSelect">
             <template #empty-state>
               <div class="flex flex-col items-center justify-center py-12">
                 <UIcon name="i-ri-folder-line" class="mb-4 h-12 w-12 text-gray-400" />
-                <h3 class="mb-2 text-lg font-medium text-gray-900 dark:text-gray-100">No cases found</h3>
-                <p v-if="canCreateCase" class="mb-4 text-gray-500">Get started by uploading a new case.</p>
-                <p v-else class="text-gray-500">Cases submitted by practices will appear here.</p>
-                <UButton v-if="canCreateCase" icon="i-ri-upload-2-line" color="primary"> Upload New Case </UButton>
+                <h3 class="mb-2 text-lg font-medium text-gray-900 dark:text-gray-100">
+                  {{
+                    statusFilter === 'all'
+                      ? 'No cases found'
+                      : `No ${statusTabs.find((t) => t.value === statusFilter)?.label.toLowerCase()}`
+                  }}
+                </h3>
+                <p v-if="canCreateCase && statusFilter === 'all'" class="mb-4 text-gray-500">
+                  Get started by uploading a new case.
+                </p>
+                <p v-else-if="statusFilter !== 'all'" class="text-gray-500">No cases match the selected filter.</p>
               </div>
             </template>
           </UTable>
-
-          <template #footer>
-            <div class="flex items-center justify-end gap-2">
-              <span class="text-muted text-sm">Show</span>
-              <USelectMenu v-model="recentCasesLimit" :items="limitOptions" value-key="value" class="w-20" size="xs" />
-            </div>
-          </template>
         </UCard>
       </div>
 
@@ -297,6 +329,14 @@ const onRowSelect = (_e: Event, row: TableRow<ApiCase>) => {
         ref="editWizardRef"
         :case-id="editingCaseId"
         @success="onEditWizardSuccess"
+      />
+
+      <!-- Case Detail Modal (TODO: implement component) -->
+      <PortalCaseDetailModal
+        v-if="viewingCaseId"
+        ref="caseDetailRef"
+        :case-id="viewingCaseId"
+        @close="viewingCaseId = null"
       />
     </template>
   </UDashboardPanel>
