@@ -54,6 +54,7 @@ const { data: casesData, refresh: refreshCases } = await useFetch<ApiCase[]>('/a
   query: computed(() => ({
     status: statusFilter.value !== 'all' ? statusFilter.value : undefined,
   })),
+  watch: [statusFilter],
 });
 
 const cases = computed(() => casesData.value || []);
@@ -303,20 +304,48 @@ const canCreateCase = computed(() => permissions.canCreateCase(user.value?.role)
         <!-- Cases Table -->
         <UCard :ui="{ body: 'p-0!' }">
           <UTable :data="cases" :columns="columns" @select="onRowSelect">
-            <template #empty-state>
-              <div class="flex flex-col items-center justify-center py-12">
-                <UIcon name="i-ri-folder-line" class="mb-4 h-12 w-12 text-gray-400" />
-                <h3 class="mb-2 text-lg font-medium text-gray-900 dark:text-gray-100">
+            <template #empty>
+              <div class="flex flex-col items-center justify-center py-16">
+                <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
+                  <UIcon
+                    :name="
+                      statusFilter === 'all'
+                        ? 'i-ri-folder-line'
+                        : statusTabs.find((t) => t.value === statusFilter)?.icon || 'i-ri-folder-line'
+                    "
+                    class="h-8 w-8 text-gray-400"
+                  />
+                </div>
+                <h3 class="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
                   {{
                     statusFilter === 'all'
-                      ? 'No cases found'
+                      ? 'No cases yet'
                       : `No ${statusTabs.find((t) => t.value === statusFilter)?.label.toLowerCase()}`
                   }}
                 </h3>
-                <p v-if="canCreateCase && statusFilter === 'all'" class="mb-4 text-gray-500">
-                  Get started by uploading a new case.
+                <p class="mb-6 max-w-sm text-center text-gray-500">
+                  <template v-if="statusFilter === 'all'">
+                    {{
+                      canCreateCase
+                        ? 'Upload your first case to get started.'
+                        : 'Cases will appear here once submitted.'
+                    }}
+                  </template>
+                  <template v-else> There are no cases with this status. Try selecting a different filter. </template>
                 </p>
-                <p v-else-if="statusFilter !== 'all'" class="text-gray-500">No cases match the selected filter.</p>
+                <div class="flex gap-3">
+                  <UButton
+                    v-if="statusFilter !== 'all'"
+                    variant="outline"
+                    color="neutral"
+                    @click.stop="statusFilter = 'all'"
+                  >
+                    View All Cases
+                  </UButton>
+                  <PortalCaseWizard v-if="canCreateCase" @success="refreshCases">
+                    <UButton icon="i-ri-upload-2-line" color="primary">Upload New Case</UButton>
+                  </PortalCaseWizard>
+                </div>
               </div>
             </template>
           </UTable>

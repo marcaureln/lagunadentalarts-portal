@@ -271,7 +271,7 @@ const onRowSelect = (_e: Event, row: TableRow<ApiCase>) => {
           </template>
 
           <UTable :data="cases" :columns="columns" sticky class="max-h-96" @select="onRowSelect">
-            <template #empty-state>
+            <template #empty>
               <div class="flex flex-col items-center justify-center py-12">
                 <UIcon name="i-ri-folder-line" class="mb-4 h-12 w-12 text-gray-400" />
                 <h3 class="mb-2 text-lg font-medium text-gray-900 dark:text-gray-100">No cases found</h3>

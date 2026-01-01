@@ -189,7 +189,7 @@ const columns: TableColumn<User>[] = [
         </div>
 
         <UTable ref="table" :data="filteredUsers" :columns="columns">
-          <template #empty-state>
+          <template #empty>
             <div class="flex flex-col items-center justify-center py-8">
               <UIcon name="i-ri-user-line" class="mb-3 h-10 w-10 text-gray-400" />
               <h3 class="mb-1 text-base font-medium text-gray-900">No users found</h3>

@@ -126,7 +126,7 @@ const columns: TableColumn<PracticeWithCount>[] = [
     <template #body>
       <div class="divide-accented border-accented w-full flex-1 divide-y overflow-hidden rounded-lg border">
         <UTable ref="table" :data="practices || []" :columns="columns">
-          <template #empty-state>
+          <template #empty>
             <div class="flex flex-col items-center justify-center py-12">
               <UIcon name="i-ri-building-line" class="mb-4 h-12 w-12 text-gray-400" />
               <h3 class="mb-2 text-lg font-medium text-gray-900">No practices found</h3>
