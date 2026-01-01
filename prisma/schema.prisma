@@ -33,9 +33,26 @@ model Practice {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  staff User[]
-  admin User[] @relation("PracticeAdmin")
-  cases Case[]
+  staff    User[]
+  admin    User[]    @relation("PracticeAdmin")
+  cases    Case[]
+  patients Patient[]
+}
+
+model Patient {
+  id         String   @id @default(cuid())
+  name       String
+  externalId String?
+  practiceId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  practice Practice @relation(fields: [practiceId], references: [id])
+  cases    Case[]
+
+  @@unique([practiceId, externalId])
+  @@index([practiceId])
+  @@index([name])
 }
 
 enum Role {
@@ -81,6 +98,7 @@ model CaseType {
 model Case {
   id                String     @id @default(cuid())
   practiceId        String
+  patientId         String?
   patientName       String
   patientExternalId String?
   caseTypeId        String
@@ -93,11 +111,13 @@ model Case {
   updatedAt         DateTime   @updatedAt
 
   practice  Practice    @relation(fields: [practiceId], references: [id])
+  patient   Patient?    @relation(fields: [patientId], references: [id])
   caseType  CaseType    @relation(fields: [caseTypeId], references: [id])
   createdBy User        @relation(fields: [createdById], references: [id])
   events    CaseEvent[]
 
   @@index([practiceId])
+  @@index([patientId])
   @@index([status])
 }
 
