@@ -3,6 +3,7 @@ import { prisma } from '~~/server/utils/prisma';
 import { permissions } from '~~/shared/utils/permissions';
 
 const updateCaseSchema = z.object({
+  patientId: z.string().nullable().optional(),
   patientName: z.string().min(1).optional(),
   patientExternalId: z.string().nullable().optional(),
   data: z.record(z.string(), z.any()).optional(),
@@ -84,9 +85,25 @@ export default defineEventHandler(async (event) => {
     const body = await readValidatedBody(event, updateCaseSchema.parse);
 
     const updatedCase = await prisma.$transaction(async (tx) => {
+      let patientId = body.patientId;
+
+      // If no existing patient selected but patient name provided, create a new patient
+      // Only do this if the case doesn't already have a patient linked
+      if (patientId === null && body.patientName && !existingCase.patientId) {
+        const newPatient = await tx.patient.create({
+          data: {
+            name: body.patientName,
+            externalId: body.patientExternalId || null,
+            practiceId: user.practiceId!,
+          },
+        });
+        patientId = newPatient.id;
+      }
+
       const updated = await tx.case.update({
         where: { id: caseId },
         data: {
+          ...(patientId !== undefined && { patientId }),
           ...(body.patientName && { patientName: body.patientName }),
           ...(body.patientExternalId !== undefined && { patientExternalId: body.patientExternalId }),
           ...(body.data && { data: body.data }),

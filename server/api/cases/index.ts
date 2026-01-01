@@ -3,6 +3,7 @@ import { prisma } from '~~/server/utils/prisma';
 import { permissions } from '~~/shared/utils/permissions';
 
 const createCaseSchema = z.object({
+  patientId: z.string().nullable().optional(),
   patientName: z.string().min(1, 'Patient name is required'),
   patientExternalId: z.string().nullable().optional(),
   caseTypeId: z.string().min(1, 'Case type is required'),
@@ -84,8 +85,23 @@ export default defineEventHandler(async (event) => {
 
     // Create case and initial event in a transaction
     const result = await prisma.$transaction(async (tx) => {
+      let patientId = body.patientId || null;
+
+      // If no existing patient selected, create a new one
+      if (!patientId && body.patientName) {
+        const newPatient = await tx.patient.create({
+          data: {
+            name: body.patientName,
+            externalId: body.patientExternalId || null,
+            practiceId: user.practiceId!,
+          },
+        });
+        patientId = newPatient.id;
+      }
+
       const newCase = await tx.case.create({
         data: {
+          patientId,
           patientName: body.patientName,
           patientExternalId: body.patientExternalId,
           caseTypeId: body.caseTypeId,

@@ -33,8 +33,15 @@ interface CaseFile {
   uploadedAt?: string;
 }
 
+interface Patient {
+  id: string;
+  name: string;
+  externalId: string | null;
+}
+
 interface CreatedCase {
   id: string;
+  patientId?: string;
   patientName: string;
   patientExternalId?: string;
   status: string;
@@ -91,6 +98,75 @@ const step1Form = reactive<Step1Schema>({
   caseTypeId: '',
 });
 
+// Patient selection with autocomplete + create
+const selectedPatient = ref<{ label: string; value: string } | undefined>(undefined);
+const patientSearchTerm = ref('');
+const patientResults = ref<Patient[]>([]);
+const isNewPatient = ref(false);
+
+const searchPatients = useDebounceFn(async (query: string) => {
+  if (!query || query.length < 2) {
+    patientResults.value = [];
+    return;
+  }
+
+  try {
+    const results = await $fetch<Patient[]>('/api/patients', {
+      query: { search: query },
+    });
+    patientResults.value = results;
+  } catch (e) {
+    console.error('Failed to search patients:', e);
+    patientResults.value = [];
+  }
+}, 300);
+
+const patientOptions = computed(() => {
+  return patientResults.value.map((p) => ({
+    value: p.id,
+    label: p.name + (p.externalId ? ` (${p.externalId})` : ''),
+  }));
+});
+
+// Handle patient creation from InputMenu
+const onPatientCreate = (item: string) => {
+  isNewPatient.value = true;
+  step1Form.patientName = item;
+  step1Form.patientExternalId = '';
+  selectedPatient.value = { label: item, value: '__new__' };
+};
+
+// Watch for patient selection changes
+watch(selectedPatient, (patient) => {
+  if (!patient) {
+    isNewPatient.value = false;
+    step1Form.patientName = '';
+    step1Form.patientExternalId = '';
+    return;
+  }
+
+  if (patient.value === '__new__') {
+    // New patient - already handled by onPatientCreate
+    return;
+  }
+
+  // Existing patient selected
+  isNewPatient.value = false;
+  const existingPatient = patientResults.value.find((p) => p.id === patient.value);
+  if (existingPatient) {
+    step1Form.patientName = existingPatient.name;
+    step1Form.patientExternalId = existingPatient.externalId || '';
+  }
+});
+
+// Computed to get selectedPatientId for API calls
+const selectedPatientId = computed(() => {
+  if (!selectedPatient.value || selectedPatient.value.value === '__new__') {
+    return null;
+  }
+  return selectedPatient.value.value;
+});
+
 // Step 2: Lab Slip Data (dynamic based on case type)
 const labSlipData = ref<Record<string, string>>({});
 
@@ -143,6 +219,10 @@ const stepTitles = ['Patient & Case Type', 'Lab Slip', 'Upload Files', 'Review &
 // Methods
 const resetWizard = () => {
   currentStep.value = 1;
+  selectedPatient.value = undefined;
+  patientSearchTerm.value = '';
+  patientResults.value = [];
+  isNewPatient.value = false;
   step1Form.patientName = '';
   step1Form.patientExternalId = '';
   step1Form.caseTypeId = '';
@@ -173,6 +253,18 @@ const loadExistingCase = async (caseId: string) => {
     createdCase.value = res;
 
     // Populate step 1 form
+    if (res.patientId) {
+      // Existing patient linked
+      selectedPatient.value = {
+        label: res.patientName + (res.patientExternalId ? ` (${res.patientExternalId})` : ''),
+        value: res.patientId,
+      };
+      isNewPatient.value = false;
+    } else {
+      // New patient (not yet linked)
+      selectedPatient.value = { label: res.patientName, value: '__new__' };
+      isNewPatient.value = true;
+    }
     step1Form.patientName = res.patientName;
     step1Form.patientExternalId = res.patientExternalId || '';
     step1Form.caseTypeId = res.caseType.id;
@@ -268,6 +360,7 @@ const saveDraft = async () => {
       const res = await $fetch<CreatedCase>(`/api/cases/${caseId}`, {
         method: 'PATCH',
         body: {
+          patientId: selectedPatientId.value,
           patientName: step1Form.patientName,
           patientExternalId: step1Form.patientExternalId || null,
           data: labSlipData.value,
@@ -279,6 +372,7 @@ const saveDraft = async () => {
       const res = await $fetch<CreatedCase>('/api/cases', {
         method: 'POST',
         body: {
+          patientId: selectedPatientId.value,
           patientName: step1Form.patientName,
           patientExternalId: step1Form.patientExternalId || null,
           caseTypeId: step1Form.caseTypeId,
@@ -328,6 +422,7 @@ const submitCase = async () => {
       await $fetch<CreatedCase>(`/api/cases/${caseId}`, {
         method: 'PATCH',
         body: {
+          patientId: selectedPatientId.value,
           patientName: step1Form.patientName,
           patientExternalId: step1Form.patientExternalId || null,
           data: labSlipData.value,
@@ -338,6 +433,7 @@ const submitCase = async () => {
       const res = await $fetch<CreatedCase>('/api/cases', {
         method: 'POST',
         body: {
+          patientId: selectedPatientId.value,
           patientName: step1Form.patientName,
           patientExternalId: step1Form.patientExternalId || null,
           caseTypeId: step1Form.caseTypeId,
@@ -400,7 +496,6 @@ const formatFileSize = (bytes?: number) => {
     :title="isEditMode ? 'Continue Case' : 'Upload New Case'"
     :description="`Step ${currentStep} of ${totalSteps}: ${stepTitles[currentStep - 1]}`"
     scrollable
-    :dismissible="false"
     :ui="{ content: 'sm:max-w-2xl' }"
   >
     <slot />
@@ -427,11 +522,31 @@ const formatFileSize = (bytes?: number) => {
         <div v-if="currentStep === 1" class="space-y-4">
           <UForm :schema="step1Schema" :state="step1Form" @submit="handleStep1Submit">
             <div class="space-y-4">
-              <UFormField label="Patient Name" name="patientName" required>
-                <UInput v-model="step1Form.patientName" placeholder="Enter patient name" class="w-full" />
+              <UFormField label="Patient" name="patientName" required>
+                <UInputMenu
+                  v-model="selectedPatient"
+                  v-model:search-term="patientSearchTerm"
+                  :items="patientOptions"
+                  :loading="false"
+                  create-item
+                  ignore-filter
+                  placeholder="Search or type patient name..."
+                  class="w-full"
+                  icon="i-ri-user-line"
+                  @update:search-term="searchPatients"
+                  @create="onPatientCreate"
+                />
+                <p v-if="isNewPatient" class="text-muted mt-1 text-xs">
+                  New patient "{{ step1Form.patientName }}" will be created
+                </p>
               </UFormField>
 
-              <UFormField label="Patient ID (Optional)" name="patientExternalId">
+              <UFormField
+                v-if="isNewPatient"
+                label="Patient ID (Optional)"
+                name="patientExternalId"
+                hint="For new patients"
+              >
                 <UInput v-model="step1Form.patientExternalId" placeholder="External patient ID" class="w-full" />
               </UFormField>
 
