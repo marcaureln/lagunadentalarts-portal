@@ -1,6 +1,7 @@
 import { prisma } from '~~/server/utils/prisma';
 import { permissions } from '~~/shared/utils/permissions';
 import { generateTemporaryPassword } from '~~/server/utils/password';
+import { z } from 'zod';
 
 export default defineEventHandler(async (event) => {
   const { user } = await getUserSession(event);
@@ -56,15 +57,13 @@ export default defineEventHandler(async (event) => {
       });
     }
 
-    const body = await readBody(event);
-    const { email, name, role } = body;
+    const bodySchema = z.object({
+      email: z.email(),
+      name: z.string().min(1),
+      role: z.enum(['PRACTICE_STAFF', 'PRACTICE_ADMIN']),
+    });
 
-    if (!email || !role) {
-      throw createError({
-        statusCode: 400,
-        statusMessage: 'Email and role are required',
-      });
-    }
+    const { email, name, role } = await readValidatedBody(event, bodySchema.parse);
 
     // Check if user exists
     const existingUser = await prisma.user.findUnique({
@@ -75,14 +74,6 @@ export default defineEventHandler(async (event) => {
       throw createError({
         statusCode: 400,
         statusMessage: 'User with this email already exists',
-      });
-    }
-
-    // Validate role
-    if (!['PRACTICE_STAFF', 'PRACTICE_ADMIN'].includes(role)) {
-      throw createError({
-        statusCode: 400,
-        statusMessage: 'Invalid role for practice user',
       });
     }
 

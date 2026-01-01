@@ -16,7 +16,7 @@ const PRACTICE_ROLES = ['PRACTICE_STAFF', 'PRACTICE_ADMIN'] as const;
 const schema = z
   .object({
     email: z.email('Invalid email'),
-    name: z.string().optional(),
+    name: z.string().min(1, 'Name is required'),
     role: z.enum(['USER', 'ADMIN', 'PRACTICE_STAFF', 'PRACTICE_ADMIN']),
     practiceId: z.string().optional(),
     useSso: z.boolean(),
@@ -177,7 +177,7 @@ watch(
               />
             </UFormField>
 
-            <UFormField label="Name" name="name">
+            <UFormField label="Name" name="name" required>
               <UInput id="name" v-model="form.name" class="w-full" placeholder="Full name" :disabled="isLocked" />
             </UFormField>
 

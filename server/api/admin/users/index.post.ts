@@ -5,7 +5,7 @@ import { generateTemporaryPassword } from '~~/server/utils/password';
 
 const bodySchema = z.object({
   email: z.email(),
-  name: z.string().optional(),
+  name: z.string().min(1),
   role: z.enum(['USER', 'ADMIN', 'PRACTICE_STAFF', 'PRACTICE_ADMIN']),
   practiceId: z.string().optional(),
   useSso: z.boolean().optional(),
