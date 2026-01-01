@@ -28,3 +28,6 @@ logs
 
 # AI stuff
 .claude/settings.local.json
+
+# Storage
+storage

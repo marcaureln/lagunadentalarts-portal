@@ -2,7 +2,7 @@
   "servers": {
     "nuxt-docs": {
       "type": "sse",
-      "url": "https://mcp.nuxt.com/sse"
+      "url": "https://nuxt.com/mcp"
     },
     "nuxt": {
       "type": "sse",

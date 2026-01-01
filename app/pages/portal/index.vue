@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { h } from 'vue';
-import type { TableColumn } from '@nuxt/ui';
+import type { TableColumn, TableRow } from '@nuxt/ui';
+import { permissions } from '~~/shared/utils/permissions';
 
 const { user } = useUserSession();
 
@@ -8,118 +9,200 @@ definePageMeta({
   layout: 'portal',
 });
 
-interface Case {
+const UBadge = resolveComponent('UBadge');
+const UButton = resolveComponent('UButton');
+const UDropdownMenu = resolveComponent('UDropdownMenu');
+
+const canCreateCase = computed(() => permissions.canCreateCase(user.value?.role));
+const isPracticeUser = computed(() => ['PRACTICE_STAFF', 'PRACTICE_ADMIN'].includes(user.value?.role || ''));
+
+interface ApiCase {
   id: string;
   patientName: string;
-  caseType: string;
-  status: 'open' | 'pending' | 'closed' | 'canceled';
-  practice: string;
-  createdAt: Date;
-  dueDate: Date;
+  status: 'DRAFT' | 'SUBMITTED' | 'NEEDS_INFO' | 'ACCEPTED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+  createdAt: string;
+  updatedAt: string;
+  practice: { id: string; name: string };
+  caseType: { id: string; key: string; label: string };
+  createdBy: { id: string; name: string };
 }
 
-// Mock data
-const cases = ref<Case[]>([
-  {
-    id: 'CASE-001',
-    patientName: 'John Smith',
-    caseType: 'Crown & Bridge',
-    status: 'open',
-    practice: 'Downtown Dental',
-    createdAt: new Date('2024-12-20'),
-    dueDate: new Date('2024-12-30'),
-  },
-  {
-    id: 'CASE-002',
-    patientName: 'Sarah Johnson',
-    caseType: 'Implant Supported',
-    status: 'pending',
-    practice: 'Smile Center',
-    createdAt: new Date('2024-12-22'),
-    dueDate: new Date('2025-01-05'),
-  },
-  {
-    id: 'CASE-003',
-    patientName: 'Michael Brown',
-    caseType: 'Orthodontics',
-    status: 'closed',
-    practice: 'Downtown Dental',
-    createdAt: new Date('2024-12-15'),
-    dueDate: new Date('2024-12-25'),
-  },
-  {
-    id: 'CASE-004',
-    patientName: 'Emily Davis',
-    caseType: 'Removable',
-    status: 'open',
-    practice: 'Bright Smiles',
-    createdAt: new Date('2024-12-23'),
-    dueDate: new Date('2025-01-02'),
-  },
-  {
-    id: 'CASE-005',
-    patientName: 'David Wilson',
-    caseType: 'Crown & Bridge',
-    status: 'canceled',
-    practice: 'Smile Center',
-    createdAt: new Date('2024-12-18'),
-    dueDate: new Date('2024-12-28'),
-  },
-]);
+// Fetch cases from API
+const { data: casesData, refresh: refreshCases } = await useFetch<ApiCase[]>('/api/cases');
+
+const cases = computed(() => casesData.value || []);
 
 const statusCounts = computed(() => ({
-  open: cases.value.filter((c) => c.status === 'open').length,
-  pending: cases.value.filter((c) => c.status === 'pending').length,
-  closed: cases.value.filter((c) => c.status === 'closed').length,
-  canceled: cases.value.filter((c) => c.status === 'canceled').length,
+  DRAFT: cases.value.filter((c) => c.status === 'DRAFT').length,
+  SUBMITTED: cases.value.filter((c) => c.status === 'SUBMITTED').length,
+  IN_PROGRESS: cases.value.filter((c) => ['ACCEPTED', 'IN_PROGRESS'].includes(c.status)).length,
+  COMPLETED: cases.value.filter((c) => c.status === 'COMPLETED').length,
 }));
 
-const statusConfig = {
-  open: { color: 'primary', icon: 'i-ri-folder-open-line', label: 'Open' },
-  pending: { color: 'warning', icon: 'i-ri-time-line', label: 'Pending' },
-  closed: { color: 'success', icon: 'i-ri-checkbox-circle-line', label: 'Closed' },
-  canceled: { color: 'error', icon: 'i-ri-close-circle-line', label: 'Canceled' },
+type DashboardStatus = 'DRAFT' | 'SUBMITTED' | 'IN_PROGRESS' | 'COMPLETED';
+
+const statusConfig: Record<DashboardStatus, { color: string; icon: string; label: string }> = {
+  DRAFT: { color: 'neutral', icon: 'i-ri-draft-line', label: 'Draft' },
+  SUBMITTED: { color: 'primary', icon: 'i-ri-send-plane-line', label: 'Submitted' },
+  IN_PROGRESS: { color: 'warning', icon: 'i-ri-loader-4-line', label: 'In Progress' },
+  COMPLETED: { color: 'success', icon: 'i-ri-checkbox-circle-line', label: 'Completed' },
+};
+
+const allStatusConfig = {
+  DRAFT: { color: 'neutral', label: 'Draft' },
+  SUBMITTED: { color: 'primary', label: 'Submitted' },
+  NEEDS_INFO: { color: 'warning', label: 'Needs Info' },
+  ACCEPTED: { color: 'info', label: 'Accepted' },
+  IN_PROGRESS: { color: 'warning', label: 'In Progress' },
+  COMPLETED: { color: 'success', label: 'Completed' },
+  CANCELLED: { color: 'error', label: 'Cancelled' },
 } as const;
 
-const columns: TableColumn<Case>[] = [
-  {
-    accessorKey: 'id',
-    header: 'Case ID',
-    cell: ({ row }) => h('span', { class: 'font-medium' }, row.getValue('id')),
-  },
-  {
-    accessorKey: 'patientName',
-    header: 'Patient',
-    cell: ({ row }) => h('span', {}, row.getValue('patientName')),
-  },
-  {
-    accessorKey: 'caseType',
-    header: 'Type',
-    cell: ({ row }) => h('span', { class: 'text-gray-600' }, row.getValue('caseType')),
-  },
-  {
-    accessorKey: 'practice',
-    header: 'Practice',
-    cell: ({ row }) => h('span', { class: 'text-gray-600' }, row.getValue('practice')),
-  },
-  {
-    accessorKey: 'status',
-    header: 'Status',
-    cell: ({ row }) => {
-      const status = row.getValue('status') as Case['status'];
-      const config = statusConfig[status];
-      return h('UBadge', { color: config.color, variant: 'subtle' }, () => config.label);
+const columns = computed<TableColumn<ApiCase>[]>(() => {
+  const cols: TableColumn<ApiCase>[] = [
+    {
+      accessorKey: 'patientName',
+      header: 'Patient',
+      cell: ({ row }) => h('span', { class: 'font-medium' }, row.getValue('patientName')),
     },
-  },
-  {
-    accessorKey: 'dueDate',
-    header: 'Due Date',
-    cell: ({ row }) => {
-      const date = row.getValue('dueDate') as Date;
-      return h('span', { class: 'text-sm' }, date.toLocaleDateString());
+    {
+      accessorKey: 'caseType',
+      header: 'Type',
+      cell: ({ row }) => {
+        const caseType = row.original.caseType;
+        return h('span', { class: 'text-gray-600 dark:text-gray-400' }, caseType?.label || '-');
+      },
     },
-  },
-];
+  ];
+
+  // Only show practice column for lab users
+  if (!isPracticeUser.value) {
+    cols.unshift({
+      accessorKey: 'practice',
+      header: 'Practice',
+      cell: ({ row }) => {
+        const practice = row.original.practice;
+        return h('span', { class: 'text-gray-600 dark:text-gray-400' }, practice?.name || '-');
+      },
+    });
+  }
+
+  cols.push(
+    {
+      accessorKey: 'status',
+      header: 'Status',
+      cell: ({ row }) => {
+        const status = row.getValue('status') as ApiCase['status'];
+        const config = allStatusConfig[status];
+        return h(UBadge, { color: config.color, variant: 'subtle', label: config.label });
+      },
+    },
+    {
+      accessorKey: 'createdAt',
+      header: 'Created',
+      cell: ({ row }) => {
+        const date = row.getValue('createdAt') as string;
+        return h('span', { class: 'text-sm' }, new Date(date).toLocaleDateString());
+      },
+    },
+    {
+      accessorKey: 'createdBy',
+      header: 'Created By',
+      cell: ({ row }) => {
+        const createdBy = row.original.createdBy;
+        return h('span', { class: 'text-gray-600 dark:text-gray-400' }, createdBy?.name || '-');
+      },
+    }
+  );
+
+  // Add actions column for practice users
+  if (isPracticeUser.value) {
+    cols.push({
+      id: 'actions',
+      enableHiding: false,
+      cell: ({ row }) => {
+        const caseData = row.original;
+        const items = [];
+
+        // Only show actions for draft cases for now
+        // TODO: Add 'View details' action for non-draft cases (case detail page)
+        if (caseData.status === 'DRAFT') {
+          items.push([
+            {
+              label: 'Continue editing',
+              icon: 'i-ri-edit-line',
+              onSelect: () => openEditWizard(caseData.id),
+            },
+            {
+              label: 'Delete draft',
+              icon: 'i-ri-delete-bin-line',
+              color: 'error' as const,
+              onSelect: () => deleteDraftCase(caseData.id),
+            },
+          ]);
+        }
+
+        // Don't render dropdown if no items
+        if (items.length === 0) return null;
+
+        return h(
+          'div',
+          { class: 'text-right' },
+          h(
+            UDropdownMenu,
+            { items, content: { align: 'end' } },
+            {
+              default: () =>
+                h(UButton, {
+                  icon: 'i-ri-more-2-fill',
+                  color: 'neutral',
+                  variant: 'ghost',
+                  class: 'ml-auto',
+                }),
+            }
+          )
+        );
+      },
+    });
+  }
+
+  return cols;
+});
+
+// Edit wizard state
+const editingCaseId = ref<string | null>(null);
+const editWizardRef = ref<{ open: () => void } | null>(null);
+
+const openEditWizard = (caseId: string) => {
+  editingCaseId.value = caseId;
+  nextTick(() => {
+    editWizardRef.value?.open();
+  });
+};
+
+const onEditWizardSuccess = () => {
+  editingCaseId.value = null;
+  refreshCases();
+};
+
+const deleteDraftCase = async (caseId: string) => {
+  if (!confirm('Are you sure you want to delete this draft?')) return;
+
+  try {
+    await $fetch(`/api/cases/${caseId}`, { method: 'DELETE' });
+    await refreshCases();
+  } catch (e) {
+    console.error('Failed to delete draft:', e);
+  }
+};
+
+const onRowSelect = (_e: Event, row: TableRow<ApiCase>) => {
+  const caseData = row.original;
+  if (caseData.status === 'DRAFT' && isPracticeUser.value) {
+    openEditWizard(caseData.id);
+  }
+  // TODO: Navigate to case detail page for non-draft cases
+};
 </script>
 
 <template>
@@ -130,7 +213,9 @@ const columns: TableColumn<Case>[] = [
           <UDashboardSidebarCollapse />
         </template>
         <template #right>
-          <UButton icon="i-ri-upload-2-line" color="primary"> Upload New Case </UButton>
+          <PortalCaseWizard v-if="canCreateCase" @success="refreshCases">
+            <UButton icon="i-ri-upload-2-line" color="primary"> Upload New Case </UButton>
+          </PortalCaseWizard>
         </template>
       </UDashboardNavbar>
     </template>
@@ -153,7 +238,7 @@ const columns: TableColumn<Case>[] = [
         </div>
 
         <!-- Cases Table -->
-        <UCard>
+        <UCard :ui="{ body: 'p-0!' }">
           <template #header>
             <div class="flex items-center justify-between">
               <h2 class="text-lg font-semibold">Recent Cases</h2>
@@ -163,18 +248,27 @@ const columns: TableColumn<Case>[] = [
             </div>
           </template>
 
-          <UTable :data="cases" :columns="columns">
+          <UTable :data="cases" :columns="columns" @select="onRowSelect">
             <template #empty-state>
               <div class="flex flex-col items-center justify-center py-12">
                 <UIcon name="i-ri-folder-line" class="mb-4 h-12 w-12 text-gray-400" />
-                <h3 class="mb-2 text-lg font-medium text-gray-900">No cases found</h3>
-                <p class="mb-4 text-gray-500">Get started by uploading a new case.</p>
-                <UButton icon="i-ri-upload-2-line" color="primary"> Upload New Case </UButton>
+                <h3 class="mb-2 text-lg font-medium text-gray-900 dark:text-gray-100">No cases found</h3>
+                <p v-if="canCreateCase" class="mb-4 text-gray-500">Get started by uploading a new case.</p>
+                <p v-else class="text-gray-500">Cases submitted by practices will appear here.</p>
+                <UButton v-if="canCreateCase" icon="i-ri-upload-2-line" color="primary"> Upload New Case </UButton>
               </div>
             </template>
           </UTable>
         </UCard>
       </div>
+
+      <!-- Edit Wizard (hidden trigger, opened programmatically) -->
+      <PortalCaseWizard
+        v-if="editingCaseId"
+        ref="editWizardRef"
+        :case-id="editingCaseId"
+        @success="onEditWizardSuccess"
+      />
     </template>
   </UDashboardPanel>
 </template>
