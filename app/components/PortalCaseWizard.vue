@@ -45,17 +45,29 @@ interface CreatedCase {
   createdBy: { id: string; name: string };
 }
 
+const props = defineProps<{
+  caseId?: string;
+}>();
+
 const emit = defineEmits<{
   success: [];
 }>();
 
 const toast = useToast();
 
+// Expose open method for programmatic usage (must be before await)
+const isOpen = ref(false);
+const open = () => {
+  isOpen.value = true;
+};
+defineExpose({ open });
+
 // Fetch case types
 const { data: caseTypes } = await useFetch<CaseType[]>('/api/case-types');
 
 // Wizard state
-const isOpen = ref(false);
+const isLoading = ref(false);
+const isEditMode = computed(() => !!props.caseId);
 const currentStep = ref(1);
 const totalSteps = 4;
 const isSubmitting = ref(false);
@@ -84,6 +96,7 @@ const labSlipData = ref<Record<string, string>>({});
 
 // Step 3: File uploads
 const uploadedFiles = ref<CaseFile[]>([]);
+const slotFiles = ref<Record<string, File | undefined>>({});
 
 // Step 4: Consent
 const consentChecked = ref(false);
@@ -135,6 +148,7 @@ const resetWizard = () => {
   step1Form.caseTypeId = '';
   labSlipData.value = {};
   uploadedFiles.value = [];
+  slotFiles.value = {};
   pendingFiles.value.clear();
   consentChecked.value = false;
   createdCase.value = null;
@@ -149,54 +163,64 @@ const closeWizard = (emitSuccess = false) => {
   }
 };
 
-const handleStep1Submit = async (event: FormSubmitEvent<Step1Schema>) => {
-  isSubmitting.value = true;
+// Load existing case for editing
+const loadExistingCase = async (caseId: string) => {
+  isLoading.value = true;
   error.value = '';
 
   try {
-    const res = await $fetch<CreatedCase>('/api/cases', {
-      method: 'POST',
-      body: event.data,
-    });
-
+    const res = await $fetch<CreatedCase>(`/api/cases/${caseId}`);
     createdCase.value = res;
-    currentStep.value = 2;
+
+    // Populate step 1 form
+    step1Form.patientName = res.patientName;
+    step1Form.patientExternalId = res.patientExternalId || '';
+    step1Form.caseTypeId = res.caseType.id;
+
+    // Populate step 2 lab slip data
+    labSlipData.value = (res.data as Record<string, string>) || {};
+
+    // Populate step 3 files
+    uploadedFiles.value = res.files || [];
+
+    // Determine which step to start at based on completion
+    const hasLabSlipData = Object.keys(labSlipData.value).length > 0;
+    const hasFiles = uploadedFiles.value.length > 0;
+
+    if (hasFiles) {
+      currentStep.value = 4; // Go to review
+    } else if (hasLabSlipData) {
+      currentStep.value = 3; // Go to files
+    } else {
+      currentStep.value = 2; // Go to lab slip
+    }
   } catch (e: unknown) {
     if (e && typeof e === 'object' && 'statusMessage' in e) {
-      error.value = String((e as { statusMessage?: unknown }).statusMessage || 'Failed to create case');
+      error.value = String((e as { statusMessage?: unknown }).statusMessage || 'Failed to load case');
     } else {
-      error.value = 'Failed to create case';
+      error.value = 'Failed to load case';
     }
     toast.add({ description: error.value, color: 'error' });
   } finally {
-    isSubmitting.value = false;
+    isLoading.value = false;
   }
 };
 
-const saveLabSlip = async () => {
-  if (!createdCase.value) return;
-
-  isSubmitting.value = true;
-  error.value = '';
-
-  try {
-    const res = await $fetch<CreatedCase>(`/api/cases/${createdCase.value.id}`, {
-      method: 'PATCH',
-      body: { data: labSlipData.value },
-    });
-
-    createdCase.value = res;
-    currentStep.value = 3;
-  } catch (e: unknown) {
-    if (e && typeof e === 'object' && 'statusMessage' in e) {
-      error.value = String((e as { statusMessage?: unknown }).statusMessage || 'Failed to save lab slip');
-    } else {
-      error.value = 'Failed to save lab slip';
-    }
-    toast.add({ description: error.value, color: 'error' });
-  } finally {
-    isSubmitting.value = false;
+// Watch for modal open to load existing case
+watch(isOpen, async (newVal) => {
+  if (newVal && props.caseId) {
+    await loadExistingCase(props.caseId);
   }
+});
+
+const handleStep1Submit = async (_event: FormSubmitEvent<Step1Schema>) => {
+  // Just move to next step - no API call
+  currentStep.value = 2;
+};
+
+const goToStep3 = () => {
+  // Just move to next step - no API call
+  currentStep.value = 3;
 };
 
 const pendingFiles = ref<Map<string, File>>(new Map());
@@ -220,42 +244,71 @@ const handleFileUpload = (slotId: string, file: File) => {
   }
 };
 
-const removeFile = (slotId: string) => {
+const _removeFile = (slotId: string) => {
   uploadedFiles.value = uploadedFiles.value.filter((f) => f.slotId !== slotId);
   pendingFiles.value.delete(slotId);
+  slotFiles.value[slotId] = undefined;
 };
 
-const saveFiles = async () => {
-  if (!createdCase.value) return;
+const goToStep4 = () => {
+  // Just move to next step - no API call
+  currentStep.value = 4;
+};
 
+// Save as draft - creates or updates the case
+const saveDraft = async () => {
   isSubmitting.value = true;
   error.value = '';
 
   try {
-    // Upload each pending file to the server
+    let caseId = createdCase.value?.id || props.caseId;
+
+    if (caseId) {
+      // Update existing case
+      const res = await $fetch<CreatedCase>(`/api/cases/${caseId}`, {
+        method: 'PATCH',
+        body: {
+          patientName: step1Form.patientName,
+          patientExternalId: step1Form.patientExternalId || null,
+          data: labSlipData.value,
+        },
+      });
+      createdCase.value = res;
+    } else {
+      // Create new case as draft
+      const res = await $fetch<CreatedCase>('/api/cases', {
+        method: 'POST',
+        body: {
+          patientName: step1Form.patientName,
+          patientExternalId: step1Form.patientExternalId || null,
+          caseTypeId: step1Form.caseTypeId,
+          data: labSlipData.value,
+        },
+      });
+      createdCase.value = res;
+      caseId = res.id;
+    }
+
+    // Upload any pending files
     for (const [slotId, file] of pendingFiles.value.entries()) {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('slotId', slotId);
 
-      await $fetch(`/api/cases/${createdCase.value.id}/files`, {
+      await $fetch(`/api/cases/${caseId}/files`, {
         method: 'POST',
         body: formData,
       });
     }
-
-    // Clear pending files after successful upload
     pendingFiles.value.clear();
 
-    // Refresh case data
-    const res = await $fetch<CreatedCase>(`/api/cases/${createdCase.value.id}`);
-    createdCase.value = res;
-    currentStep.value = 4;
+    toast.add({ description: 'Draft saved successfully!', color: 'success' });
+    closeWizard(true);
   } catch (e: unknown) {
     if (e && typeof e === 'object' && 'statusMessage' in e) {
-      error.value = String((e as { statusMessage?: unknown }).statusMessage || 'Failed to upload files');
+      error.value = String((e as { statusMessage?: unknown }).statusMessage || 'Failed to save draft');
     } else {
-      error.value = 'Failed to upload files';
+      error.value = 'Failed to save draft';
     }
     toast.add({ description: error.value, color: 'error' });
   } finally {
@@ -264,13 +317,52 @@ const saveFiles = async () => {
 };
 
 const submitCase = async () => {
-  if (!createdCase.value) return;
-
   isSubmitting.value = true;
   error.value = '';
 
   try {
-    await $fetch(`/api/cases/${createdCase.value.id}/submit`, {
+    let caseId = createdCase.value?.id || props.caseId;
+
+    if (caseId) {
+      // Update existing case first
+      await $fetch<CreatedCase>(`/api/cases/${caseId}`, {
+        method: 'PATCH',
+        body: {
+          patientName: step1Form.patientName,
+          patientExternalId: step1Form.patientExternalId || null,
+          data: labSlipData.value,
+        },
+      });
+    } else {
+      // Create new case
+      const res = await $fetch<CreatedCase>('/api/cases', {
+        method: 'POST',
+        body: {
+          patientName: step1Form.patientName,
+          patientExternalId: step1Form.patientExternalId || null,
+          caseTypeId: step1Form.caseTypeId,
+          data: labSlipData.value,
+        },
+      });
+      createdCase.value = res;
+      caseId = res.id;
+    }
+
+    // Upload any pending files
+    for (const [slotId, file] of pendingFiles.value.entries()) {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('slotId', slotId);
+
+      await $fetch(`/api/cases/${caseId}/files`, {
+        method: 'POST',
+        body: formData,
+      });
+    }
+    pendingFiles.value.clear();
+
+    // Submit the case
+    await $fetch(`/api/cases/${caseId}/submit`, {
       method: 'POST',
     });
 
@@ -305,243 +397,262 @@ const formatFileSize = (bytes?: number) => {
 <template>
   <UModal
     v-model:open="isOpen"
-    title="Upload New Case"
+    :title="isEditMode ? 'Continue Case' : 'Upload New Case'"
     :description="`Step ${currentStep} of ${totalSteps}: ${stepTitles[currentStep - 1]}`"
     scrollable
+    :dismissible="false"
     :ui="{ content: 'sm:max-w-2xl' }"
-    @update:open="(val) => !val && closeWizard(false)"
   >
     <slot />
 
     <template #body>
-      <!-- Progress bar -->
-      <div class="mb-6 flex gap-2">
-        <div
-          v-for="step in totalSteps"
-          :key="step"
-          class="h-1 flex-1 rounded-full transition-colors"
-          :class="step <= currentStep ? 'bg-primary' : 'bg-gray-200 dark:bg-gray-700'"
-        />
+      <!-- Loading state when fetching existing case -->
+      <div v-if="isLoading" class="flex flex-col items-center justify-center py-12">
+        <UIcon name="i-ri-loader-4-line" class="text-primary mb-4 h-8 w-8 animate-spin" />
+        <p class="text-muted">Loading case details...</p>
       </div>
 
-      <!-- Step 1: Patient & Case Type -->
-      <div v-if="currentStep === 1" class="space-y-4">
-        <UForm :schema="step1Schema" :state="step1Form" @submit="handleStep1Submit">
-          <div class="space-y-4">
-            <UFormField label="Patient Name" name="patientName" required>
-              <UInput v-model="step1Form.patientName" placeholder="Enter patient name" class="w-full" />
-            </UFormField>
-
-            <UFormField label="Patient ID (Optional)" name="patientExternalId">
-              <UInput v-model="step1Form.patientExternalId" placeholder="External patient ID" class="w-full" />
-            </UFormField>
-
-            <UFormField label="Case Type" name="caseTypeId" required>
-              <USelectMenu
-                v-model="step1Form.caseTypeId"
-                :items="caseTypeOptions"
-                value-key="value"
-                label-key="label"
-                placeholder="Select case type"
-                class="w-full"
-              />
-            </UFormField>
-
-            <div v-if="selectedCaseType?.instructions" class="rounded-lg bg-blue-50 p-4 dark:bg-blue-900/20">
-              <div class="flex gap-2">
-                <UIcon name="i-ri-information-line" class="mt-0.5 h-5 w-5 shrink-0 text-blue-500" />
-                <p class="text-sm text-blue-700 dark:text-blue-300">{{ selectedCaseType.instructions }}</p>
-              </div>
-            </div>
-
-            <UAlert v-if="error" color="error" variant="soft" :title="error" />
-
-            <div class="mt-6 flex justify-end gap-3">
-              <UButton type="button" color="neutral" variant="ghost" @click="closeWizard(false)">Cancel</UButton>
-              <UButton type="submit" :loading="isSubmitting">Next</UButton>
-            </div>
-          </div>
-        </UForm>
-      </div>
-
-      <!-- Step 2: Lab Slip -->
-      <div v-else-if="currentStep === 2" class="space-y-4">
-        <p class="text-muted text-sm">Fill in the clinical details for this case.</p>
-
-        <div v-if="selectedCaseType" class="space-y-4">
-          <div v-for="field in selectedCaseType.fields" :key="field.id">
-            <UFormField :label="field.label" :required="field.required">
-              <UInput
-                v-if="field.type === 'text'"
-                v-model="labSlipData[field.id]"
-                :placeholder="`Enter ${field.label.toLowerCase()}`"
-                class="w-full"
-              />
-              <USelectMenu
-                v-else-if="field.type === 'select'"
-                v-model="labSlipData[field.id]"
-                :items="field.options || []"
-                :placeholder="`Select ${field.label.toLowerCase()}`"
-                class="w-full"
-              />
-              <UTextarea
-                v-else-if="field.type === 'textarea'"
-                v-model="labSlipData[field.id]"
-                :placeholder="`Enter ${field.label.toLowerCase()}`"
-                class="w-full"
-                :rows="3"
-              />
-            </UFormField>
-          </div>
+      <template v-else>
+        <!-- Progress bar -->
+        <div class="mb-6 flex gap-2">
+          <div
+            v-for="step in totalSteps"
+            :key="step"
+            class="h-1 flex-1 rounded-full transition-colors"
+            :class="step <= currentStep ? 'bg-primary' : 'bg-gray-200 dark:bg-gray-700'"
+          />
         </div>
 
-        <UAlert
-          v-if="requiredFieldsMissing.length > 0"
-          color="warning"
-          variant="soft"
-          icon="i-ri-error-warning-line"
-          :title="`Missing required fields: ${requiredFieldsMissing.join(', ')}`"
-        />
+        <!-- Step 1: Patient & Case Type -->
+        <div v-if="currentStep === 1" class="space-y-4">
+          <UForm :schema="step1Schema" :state="step1Form" @submit="handleStep1Submit">
+            <div class="space-y-4">
+              <UFormField label="Patient Name" name="patientName" required>
+                <UInput v-model="step1Form.patientName" placeholder="Enter patient name" class="w-full" />
+              </UFormField>
 
-        <UAlert v-if="error" color="error" variant="soft" :title="error" />
+              <UFormField label="Patient ID (Optional)" name="patientExternalId">
+                <UInput v-model="step1Form.patientExternalId" placeholder="External patient ID" class="w-full" />
+              </UFormField>
 
-        <div class="mt-6 flex justify-between">
-          <UButton type="button" color="neutral" variant="ghost" @click="goBack">Back</UButton>
-          <UButton :loading="isSubmitting" :disabled="!canProceedStep2" @click="saveLabSlip">Next</UButton>
-        </div>
-      </div>
-
-      <!-- Step 3: Upload Files -->
-      <div v-else-if="currentStep === 3" class="space-y-4">
-        <p class="text-muted text-sm">Upload the required files for this case.</p>
-
-        <div v-if="selectedCaseType" class="space-y-4">
-          <div v-for="slot in selectedCaseType.fileSlots" :key="slot.id" class="rounded-lg border p-4">
-            <div class="flex items-start justify-between">
-              <div>
-                <p class="font-medium">
-                  {{ slot.label }}
-                  <span v-if="slot.required" class="text-red-500">*</span>
-                </p>
-                <p v-if="slot.accept" class="text-muted text-xs">Accepted: {{ slot.accept }}</p>
-              </div>
-
-              <div v-if="uploadedFiles.find((f) => f.slotId === slot.id)" class="flex items-center gap-2">
-                <UIcon name="i-ri-check-line" class="h-5 w-5 text-green-500" />
-                <span class="text-sm text-green-600">
-                  {{ uploadedFiles.find((f) => f.slotId === slot.id)?.fileName }}
-                </span>
-                <span class="text-muted text-xs">
-                  ({{ formatFileSize(uploadedFiles.find((f) => f.slotId === slot.id)?.fileSize) }})
-                </span>
-                <UButton
-                  icon="i-ri-delete-bin-line"
-                  color="error"
-                  variant="ghost"
-                  size="xs"
-                  @click="removeFile(slot.id)"
+              <UFormField label="Case Type" name="caseTypeId" required>
+                <USelectMenu
+                  v-model="step1Form.caseTypeId"
+                  :items="caseTypeOptions"
+                  value-key="value"
+                  label-key="label"
+                  placeholder="Select case type"
+                  class="w-full"
                 />
+              </UFormField>
+
+              <div v-if="selectedCaseType?.instructions" class="rounded-lg bg-blue-50 p-4 dark:bg-blue-900/20">
+                <div class="flex gap-2">
+                  <UIcon name="i-ri-information-line" class="mt-0.5 h-5 w-5 shrink-0 text-blue-500" />
+                  <p class="text-sm text-blue-700 dark:text-blue-300">{{ selectedCaseType.instructions }}</p>
+                </div>
+              </div>
+
+              <UAlert v-if="error" color="error" variant="soft" :title="error" />
+
+              <div class="mt-6 flex justify-between">
+                <UButton type="button" color="neutral" variant="ghost" @click="closeWizard(false)">Cancel</UButton>
+                <div class="flex gap-2">
+                  <UButton
+                    type="button"
+                    color="neutral"
+                    variant="outline"
+                    :loading="isSubmitting"
+                    :disabled="!step1Form.patientName || !step1Form.caseTypeId"
+                    @click="saveDraft"
+                    >Save Draft</UButton
+                  >
+                  <UButton type="submit">Next</UButton>
+                </div>
               </div>
             </div>
+          </UForm>
+        </div>
 
-            <div v-if="!uploadedFiles.find((f) => f.slotId === slot.id)" class="mt-3">
-              <label
-                class="hover:border-primary flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-6 transition-colors dark:border-gray-600"
+        <!-- Step 2: Lab Slip -->
+        <div v-else-if="currentStep === 2" class="space-y-4">
+          <p class="text-muted text-sm">Fill in the clinical details for this case.</p>
+
+          <div v-if="selectedCaseType" class="space-y-4">
+            <div v-for="field in selectedCaseType.fields" :key="field.id">
+              <UFormField :label="field.label" :required="field.required">
+                <UInput
+                  v-if="field.type === 'text'"
+                  v-model="labSlipData[field.id]"
+                  :placeholder="`Enter ${field.label.toLowerCase()}`"
+                  class="w-full"
+                />
+                <USelectMenu
+                  v-else-if="field.type === 'select'"
+                  v-model="labSlipData[field.id]"
+                  :items="field.options || []"
+                  :placeholder="`Select ${field.label.toLowerCase()}`"
+                  class="w-full"
+                />
+                <UTextarea
+                  v-else-if="field.type === 'textarea'"
+                  v-model="labSlipData[field.id]"
+                  :placeholder="`Enter ${field.label.toLowerCase()}`"
+                  class="w-full"
+                  :rows="3"
+                />
+              </UFormField>
+            </div>
+          </div>
+
+          <UAlert
+            v-if="requiredFieldsMissing.length > 0"
+            color="warning"
+            variant="soft"
+            icon="i-ri-error-warning-line"
+            :title="`Missing required fields: ${requiredFieldsMissing.join(', ')}`"
+          />
+
+          <UAlert v-if="error" color="error" variant="soft" :title="error" />
+
+          <div class="mt-6 flex justify-between">
+            <UButton type="button" color="neutral" variant="ghost" @click="goBack">Back</UButton>
+            <div class="flex gap-2">
+              <UButton
+                color="neutral"
+                variant="outline"
+                :loading="isSubmitting"
+                :disabled="!step1Form.patientName || !step1Form.caseTypeId"
+                @click="saveDraft"
+                >Save Draft</UButton
               >
-                <UIcon name="i-ri-upload-cloud-2-line" class="mb-2 h-8 w-8 text-gray-400" />
-                <span class="text-sm text-gray-600 dark:text-gray-400">Click to upload</span>
-                <input
-                  type="file"
-                  class="hidden"
-                  :accept="slot.accept"
-                  @change="
-                    (e) => {
-                      const target = e.target as HTMLInputElement;
-                      if (target.files?.[0]) handleFileUpload(slot.id, target.files[0]);
-                    }
-                  "
-                />
-              </label>
+              <UButton :disabled="!canProceedStep2" @click="goToStep3">Next</UButton>
             </div>
           </div>
         </div>
 
-        <UAlert
-          v-if="requiredFilesMissing.length > 0"
-          color="warning"
-          variant="soft"
-          icon="i-ri-error-warning-line"
-          :title="`Missing required files: ${requiredFilesMissing.join(', ')}`"
-        />
+        <!-- Step 3: Upload Files -->
+        <div v-else-if="currentStep === 3" class="space-y-4">
+          <p class="text-muted text-sm">Upload the required files for this case.</p>
 
-        <UAlert v-if="error" color="error" variant="soft" :title="error" />
-
-        <div class="mt-6 flex justify-between">
-          <UButton type="button" color="neutral" variant="ghost" @click="goBack">Back</UButton>
-          <UButton :loading="isSubmitting" :disabled="!canProceedStep3" @click="saveFiles">Next</UButton>
-        </div>
-      </div>
-
-      <!-- Step 4: Review & Submit -->
-      <div v-else-if="currentStep === 4" class="space-y-4">
-        <p class="text-muted text-sm">Review your case details before submitting.</p>
-
-        <div class="space-y-4">
-          <div class="rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
-            <h4 class="mb-2 font-medium">Patient Information</h4>
-            <dl class="grid grid-cols-2 gap-2 text-sm">
-              <dt class="text-muted">Name:</dt>
-              <dd>{{ createdCase?.patientName }}</dd>
-              <dt class="text-muted">External ID:</dt>
-              <dd>{{ createdCase?.patientExternalId || '-' }}</dd>
-            </dl>
+          <div v-if="selectedCaseType" class="space-y-4">
+            <div v-for="slot in selectedCaseType.fileSlots" :key="slot.id">
+              <UFormField
+                :label="`${slot.label}${slot.required ? ' *' : ''}`"
+                :description="slot.accept ? `Accepted: ${slot.accept}` : undefined"
+              >
+                <UFileUpload
+                  v-model="slotFiles[slot.id]"
+                  position="inside"
+                  layout="list"
+                  :accept="slot.accept"
+                  icon="i-ri-upload-cloud-2-line"
+                  :label="`Drop ${slot.label.toLowerCase()} here`"
+                  description="Click or drag to upload"
+                  class="min-h-32"
+                  @update:model-value="(file: File | null | undefined) => file && handleFileUpload(slot.id, file)"
+                />
+              </UFormField>
+            </div>
           </div>
 
-          <div class="rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
-            <h4 class="mb-2 font-medium">Case Type</h4>
-            <p>{{ selectedCaseType?.label }}</p>
-          </div>
+          <UAlert
+            v-if="requiredFilesMissing.length > 0"
+            color="warning"
+            variant="soft"
+            icon="i-ri-error-warning-line"
+            :title="`Missing required files: ${requiredFilesMissing.join(', ')}`"
+          />
 
-          <div class="rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
-            <h4 class="mb-2 font-medium">Lab Slip Details</h4>
-            <dl class="grid grid-cols-2 gap-2 text-sm">
-              <template v-for="field in selectedCaseType?.fields" :key="field.id">
-                <dt class="text-muted">{{ field.label }}:</dt>
-                <dd>{{ labSlipData[field.id] || '-' }}</dd>
-              </template>
-            </dl>
-          </div>
+          <UAlert v-if="error" color="error" variant="soft" :title="error" />
 
-          <div class="rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
-            <h4 class="mb-2 font-medium">Uploaded Files</h4>
-            <ul class="space-y-1 text-sm">
-              <li v-for="file in uploadedFiles" :key="file.slotId" class="flex items-center gap-2">
-                <UIcon name="i-ri-file-line" class="h-4 w-4 text-gray-500" />
-                <span>{{ file.fileName }}</span>
-                <span class="text-muted text-xs">({{ formatFileSize(file.fileSize) }})</span>
-              </li>
-              <li v-if="uploadedFiles.length === 0" class="text-muted">No files uploaded</li>
-            </ul>
-          </div>
-
-          <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
-            <UCheckbox
-              v-model="consentChecked"
-              label="I confirm that all information is accurate"
-              description="By submitting this case, I acknowledge that the case will be processed and charges may apply. This action cannot be undone."
-            />
+          <div class="mt-6 flex justify-between">
+            <UButton type="button" color="neutral" variant="ghost" @click="goBack">Back</UButton>
+            <div class="flex gap-2">
+              <UButton
+                color="neutral"
+                variant="outline"
+                :loading="isSubmitting"
+                :disabled="!step1Form.patientName || !step1Form.caseTypeId"
+                @click="saveDraft"
+                >Save Draft</UButton
+              >
+              <UButton :disabled="!canProceedStep3" @click="goToStep4">Next</UButton>
+            </div>
           </div>
         </div>
 
-        <UAlert v-if="error" color="error" variant="soft" :title="error" />
+        <!-- Step 4: Review & Submit -->
+        <div v-else-if="currentStep === 4" class="space-y-4">
+          <p class="text-muted text-sm">Review your case details before submitting.</p>
 
-        <div class="mt-6 flex justify-between">
-          <UButton type="button" color="neutral" variant="ghost" @click="goBack">Back</UButton>
-          <UButton color="primary" :loading="isSubmitting" :disabled="!canSubmit" @click="submitCase">
-            Submit Case
-          </UButton>
+          <div class="space-y-4">
+            <div class="rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
+              <h4 class="mb-2 font-medium">Patient Information</h4>
+              <dl class="grid grid-cols-2 gap-2 text-sm">
+                <dt class="text-muted">Name:</dt>
+                <dd>{{ step1Form.patientName }}</dd>
+                <dt class="text-muted">External ID:</dt>
+                <dd>{{ step1Form.patientExternalId || '-' }}</dd>
+              </dl>
+            </div>
+
+            <div class="rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
+              <h4 class="mb-2 font-medium">Case Type</h4>
+              <p>{{ selectedCaseType?.label }}</p>
+            </div>
+
+            <div class="rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
+              <h4 class="mb-2 font-medium">Lab Slip Details</h4>
+              <dl class="grid grid-cols-2 gap-2 text-sm">
+                <template v-for="field in selectedCaseType?.fields" :key="field.id">
+                  <dt class="text-muted">{{ field.label }}:</dt>
+                  <dd>{{ labSlipData[field.id] || '-' }}</dd>
+                </template>
+              </dl>
+            </div>
+
+            <div class="rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
+              <h4 class="mb-2 font-medium">Uploaded Files</h4>
+              <ul class="space-y-1 text-sm">
+                <li v-for="file in uploadedFiles" :key="file.slotId" class="flex items-center gap-2">
+                  <UIcon name="i-ri-file-line" class="h-4 w-4 text-gray-500" />
+                  <span>{{ file.fileName }}</span>
+                  <span class="text-muted text-xs">({{ formatFileSize(file.fileSize) }})</span>
+                </li>
+                <li v-if="uploadedFiles.length === 0" class="text-muted">No files uploaded</li>
+              </ul>
+            </div>
+
+            <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
+              <UCheckbox
+                v-model="consentChecked"
+                label="I confirm that all information is accurate"
+                description="By submitting this case, I acknowledge that the case will be processed and charges may apply. This action cannot be undone."
+              />
+            </div>
+          </div>
+
+          <UAlert v-if="error" color="error" variant="soft" :title="error" />
+
+          <div class="mt-6 flex justify-between">
+            <UButton type="button" color="neutral" variant="ghost" @click="goBack">Back</UButton>
+            <div class="flex gap-2">
+              <UButton
+                color="neutral"
+                variant="outline"
+                :loading="isSubmitting"
+                :disabled="!step1Form.patientName || !step1Form.caseTypeId"
+                @click="saveDraft"
+                >Save Draft</UButton
+              >
+              <UButton color="primary" :loading="isSubmitting" :disabled="!canSubmit" @click="submitCase">
+                Submit Case
+              </UButton>
+            </div>
+          </div>
         </div>
-      </div>
+      </template>
     </template>
   </UModal>
 </template>

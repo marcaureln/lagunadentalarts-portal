@@ -114,6 +114,30 @@ export default defineEventHandler(async (event) => {
     return updatedCase;
   }
 
+  if (event.node.req.method === 'DELETE') {
+    // Only allow deleting DRAFT cases
+    if (existingCase.status !== 'DRAFT') {
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Only draft cases can be deleted',
+      });
+    }
+
+    // Check edit permission (same as edit - must own the case)
+    if (!permissions.canEditCase(user.role, user.practiceId, existingCase.practiceId, existingCase.status)) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Cannot delete this case',
+      });
+    }
+
+    await prisma.case.delete({
+      where: { id: caseId },
+    });
+
+    return { success: true };
+  }
+
   throw createError({
     statusCode: 405,
     statusMessage: 'Method not allowed',

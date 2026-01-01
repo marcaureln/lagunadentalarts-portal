@@ -4,8 +4,9 @@ import { permissions } from '~~/shared/utils/permissions';
 
 const createCaseSchema = z.object({
   patientName: z.string().min(1, 'Patient name is required'),
-  patientExternalId: z.string().optional(),
+  patientExternalId: z.string().nullable().optional(),
   caseTypeId: z.string().min(1, 'Case type is required'),
+  data: z.record(z.string(), z.any()).optional(),
 });
 
 export default defineEventHandler(async (event) => {
@@ -91,7 +92,7 @@ export default defineEventHandler(async (event) => {
           practiceId: user.practiceId!,
           createdById: user.id,
           status: 'DRAFT',
-          data: {},
+          data: body.data || {},
           files: [],
         },
         include: {

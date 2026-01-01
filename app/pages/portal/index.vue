@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { h } from 'vue';
-import type { TableColumn } from '@nuxt/ui';
+import type { TableColumn, TableRow } from '@nuxt/ui';
 import { permissions } from '~~/shared/utils/permissions';
 
 const { user } = useUserSession();
@@ -10,6 +10,8 @@ definePageMeta({
 });
 
 const UBadge = resolveComponent('UBadge');
+const UButton = resolveComponent('UButton');
+const UDropdownMenu = resolveComponent('UDropdownMenu');
 
 const canCreateCase = computed(() => permissions.canCreateCase(user.value?.role));
 const isPracticeUser = computed(() => ['PRACTICE_STAFF', 'PRACTICE_ADMIN'].includes(user.value?.role || ''));
@@ -102,11 +104,105 @@ const columns = computed<TableColumn<ApiCase>[]>(() => {
         const date = row.getValue('createdAt') as string;
         return h('span', { class: 'text-sm' }, new Date(date).toLocaleDateString());
       },
+    },
+    {
+      accessorKey: 'createdBy',
+      header: 'Created By',
+      cell: ({ row }) => {
+        const createdBy = row.original.createdBy;
+        return h('span', { class: 'text-gray-600 dark:text-gray-400' }, createdBy?.name || '-');
+      },
     }
   );
 
+  // Add actions column for practice users
+  if (isPracticeUser.value) {
+    cols.push({
+      id: 'actions',
+      enableHiding: false,
+      cell: ({ row }) => {
+        const caseData = row.original;
+        const items = [];
+
+        // Only show actions for draft cases for now
+        // TODO: Add 'View details' action for non-draft cases (case detail page)
+        if (caseData.status === 'DRAFT') {
+          items.push([
+            {
+              label: 'Continue editing',
+              icon: 'i-ri-edit-line',
+              onSelect: () => openEditWizard(caseData.id),
+            },
+            {
+              label: 'Delete draft',
+              icon: 'i-ri-delete-bin-line',
+              color: 'error' as const,
+              onSelect: () => deleteDraftCase(caseData.id),
+            },
+          ]);
+        }
+
+        // Don't render dropdown if no items
+        if (items.length === 0) return null;
+
+        return h(
+          'div',
+          { class: 'text-right' },
+          h(
+            UDropdownMenu,
+            { items, content: { align: 'end' } },
+            {
+              default: () =>
+                h(UButton, {
+                  icon: 'i-ri-more-2-fill',
+                  color: 'neutral',
+                  variant: 'ghost',
+                  class: 'ml-auto',
+                }),
+            }
+          )
+        );
+      },
+    });
+  }
+
   return cols;
 });
+
+// Edit wizard state
+const editingCaseId = ref<string | null>(null);
+const editWizardRef = ref<{ open: () => void } | null>(null);
+
+const openEditWizard = (caseId: string) => {
+  editingCaseId.value = caseId;
+  nextTick(() => {
+    editWizardRef.value?.open();
+  });
+};
+
+const onEditWizardSuccess = () => {
+  editingCaseId.value = null;
+  refreshCases();
+};
+
+const deleteDraftCase = async (caseId: string) => {
+  if (!confirm('Are you sure you want to delete this draft?')) return;
+
+  try {
+    await $fetch(`/api/cases/${caseId}`, { method: 'DELETE' });
+    await refreshCases();
+  } catch (e) {
+    console.error('Failed to delete draft:', e);
+  }
+};
+
+const onRowSelect = (_e: Event, row: TableRow<ApiCase>) => {
+  const caseData = row.original;
+  if (caseData.status === 'DRAFT' && isPracticeUser.value) {
+    openEditWizard(caseData.id);
+  }
+  // TODO: Navigate to case detail page for non-draft cases
+};
 </script>
 
 <template>
@@ -152,7 +248,7 @@ const columns = computed<TableColumn<ApiCase>[]>(() => {
             </div>
           </template>
 
-          <UTable :data="cases" :columns="columns">
+          <UTable :data="cases" :columns="columns" @select="onRowSelect">
             <template #empty-state>
               <div class="flex flex-col items-center justify-center py-12">
                 <UIcon name="i-ri-folder-line" class="mb-4 h-12 w-12 text-gray-400" />
@@ -165,6 +261,14 @@ const columns = computed<TableColumn<ApiCase>[]>(() => {
           </UTable>
         </UCard>
       </div>
+
+      <!-- Edit Wizard (hidden trigger, opened programmatically) -->
+      <PortalCaseWizard
+        v-if="editingCaseId"
+        ref="editWizardRef"
+        :case-id="editingCaseId"
+        @success="onEditWizardSuccess"
+      />
     </template>
   </UDashboardPanel>
 </template>
