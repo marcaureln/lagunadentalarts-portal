@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
     where: { email },
   })) as unknown as {
     id: string;
-    email: string | null;
+    email: string;
     name: string;
     pfp: string | null;
     role: Role;

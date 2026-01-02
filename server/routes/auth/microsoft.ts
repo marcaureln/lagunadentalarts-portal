@@ -30,41 +30,16 @@ export default defineOAuthMicrosoftEventHandler({
       });
     }
 
-    const dbUserWithPasswordExpiresAt = dbUser as typeof dbUser & { passwordExpiresAt?: Date | null };
-
-    const ssoNameRaw = (user as any).name || (user as any).displayName || null;
-    const ssoName = typeof ssoNameRaw === 'string' ? ssoNameRaw.trim() : '';
-
-    let resolvedName = typeof dbUser.name === 'string' ? dbUser.name.trim() : '';
-    if (!resolvedName && ssoName) {
-      const updated = await prisma.user.update({
-        where: { id: dbUser.id },
-        data: { name: ssoName },
-        select: { name: true },
-      });
-      resolvedName = typeof updated.name === 'string' ? updated.name.trim() : '';
-    }
-
-    if (!resolvedName) {
-      throw createError({
-        statusCode: 400,
-        statusMessage: 'MissingName',
-        message: 'Unable to determine your name for this account. Please contact an administrator.',
-      });
-    }
-
     // Set user session
     await setUserSession(event, {
       user: {
         id: dbUser.id,
         email,
-        name: resolvedName,
+        name: dbUser.name,
         pfp: dbUser.pfp,
         role: dbUser.role,
         practiceId: dbUser.practiceId,
-        passwordExpiresAt: dbUserWithPasswordExpiresAt.passwordExpiresAt
-          ? dbUserWithPasswordExpiresAt.passwordExpiresAt.toISOString()
-          : null,
+        passwordExpiresAt: null,
       },
     });
 

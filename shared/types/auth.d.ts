@@ -3,7 +3,7 @@ declare module '#auth-utils' {
   interface User {
     id: string;
     name: string;
-    email: string | null;
+    email: string;
     pfp: string | null;
     role: 'USER' | 'ADMIN' | 'PRACTICE_STAFF' | 'PRACTICE_ADMIN' | null;
     practiceId: string | null;
