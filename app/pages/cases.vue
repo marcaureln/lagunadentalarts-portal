@@ -434,7 +434,7 @@ const showFilterRow = computed(() => isLabUser.value || (caseTypesData.value?.le
           </UButton>
         </div>
 
-        <div v-if="showFilterRow" class="flex flex-wrap items-center gap-3 border-t border-default pt-3">
+        <div v-if="showFilterRow" class="flex flex-wrap items-center gap-3">
           <USelectMenu
             v-if="isLabUser"
             v-model="assigneeFilter"

@@ -98,6 +98,7 @@ async function logout() {
                 },
               ],
             ]"
+            :ui="{ content: 'w-(--reka-dropdown-menu-trigger-width)' }"
             :popper="{ strategy: 'absolute', placement: 'top' }"
           >
             <template #account>

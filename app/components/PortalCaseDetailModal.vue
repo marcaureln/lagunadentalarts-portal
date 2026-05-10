@@ -63,7 +63,11 @@ const isOpen = ref(false);
 const isLoading = ref(false);
 const caseDetail = ref<CaseDetail | null>(null);
 const error = ref('');
-const actionBusy = ref(false);
+type ActionKey = 'assign' | 'start-working' | 'mark-complete' | 'request-info' | 'cancel-case';
+
+const busyAction = ref<ActionKey | null>(null);
+const isBusy = (key: ActionKey) => busyAction.value === key;
+const isAnyBusy = computed(() => busyAction.value !== null);
 const actionError = ref('');
 
 const requestInfoOpen = ref(false);
@@ -216,9 +220,9 @@ const onEdit = () => {
   emit('edit', id);
 };
 
-const performAction = async (fn: () => Promise<unknown>) => {
-  if (actionBusy.value) return;
-  actionBusy.value = true;
+const performAction = async (key: ActionKey, fn: () => Promise<unknown>) => {
+  if (busyAction.value) return;
+  busyAction.value = key;
   actionError.value = '';
   try {
     await fn();
@@ -228,23 +232,23 @@ const performAction = async (fn: () => Promise<unknown>) => {
     const err = e as { statusMessage?: string; data?: { statusMessage?: string }; message?: string };
     actionError.value = err.statusMessage || err.data?.statusMessage || err.message || 'Action failed';
   } finally {
-    actionBusy.value = false;
+    busyAction.value = null;
   }
 };
 
 const assignTo = (assigneeId: string | null) =>
-  performAction(() => $fetch(`/api/cases/${props.caseId}/assign`, { method: 'POST', body: { assigneeId } }));
+  performAction('assign', () => $fetch(`/api/cases/${props.caseId}/assign`, { method: 'POST', body: { assigneeId } }));
 
 const assignToMe = () => {
   if (!userId.value) return;
   return assignTo(userId.value);
 };
 
-const transitionTo = (to: CaseStatus, message?: string) =>
-  performAction(() => $fetch(`/api/cases/${props.caseId}/transition`, { method: 'POST', body: { to, message } }));
+const transitionTo = (key: ActionKey, to: CaseStatus, message?: string) =>
+  performAction(key, () => $fetch(`/api/cases/${props.caseId}/transition`, { method: 'POST', body: { to, message } }));
 
-const startWorking = () => transitionTo('IN_PROGRESS');
-const markComplete = () => transitionTo('COMPLETED');
+const startWorking = () => transitionTo('start-working', 'IN_PROGRESS');
+const markComplete = () => transitionTo('mark-complete', 'COMPLETED');
 
 const openRequestInfo = () => {
   requestInfoMessage.value = '';
@@ -254,14 +258,14 @@ const openRequestInfo = () => {
 const submitRequestInfo = async () => {
   const msg = requestInfoMessage.value.trim();
   if (!msg) return;
-  await transitionTo('NEEDS_INFO', msg);
+  await transitionTo('request-info', 'NEEDS_INFO', msg);
   requestInfoOpen.value = false;
   requestInfoMessage.value = '';
 };
 
 const cancelCase = async () => {
   if (!confirm('Cancel this case? This cannot be undone.')) return;
-  await transitionTo('CANCELLED');
+  await transitionTo('cancel-case', 'CANCELLED');
 };
 
 defineExpose({ open });
@@ -322,14 +326,22 @@ defineExpose({ open });
               size="sm"
               color="primary"
               icon="i-ri-user-add-line"
-              :loading="actionBusy"
+              :loading="isBusy('assign')"
+              :disabled="isAnyBusy && !isBusy('assign')"
               @click="assignToMe"
             >
               Assign to me
             </UButton>
 
             <UDropdownMenu v-if="canManagerAssign" :items="assignDropdownItems">
-              <UButton size="sm" color="neutral" variant="outline" icon="i-ri-user-shared-line" :loading="actionBusy">
+              <UButton
+                size="sm"
+                color="neutral"
+                variant="outline"
+                icon="i-ri-user-shared-line"
+                :loading="isBusy('assign')"
+                :disabled="isAnyBusy && !isBusy('assign')"
+              >
                 {{ caseDetail.assignedTo ? 'Reassign' : 'Assign…' }}
               </UButton>
             </UDropdownMenu>
@@ -408,48 +420,61 @@ defineExpose({ open });
           </ul>
         </UCard>
 
-        <UCard>
-          <template #header>
-            <h3 class="font-semibold">Activity</h3>
+        <UCollapsible class="overflow-hidden rounded-lg border border-default">
+          <template #default="{ open: expanded }">
+            <button
+              type="button"
+              class="flex w-full items-center justify-between gap-2 bg-elevated/50 px-4 py-3 text-left"
+            >
+              <h3 class="font-semibold">Activity</h3>
+              <UIcon :name="expanded ? 'i-ri-arrow-up-s-line' : 'i-ri-arrow-down-s-line'" class="h-5 w-5 text-muted" />
+            </button>
           </template>
-          <div class="space-y-4">
-            <div v-for="event in caseDetail.events" :key="event.id" class="flex gap-3">
-              <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
-                <UIcon
-                  :name="
-                    event.type === 'CREATED'
-                      ? 'i-ri-add-line'
-                      : event.type === 'SUBMITTED'
-                        ? 'i-ri-send-plane-line'
-                        : event.type === 'STATUS_CHANGED'
-                          ? 'i-ri-refresh-line'
-                          : event.type === 'ASSIGNED' || event.type === 'UNASSIGNED'
-                            ? 'i-ri-user-line'
-                            : 'i-ri-edit-line'
-                  "
-                  class="h-4 w-4 text-muted"
-                />
-              </div>
-              <div class="flex-1">
-                <p class="space-x-1 text-sm">
-                  <span class="font-medium">{{ event.createdBy.name }}</span>
-                  <span class="text-muted"> {{ eventTypeLabels[event.type] || event.type }}</span>
-                  <span v-if="event.type === 'STATUS_CHANGED' && event.fromStatus && event.toStatus" class="text-muted">
-                    · {{ statusConfig[event.fromStatus as CaseStatus].label }} →
-                    {{ statusConfig[event.toStatus as CaseStatus].label }}
-                  </span>
-                  <span v-else-if="event.type === 'ASSIGNED' && event.message" class="text-muted">
-                    · {{ event.message }}
-                  </span>
-                </p>
-                <p v-if="event.message && event.type !== 'ASSIGNED'" class="mt-1 text-sm text-muted">
-                  {{ event.message }}
-                </p>
-                <p class="mt-1 text-xs text-muted">{{ formatDate(event.createdAt) }}</p>
+          <template #content>
+            <div class="space-y-4 px-4 py-4">
+              <div v-for="event in caseDetail.events" :key="event.id" class="flex gap-3">
+                <div
+                  class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800"
+                >
+                  <UIcon
+                    :name="
+                      event.type === 'CREATED'
+                        ? 'i-ri-add-line'
+                        : event.type === 'SUBMITTED'
+                          ? 'i-ri-send-plane-line'
+                          : event.type === 'STATUS_CHANGED'
+                            ? 'i-ri-refresh-line'
+                            : event.type === 'ASSIGNED' || event.type === 'UNASSIGNED'
+                              ? 'i-ri-user-line'
+                              : 'i-ri-edit-line'
+                    "
+                    class="h-4 w-4 text-muted"
+                  />
+                </div>
+                <div class="flex-1">
+                  <p class="space-x-1 text-sm">
+                    <span class="font-medium">{{ event.createdBy.name }}</span>
+                    <span class="text-muted"> {{ eventTypeLabels[event.type] || event.type }}</span>
+                    <span
+                      v-if="event.type === 'STATUS_CHANGED' && event.fromStatus && event.toStatus"
+                      class="text-muted"
+                    >
+                      · {{ statusConfig[event.fromStatus as CaseStatus].label }} →
+                      {{ statusConfig[event.toStatus as CaseStatus].label }}
+                    </span>
+                    <span v-else-if="event.type === 'ASSIGNED' && event.message" class="text-muted">
+                      · {{ event.message }}
+                    </span>
+                  </p>
+                  <p v-if="event.message && event.type !== 'ASSIGNED'" class="mt-1 text-sm text-muted">
+                    {{ event.message }}
+                  </p>
+                  <p class="mt-1 text-xs text-muted">{{ formatDate(event.createdAt) }}</p>
+                </div>
               </div>
             </div>
-          </div>
-        </UCard>
+          </template>
+        </UCollapsible>
       </div>
     </template>
 
@@ -463,7 +488,7 @@ defineExpose({ open });
             color="warning"
             variant="outline"
             icon="i-ri-question-line"
-            :disabled="actionBusy"
+            :disabled="isAnyBusy"
             @click="openRequestInfo"
           >
             Request info
@@ -474,7 +499,8 @@ defineExpose({ open });
             color="error"
             variant="ghost"
             icon="i-ri-close-circle-line"
-            :loading="actionBusy"
+            :loading="isBusy('cancel-case')"
+            :disabled="isAnyBusy && !isBusy('cancel-case')"
             @click="cancelCase"
           >
             Cancel case
@@ -505,7 +531,8 @@ defineExpose({ open });
             v-if="canStartWorking"
             color="primary"
             icon="i-ri-play-line"
-            :loading="actionBusy"
+            :loading="isBusy('start-working')"
+            :disabled="isAnyBusy && !isBusy('start-working')"
             @click="startWorking"
           >
             Start working
@@ -514,7 +541,8 @@ defineExpose({ open });
             v-if="canMarkComplete"
             color="success"
             icon="i-ri-checkbox-circle-line"
-            :loading="actionBusy"
+            :loading="isBusy('mark-complete')"
+            :disabled="isAnyBusy && !isBusy('mark-complete')"
             @click="markComplete"
           >
             Mark complete
@@ -542,14 +570,14 @@ defineExpose({ open });
     </template>
     <template #footer>
       <div class="flex justify-end gap-2">
-        <UButton color="neutral" variant="outline" :disabled="actionBusy" @click="requestInfoOpen = false">
+        <UButton color="neutral" variant="outline" :disabled="isAnyBusy" @click="requestInfoOpen = false">
           Cancel
         </UButton>
         <UButton
           color="warning"
           icon="i-ri-send-plane-line"
-          :disabled="!requestInfoMessage.trim()"
-          :loading="actionBusy"
+          :disabled="!requestInfoMessage.trim() || (isAnyBusy && !isBusy('request-info'))"
+          :loading="isBusy('request-info')"
           @click="submitRequestInfo"
         >
           Send request

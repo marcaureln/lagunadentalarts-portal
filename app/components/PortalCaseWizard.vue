@@ -77,7 +77,8 @@ const isLoading = ref(false);
 const isEditMode = computed(() => !!props.caseId);
 const currentStep = ref(1);
 const totalSteps = 4;
-const isSubmitting = ref(false);
+const isSavingDraft = ref(false);
+const isSubmittingCase = ref(false);
 const error = ref('');
 
 // Created case (after step 1)
@@ -347,9 +348,8 @@ const goToStep4 = () => {
   currentStep.value = 4;
 };
 
-// Save as draft - creates or updates the case
 const saveDraft = async () => {
-  isSubmitting.value = true;
+  isSavingDraft.value = true;
   error.value = '';
 
   try {
@@ -406,12 +406,12 @@ const saveDraft = async () => {
     }
     toast.add({ description: error.value, color: 'error' });
   } finally {
-    isSubmitting.value = false;
+    isSavingDraft.value = false;
   }
 };
 
 const submitCase = async () => {
-  isSubmitting.value = true;
+  isSubmittingCase.value = true;
   error.value = '';
 
   try {
@@ -472,7 +472,7 @@ const submitCase = async () => {
     }
     toast.add({ description: error.value, color: 'error' });
   } finally {
-    isSubmitting.value = false;
+    isSubmittingCase.value = false;
   }
 };
 
@@ -577,8 +577,8 @@ const formatFileSize = (bytes?: number) => {
                     type="button"
                     color="neutral"
                     variant="outline"
-                    :loading="isSubmitting"
-                    :disabled="!step1Form.patientName || !step1Form.caseTypeId"
+                    :loading="isSavingDraft"
+                    :disabled="isSubmittingCase || !step1Form.patientName || !step1Form.caseTypeId"
                     @click="saveDraft"
                     >Save Draft</UButton
                   >
@@ -636,8 +636,8 @@ const formatFileSize = (bytes?: number) => {
               <UButton
                 color="neutral"
                 variant="outline"
-                :loading="isSubmitting"
-                :disabled="!step1Form.patientName || !step1Form.caseTypeId"
+                :loading="isSavingDraft"
+                :disabled="isSubmittingCase || !step1Form.patientName || !step1Form.caseTypeId"
                 @click="saveDraft"
                 >Save Draft</UButton
               >
@@ -687,8 +687,8 @@ const formatFileSize = (bytes?: number) => {
               <UButton
                 color="neutral"
                 variant="outline"
-                :loading="isSubmitting"
-                :disabled="!step1Form.patientName || !step1Form.caseTypeId"
+                :loading="isSavingDraft"
+                :disabled="isSubmittingCase || !step1Form.patientName || !step1Form.caseTypeId"
                 @click="saveDraft"
                 >Save Draft</UButton
               >
@@ -756,12 +756,17 @@ const formatFileSize = (bytes?: number) => {
               <UButton
                 color="neutral"
                 variant="outline"
-                :loading="isSubmitting"
-                :disabled="!step1Form.patientName || !step1Form.caseTypeId"
+                :loading="isSavingDraft"
+                :disabled="isSubmittingCase || !step1Form.patientName || !step1Form.caseTypeId"
                 @click="saveDraft"
                 >Save Draft</UButton
               >
-              <UButton color="primary" :loading="isSubmitting" :disabled="!canSubmit" @click="submitCase">
+              <UButton
+                color="primary"
+                :loading="isSubmittingCase"
+                :disabled="isSavingDraft || !canSubmit"
+                @click="submitCase"
+              >
                 Submit Case
               </UButton>
             </div>

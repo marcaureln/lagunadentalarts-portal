@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { h, resolveComponent } from 'vue';
-import type { TableColumn } from '@nuxt/ui';
+import type { TableColumn, TableRow } from '@nuxt/ui';
 import type { PracticeWithCount } from '~~/shared/types/practice';
 
 const UButton = resolveComponent('UButton');
@@ -41,8 +41,12 @@ async function deletePractice(practice: PracticeWithCount) {
 }
 
 function viewPracticeUsers(practice: PracticeWithCount) {
-  router.push(`/admin/users?practiceId=${practice.id}`);
+  router.push(`/admin/practices/${practice.id}/users`);
 }
+
+const onRowSelect = (_e: Event, row: TableRow<PracticeWithCount>) => {
+  viewPracticeUsers(row.original);
+};
 
 const columns: TableColumn<PracticeWithCount>[] = [
   {
@@ -79,7 +83,7 @@ const columns: TableColumn<PracticeWithCount>[] = [
     enableHiding: false,
     cell: ({ row }) => {
       const practice = row.original;
-      return h('div', { class: 'flex items-center justify-end gap-1' }, [
+      return h('div', { class: 'flex items-center justify-end gap-1', onClick: (e: Event) => e.stopPropagation() }, [
         h(UTooltip, { text: 'View Users' }, () =>
           h(UButton, {
             variant: 'ghost',
@@ -123,7 +127,7 @@ const columns: TableColumn<PracticeWithCount>[] = [
 
     <template #body>
       <div class="w-full flex-1 divide-y divide-accented overflow-hidden rounded-lg border border-accented">
-        <UTable ref="table" :data="practices || []" :columns="columns">
+        <UTable ref="table" :data="practices || []" :columns="columns" @select="onRowSelect">
           <template #empty>
             <div class="flex flex-col items-center justify-center py-12">
               <UIcon name="i-ri-building-line" class="mb-4 h-12 w-12 text-gray-400" />

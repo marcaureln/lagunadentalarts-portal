@@ -71,22 +71,28 @@ const addPractice = async () => {
         <div class="space-y-4">
           <div>
             <label for="name" class="mb-1 block text-sm font-medium text-gray-700">Practice Name *</label>
-            <UInput id="name" v-model="state.name" placeholder="Enter practice name" required />
+            <UInput id="name" v-model="state.name" class="w-full" placeholder="Enter practice name" required />
           </div>
 
           <div>
             <label for="address" class="mb-1 block text-sm font-medium text-gray-700">Address</label>
-            <UTextarea id="address" v-model="state.address" placeholder="Enter practice address" :rows="3" />
+            <UTextarea
+              id="address"
+              v-model="state.address"
+              class="w-full"
+              placeholder="Enter practice address"
+              :rows="3"
+            />
           </div>
 
           <div>
             <label for="phone" class="mb-1 block text-sm font-medium text-gray-700">Phone</label>
-            <UInput id="phone" v-model="state.phone" placeholder="Enter phone number" />
+            <UInput id="phone" v-model="state.phone" class="w-full" placeholder="Enter phone number" />
           </div>
 
           <div>
             <label for="email" class="mb-1 block text-sm font-medium text-gray-700">Email</label>
-            <UInput id="email" v-model="state.email" type="email" placeholder="Enter email address" />
+            <UInput id="email" v-model="state.email" class="w-full" type="email" placeholder="Enter email address" />
           </div>
 
           <UAlert v-if="error" color="error" variant="soft" :title="error" />

@@ -6,8 +6,7 @@ import { generateTemporaryPassword } from '~~/server/utils/password';
 const bodySchema = z.object({
   email: z.email(),
   name: z.string().min(1),
-  role: z.enum(['USER', 'ADMIN', 'PRACTICE_STAFF', 'PRACTICE_ADMIN']),
-  practiceId: z.string().optional(),
+  role: z.enum(['USER', 'ADMIN']),
   useSso: z.boolean().optional(),
 });
 
@@ -15,26 +14,9 @@ export default defineEventHandler(async (event) => {
   await requireAdmin(event);
 
   try {
-    const { email, name, role, practiceId, useSso } = await readValidatedBody(event, bodySchema.parse);
+    const { email, name, role, useSso } = await readValidatedBody(event, bodySchema.parse);
 
-    // Validate practice assignment
-    if (['PRACTICE_STAFF', 'PRACTICE_ADMIN'].includes(role) && !practiceId) {
-      throw createError({
-        statusCode: 400,
-        statusMessage: 'Practice ID is required for practice roles',
-      });
-    }
-
-    if (['USER', 'ADMIN'].includes(role) && practiceId) {
-      throw createError({
-        statusCode: 400,
-        statusMessage: 'LDA roles cannot be assigned to a practice',
-      });
-    }
-
-    const defaultUseSso = ['USER', 'ADMIN'].includes(role);
-    const resolvedUseSso = typeof useSso === 'boolean' ? useSso : defaultUseSso;
-
+    const resolvedUseSso = typeof useSso === 'boolean' ? useSso : true;
     const shouldCreatePassword = !resolvedUseSso;
     const temporaryPassword = shouldCreatePassword ? generateTemporaryPassword() : null;
 
@@ -43,10 +25,6 @@ export default defineEventHandler(async (event) => {
       name,
       role,
     };
-
-    if (practiceId) {
-      data.practiceId = practiceId;
-    }
 
     if (shouldCreatePassword) {
       data.passwordHash = await hashPassword(temporaryPassword as string);

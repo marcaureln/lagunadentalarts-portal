@@ -224,6 +224,21 @@ const onEditWizardSuccess = () => {
   refreshCases();
 };
 
+const viewingCaseId = ref<string | null>(null);
+const caseDetailRef = ref<{ open: () => void } | null>(null);
+
+const openCaseDetail = (caseId: string) => {
+  viewingCaseId.value = caseId;
+  nextTick(() => {
+    caseDetailRef.value?.open();
+  });
+};
+
+const onEditFromDetail = (caseId: string) => {
+  viewingCaseId.value = null;
+  openEditWizard(caseId);
+};
+
 const deleteDraftCase = async (caseId: string) => {
   if (!confirm('Are you sure you want to delete this draft?')) return;
 
@@ -239,8 +254,9 @@ const onRowSelect = (_e: Event, row: TableRow<ApiCase>) => {
   const caseData = row.original;
   if (caseData.status === 'DRAFT' && isPracticeUser.value) {
     openEditWizard(caseData.id);
+  } else {
+    openCaseDetail(caseData.id);
   }
-  // TODO: Navigate to case detail page for non-draft cases
 };
 </script>
 
@@ -262,7 +278,10 @@ const onRowSelect = (_e: Event, row: TableRow<ApiCase>) => {
     <template #body>
       <div class="space-y-6">
         <!-- Status Cards -->
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div
+          class="grid gap-4 sm:grid-cols-2"
+          :class="dashboardCards.length === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-4'"
+        >
           <UCard v-for="card in dashboardCards" :key="card.status">
             <div class="flex items-center justify-between">
               <div>
@@ -311,12 +330,19 @@ const onRowSelect = (_e: Event, row: TableRow<ApiCase>) => {
         </UCard>
       </div>
 
-      <!-- Edit Wizard (hidden trigger, opened programmatically) -->
       <PortalCaseWizard
         v-if="editingCaseId"
         ref="editWizardRef"
         :case-id="editingCaseId"
         @success="onEditWizardSuccess"
+      />
+
+      <PortalCaseDetailModal
+        v-if="viewingCaseId"
+        ref="caseDetailRef"
+        :case-id="viewingCaseId"
+        @close="viewingCaseId = null"
+        @edit="onEditFromDetail"
       />
     </template>
   </UDashboardPanel>

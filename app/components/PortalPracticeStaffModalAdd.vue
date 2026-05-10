@@ -4,6 +4,10 @@ import type { FormSubmitEvent } from '@nuxt/ui';
 import { useClipboard } from '@vueuse/core';
 import { roleOptions } from '~~/shared/utils/users';
 
+const props = defineProps<{
+  practiceId: string;
+}>();
+
 const emit = defineEmits<{
   success: [];
 }>();
@@ -11,8 +15,7 @@ const emit = defineEmits<{
 const schema = z.object({
   email: z.email('Invalid email'),
   name: z.string().min(1, 'Name is required'),
-  role: z.enum(['USER', 'ADMIN']),
-  useSso: z.boolean(),
+  role: z.enum(['PRACTICE_STAFF', 'PRACTICE_ADMIN']),
 });
 
 type Schema = z.output<typeof schema>;
@@ -20,8 +23,7 @@ type Schema = z.output<typeof schema>;
 const form = reactive<Schema>({
   email: '',
   name: '',
-  role: 'USER',
-  useSso: true,
+  role: 'PRACTICE_STAFF',
 });
 
 const isSubmitting = ref(false);
@@ -32,20 +34,20 @@ const { copy } = useClipboard();
 
 const isLocked = computed(() => Boolean(temporaryPassword.value));
 
-const ldaRoleOptions = roleOptions.filter((opt) => opt.value === 'USER' || opt.value === 'ADMIN');
+const practiceRoleOptions = roleOptions.filter(
+  (opt) => opt.value === 'PRACTICE_STAFF' || opt.value === 'PRACTICE_ADMIN'
+);
 
 const resetForm = () => {
   form.email = '';
   form.name = '';
-  form.role = 'USER';
-  form.useSso = true;
+  form.role = 'PRACTICE_STAFF';
   error.value = '';
   temporaryPassword.value = null;
 };
 
 const copyTemporaryPassword = async () => {
   if (!temporaryPassword.value) return;
-
   try {
     await copy(temporaryPassword.value);
     toast.add({ description: 'Temporary password copied to clipboard', color: 'success' });
@@ -55,32 +57,31 @@ const copyTemporaryPassword = async () => {
   }
 };
 
-const addUser = async (payload: Schema) => {
+const addStaff = async (payload: Schema) => {
   isSubmitting.value = true;
   error.value = '';
   temporaryPassword.value = null;
 
   try {
-    const res = await $fetch<{ user: unknown; temporaryPassword: string | null }>('/api/admin/users', {
-      method: 'POST',
-      body: payload,
-    });
+    const res = await $fetch<{ user: unknown; temporaryPassword: string | null }>(
+      `/api/practices/${props.practiceId}/users`,
+      {
+        method: 'POST',
+        body: payload,
+      }
+    );
 
     temporaryPassword.value = res.temporaryPassword;
+    toast.add({ description: 'Staff added successfully', color: 'success' });
 
-    toast.add({ description: 'Staff member added successfully', color: 'success' });
-
-    if (!temporaryPassword.value) {
-      resetForm();
-    }
+    if (!temporaryPassword.value) resetForm();
     emit('success');
   } catch (e: unknown) {
     if (e && typeof e === 'object' && 'statusMessage' in e) {
-      error.value = String((e as { statusMessage?: unknown }).statusMessage || 'Failed to add staff member');
+      error.value = String((e as { statusMessage?: unknown }).statusMessage || 'Failed to add staff');
     } else {
-      error.value = 'Failed to add staff member';
+      error.value = 'Failed to add staff';
     }
-    console.error('Failed to add user', e);
     toast.add({ description: error.value, color: 'error' });
   } finally {
     isSubmitting.value = false;
@@ -89,12 +90,8 @@ const addUser = async (payload: Schema) => {
 
 const onSubmit = async (event: FormSubmitEvent<Schema>, close: () => void) => {
   if (temporaryPassword.value) return;
-
-  await addUser(event.data);
-
-  if (!error.value && !temporaryPassword.value) {
-    close();
-  }
+  await addStaff(event.data);
+  if (!error.value && !temporaryPassword.value) close();
 };
 </script>
 
@@ -106,12 +103,13 @@ const onSubmit = async (event: FormSubmitEvent<Schema>, close: () => void) => {
       <UForm :schema="schema" :state="form" @submit="(event) => onSubmit(event, close)">
         <UCard>
           <template #header>
-            <h3 class="text-lg font-semibold">Add LDA Staff</h3>
+            <h3 class="text-lg font-semibold">Add Practice Staff</h3>
           </template>
 
           <div class="space-y-4">
             <p class="text-sm text-gray-600">
-              Add a new LDA staff member. They can sign in with Microsoft SSO or be given a temporary password.
+              Add a new staff member to this practice. A temporary password will be generated and they will be forced to
+              change it on first login.
             </p>
 
             <UFormField label="Email" name="email" required>
@@ -120,7 +118,7 @@ const onSubmit = async (event: FormSubmitEvent<Schema>, close: () => void) => {
                 v-model="form.email"
                 class="w-full"
                 type="email"
-                placeholder="user@example.com"
+                placeholder="staff@practice.com"
                 :disabled="isLocked"
               />
             </UFormField>
@@ -134,19 +132,10 @@ const onSubmit = async (event: FormSubmitEvent<Schema>, close: () => void) => {
                 id="role"
                 v-model="form.role"
                 class="w-full"
-                :items="ldaRoleOptions"
+                :items="practiceRoleOptions"
                 value-key="value"
                 label-key="label"
                 :search-input="false"
-                :disabled="isLocked"
-              />
-            </UFormField>
-
-            <UFormField label="Authentication" name="useSso">
-              <UCheckbox
-                v-model="form.useSso"
-                label="Use Microsoft SSO (no password)"
-                description="If unchecked, a temporary password will be generated and the user will be forced to change it on first login."
                 :disabled="isLocked"
               />
             </UFormField>
