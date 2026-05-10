@@ -48,8 +48,13 @@ export default defineEventHandler(async (event) => {
       .find((p) => p.name === 'description')
       ?.data?.toString()
       .trim() || null;
-  const sortOrderRaw = formData.find((p) => p.name === 'sortOrder')?.data?.toString();
-  const sortOrder = sortOrderRaw ? Number.parseInt(sortOrderRaw, 10) : 0;
+
+  // New resources land at the bottom of the list; admins reorder by drag.
+  const last = await prisma.resource.findFirst({
+    orderBy: { sortOrder: 'desc' },
+    select: { sortOrder: true },
+  });
+  const sortOrder = (last?.sortOrder ?? -1) + 1;
 
   const storage = getStorage();
   const uploaded = await storage.uploadResource(filePart.data, filePart.filename, mimeType);
@@ -63,7 +68,7 @@ export default defineEventHandler(async (event) => {
         storageKey: uploaded.storageKey,
         fileSize: uploaded.fileSize,
         mimeType: uploaded.mimeType,
-        sortOrder: Number.isFinite(sortOrder) ? sortOrder : 0,
+        sortOrder,
         uploadedById: user.id,
       },
       include: { uploadedBy: { select: { id: true, name: true } } },

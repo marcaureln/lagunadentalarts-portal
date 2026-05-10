@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { h, resolveComponent } from 'vue';
 import type { TableColumn } from '@nuxt/ui';
+import { useSortable } from '@vueuse/integrations/useSortable';
 import { permissions } from '~~/shared/utils/permissions';
 
 const { user } = useUserSession();
@@ -24,13 +25,44 @@ interface ApiResource {
   uploadedBy: { id: string; name: string };
 }
 
-const { data, refresh, status } = useFetch<ApiResource[]>('/api/resources', {
+const {
+  data: fetchedData,
+  refresh,
+  status,
+} = useFetch<ApiResource[]>('/api/resources', {
   lazy: true,
   default: () => [],
 });
 
-const resources = computed(() => data.value || []);
+// useSortable needs a writable array ref it can mutate in place when rows are dragged.
+const resources = ref<ApiResource[]>([]);
+watch(
+  fetchedData,
+  (v) => {
+    resources.value = v ? [...v] : [];
+  },
+  { immediate: true }
+);
+
 const isLoading = computed(() => status.value === 'pending');
+
+const persistOrder = async () => {
+  try {
+    await $fetch('/api/admin/resources/reorder', {
+      method: 'POST',
+      body: { orderedIds: resources.value.map((r) => r.id) },
+    });
+  } catch (e) {
+    console.error('Failed to save new order', e);
+    refresh();
+  }
+};
+
+useSortable('.resources-tbody', resources, {
+  animation: 150,
+  handle: '.drag-handle',
+  onUpdate: persistOrder,
+});
 
 const addRef = ref<{ open: () => void } | null>(null);
 const editing = ref<ApiResource | null>(null);
@@ -66,6 +98,17 @@ const UButton = resolveComponent('UButton');
 
 const columns: TableColumn<ApiResource>[] = [
   {
+    id: 'handle',
+    enableHiding: false,
+    meta: { class: { th: 'w-6', td: 'w-6' } },
+    cell: () =>
+      h(
+        'span',
+        { class: 'drag-handle flex cursor-grab items-center justify-center text-muted active:cursor-grabbing' },
+        [h(resolveComponent('UIcon'), { name: 'i-ri-draggable', class: 'h-4 w-4' })]
+      ),
+  },
+  {
     accessorKey: 'title',
     header: 'Title',
     cell: ({ row }) => h('span', { class: 'font-medium' }, row.original.title),
@@ -79,11 +122,6 @@ const columns: TableColumn<ApiResource>[] = [
     accessorKey: 'fileSize',
     header: 'Size',
     cell: ({ row }) => h('span', { class: 'text-sm' }, formatBytes(row.original.fileSize)),
-  },
-  {
-    accessorKey: 'sortOrder',
-    header: 'Sort',
-    cell: ({ row }) => h('span', { class: 'text-sm tabular-nums' }, String(row.original.sortOrder)),
   },
   {
     accessorKey: 'uploadedBy',
@@ -151,7 +189,7 @@ const columns: TableColumn<ApiResource>[] = [
         <div v-if="isLoading && resources.length === 0" class="flex items-center justify-center py-16">
           <UIcon name="i-ri-loader-4-line" class="h-6 w-6 animate-spin text-primary" />
         </div>
-        <UTable v-else :data="resources" :columns="columns">
+        <UTable v-else :data="resources" :columns="columns" :ui="{ tbody: 'resources-tbody' }">
           <template #empty>
             <div class="flex flex-col items-center justify-center py-16">
               <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">

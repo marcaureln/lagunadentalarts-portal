@@ -5,7 +5,6 @@ import { requireAdmin } from '~~/server/utils/admin';
 const updateSchema = z.object({
   title: z.string().trim().min(1).optional(),
   description: z.string().trim().nullable().optional(),
-  sortOrder: z.number().int().optional(),
 });
 
 export default defineEventHandler(async (event) => {

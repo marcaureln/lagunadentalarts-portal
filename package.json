@@ -38,11 +38,13 @@
     "nuxt-auth-utils": "^0.5.29",
     "pg": "^8.20.0",
     "prisma": "^7.8.0",
+    "sortablejs": "^1.15.7",
     "tsx": "^4.21.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/pg": "^8.20.0",
+    "@types/sortablejs": "^1.15.9",
     "eslint": "^9.39.4",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",

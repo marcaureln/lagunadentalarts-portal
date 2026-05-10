@@ -3,7 +3,6 @@ interface ResourceLite {
   id: string;
   title: string;
   description: string | null;
-  sortOrder: number;
 }
 
 const props = defineProps<{
@@ -20,7 +19,6 @@ const isEdit = computed(() => !!props.resource);
 const file = ref<File | null>(null);
 const title = ref('');
 const description = ref('');
-const sortOrder = ref(0);
 
 const isSubmitting = ref(false);
 const error = ref('');
@@ -34,11 +32,9 @@ const syncFromProps = () => {
   if (props.resource) {
     title.value = props.resource.title;
     description.value = props.resource.description ?? '';
-    sortOrder.value = props.resource.sortOrder;
   } else {
     title.value = '';
     description.value = '';
-    sortOrder.value = 0;
   }
   file.value = null;
   error.value = '';
@@ -69,7 +65,6 @@ const submit = async () => {
         body: {
           title: title.value.trim(),
           description: description.value.trim() ? description.value.trim() : null,
-          sortOrder: Number.isFinite(sortOrder.value) ? sortOrder.value : 0,
         },
       });
       toast.add({ title: 'Resource updated', color: 'success' });
@@ -86,7 +81,6 @@ const submit = async () => {
       body.append('file', file.value);
       body.append('title', title.value.trim());
       if (description.value.trim()) body.append('description', description.value.trim());
-      body.append('sortOrder', String(sortOrder.value));
       await $fetch('/api/admin/resources', { method: 'POST', body });
       toast.add({ title: 'Resource added', color: 'success' });
     }
@@ -126,10 +120,6 @@ const submit = async () => {
 
         <UFormField label="Description">
           <UTextarea v-model="description" class="w-full" placeholder="Optional context for the form" :rows="3" />
-        </UFormField>
-
-        <UFormField label="Sort order" description="Lower numbers appear first.">
-          <UInput v-model.number="sortOrder" type="number" class="w-full" />
         </UFormField>
 
         <UAlert v-if="error" color="error" variant="soft" :title="error" />
