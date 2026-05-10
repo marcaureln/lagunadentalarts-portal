@@ -32,14 +32,16 @@ const { data, refresh, status } = useFetch<ApiResource[]>('/api/resources', {
 const resources = computed(() => data.value || []);
 const isLoading = computed(() => status.value === 'pending');
 
+const addRef = ref<{ open: () => void } | null>(null);
 const editing = ref<ApiResource | null>(null);
 const editRef = ref<{ open: () => void } | null>(null);
 
+const openAdd = () => addRef.value?.open();
 const openEdit = (resource: ApiResource) => {
   editing.value = resource;
   nextTick(() => editRef.value?.open());
 };
-const onEditSuccess = () => {
+const onSuccess = () => {
   editing.value = null;
   refresh();
 };
@@ -101,30 +103,30 @@ const columns: TableColumn<ApiResource>[] = [
     cell: ({ row }) =>
       h('div', { class: 'flex justify-end gap-1' }, [
         h(UButton, {
-          'icon': 'i-ri-download-line',
-          'variant': 'ghost',
-          'color': 'neutral',
-          'size': 'sm',
-          'to': `/api/resources/${row.original.id}/download`,
-          'external': true,
-          'download': true,
+          icon: 'i-ri-download-line',
+          variant: 'ghost',
+          color: 'neutral',
+          size: 'sm',
+          to: `/api/resources/${row.original.id}/download`,
+          external: true,
+          download: true,
           'aria-label': 'Download',
         }),
         h(UButton, {
-          'icon': 'i-ri-edit-line',
-          'variant': 'ghost',
-          'color': 'neutral',
-          'size': 'sm',
+          icon: 'i-ri-edit-line',
+          variant: 'ghost',
+          color: 'neutral',
+          size: 'sm',
           'aria-label': 'Edit',
-          'onClick': () => openEdit(row.original),
+          onClick: () => openEdit(row.original),
         }),
         h(UButton, {
-          'icon': 'i-ri-delete-bin-line',
-          'variant': 'ghost',
-          'color': 'error',
-          'size': 'sm',
+          icon: 'i-ri-delete-bin-line',
+          variant: 'ghost',
+          color: 'error',
+          size: 'sm',
           'aria-label': 'Delete',
-          'onClick': () => deleteResource(row.original),
+          onClick: () => deleteResource(row.original),
         }),
       ]),
   },
@@ -139,7 +141,7 @@ const columns: TableColumn<ApiResource>[] = [
           <UDashboardSidebarCollapse />
         </template>
         <template #right>
-          <PortalAdminModalAddResource @success="refresh" />
+          <UButton color="primary" icon="i-ri-add-line" @click="openAdd">Add Resource</UButton>
         </template>
       </UDashboardNavbar>
     </template>
@@ -159,13 +161,14 @@ const columns: TableColumn<ApiResource>[] = [
               <p class="mb-6 max-w-sm text-center text-gray-500">
                 Upload printable forms or reference documents that practices can download.
               </p>
-              <PortalAdminModalAddResource @success="refresh" />
+              <UButton color="primary" icon="i-ri-add-line" @click="openAdd">Add Resource</UButton>
             </div>
           </template>
         </UTable>
       </UCard>
 
-      <PortalAdminModalEditResource v-if="editing" ref="editRef" :resource="editing" @success="onEditSuccess" />
+      <PortalAdminModalResource ref="addRef" @success="onSuccess" />
+      <PortalAdminModalResource v-if="editing" ref="editRef" :resource="editing" @success="onSuccess" />
     </template>
   </UDashboardPanel>
 </template>
