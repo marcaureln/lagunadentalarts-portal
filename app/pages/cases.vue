@@ -235,6 +235,11 @@ const openCaseDetail = (caseId: string) => {
   });
 };
 
+const onEditFromDetail = (caseId: string) => {
+  viewingCaseId.value = null;
+  openEditWizard(caseId);
+};
+
 const deleteDraftCase = async (caseId: string) => {
   if (!confirm('Are you sure you want to delete this draft?')) return;
 
@@ -358,12 +363,12 @@ const canCreateCase = computed(() => permissions.canCreateCase(user.value?.role)
         @success="onEditWizardSuccess"
       />
 
-      <!-- Case Detail Modal (TODO: implement component) -->
       <PortalCaseDetailModal
         v-if="viewingCaseId"
         ref="caseDetailRef"
         :case-id="viewingCaseId"
         @close="viewingCaseId = null"
+        @edit="onEditFromDetail"
       />
     </template>
   </UDashboardPanel>

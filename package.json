@@ -19,6 +19,7 @@
     "test": "echo \"No test specified\" && exit 0"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1045.0",
     "@iconify-json/lucide": "^1.2.106",
     "@iconify-json/ri": "^1.2.10",
     "@nuxt/eslint": "^1.15.2",

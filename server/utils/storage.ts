@@ -1,15 +1,25 @@
+import { createReadStream, existsSync } from 'fs';
 import { mkdir, writeFile, unlink, readdir, stat } from 'fs/promises';
-import { join } from 'path';
-import { existsSync } from 'fs';
+import { basename, join } from 'path';
+import type { Readable } from 'stream';
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+  ListObjectsV2Command,
+} from '@aws-sdk/client-s3';
 
-export type StorageProvider = 'fs' | 's3' | 'box';
+export type StorageProvider = 'fs' | 's3';
 
 export interface StorageConfig {
   provider: StorageProvider;
-  basePath?: string; // For FS provider
-  s3Bucket?: string; // For S3 provider
+  basePath?: string;
+  s3Bucket?: string;
   s3Region?: string;
-  boxFolderId?: string; // For Box provider
+  s3Endpoint?: string;
+  s3AccessKeyId?: string;
+  s3SecretAccessKey?: string;
 }
 
 export interface UploadedFile {
@@ -20,33 +30,43 @@ export interface UploadedFile {
   uploadedAt: string;
 }
 
+export interface DownloadedFile {
+  stream: Readable;
+  contentType: string;
+  contentLength: number;
+  fileName: string;
+}
+
 export interface StorageService {
   createCaseFolder(caseId: string, practiceId: string): Promise<string>;
   uploadFile(caseId: string, slotId: string, file: Buffer, fileName: string, mimeType?: string): Promise<UploadedFile>;
   deleteFile(caseId: string, filePath: string): Promise<void>;
   listFiles(caseId: string): Promise<UploadedFile[]>;
   getFileUrl(caseId: string, filePath: string): Promise<string>;
+  downloadFile(caseId: string, filePath: string): Promise<DownloadedFile>;
 }
 
-const config = useRuntimeConfig();
+const DEFAULT_CONTENT_TYPE = 'application/octet-stream';
 
-function getStorageConfig(): StorageConfig {
-  const provider = (config.storageProvider as StorageProvider) || 'fs';
-  return {
-    provider,
-    basePath: config.storagePath || './storage/cases',
-    s3Bucket: config.s3Bucket,
-    s3Region: config.s3Region,
-    boxFolderId: config.boxRootFolderId,
-  };
+const MIME_TYPES: Record<string, string> = {
+  zip: 'application/zip',
+  pdf: 'application/pdf',
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  stl: 'application/sla',
+  ply: 'application/octet-stream',
+  obj: 'application/octet-stream',
+  txt: 'text/plain',
+};
+
+function guessMimeType(fileName: string): string {
+  const ext = fileName.split('.').pop()?.toLowerCase();
+  return (ext && MIME_TYPES[ext]) || DEFAULT_CONTENT_TYPE;
 }
 
 class FileSystemStorage implements StorageService {
-  private basePath: string;
-
-  constructor(basePath: string) {
-    this.basePath = basePath;
-  }
+  constructor(private basePath: string) {}
 
   private getCasePath(caseId: string): string {
     return join(this.basePath, caseId);
@@ -68,19 +88,11 @@ class FileSystemStorage implements StorageService {
     mimeType?: string
   ): Promise<UploadedFile> {
     const casePath = this.getCasePath(caseId);
+    if (!existsSync(casePath)) await mkdir(casePath, { recursive: true });
 
-    // Ensure case folder exists
-    if (!existsSync(casePath)) {
-      await mkdir(casePath, { recursive: true });
-    }
-
-    // Create slot subfolder
     const slotPath = join(casePath, slotId);
-    if (!existsSync(slotPath)) {
-      await mkdir(slotPath, { recursive: true });
-    }
+    if (!existsSync(slotPath)) await mkdir(slotPath, { recursive: true });
 
-    // Write file
     const filePath = join(slotPath, fileName);
     await writeFile(filePath, file);
 
@@ -103,170 +115,178 @@ class FileSystemStorage implements StorageService {
   async listFiles(caseId: string): Promise<UploadedFile[]> {
     const casePath = this.getCasePath(caseId);
     const files: UploadedFile[] = [];
-
-    if (!existsSync(casePath)) {
-      return files;
-    }
+    if (!existsSync(casePath)) return files;
 
     const slots = await readdir(casePath);
     for (const slotId of slots) {
       const slotPath = join(casePath, slotId);
       const slotStat = await stat(slotPath);
+      if (!slotStat.isDirectory()) continue;
 
-      if (slotStat.isDirectory()) {
-        const slotFiles = await readdir(slotPath);
-        for (const fileName of slotFiles) {
-          const filePath = join(slotPath, fileName);
-          const fileStat = await stat(filePath);
-
-          if (fileStat.isFile()) {
-            files.push({
-              path: join(slotId, fileName),
-              fileName,
-              fileSize: fileStat.size,
-              uploadedAt: fileStat.mtime.toISOString(),
-            });
-          }
+      const slotFiles = await readdir(slotPath);
+      for (const fileName of slotFiles) {
+        const filePath = join(slotPath, fileName);
+        const fileStat = await stat(filePath);
+        if (fileStat.isFile()) {
+          files.push({
+            path: join(slotId, fileName),
+            fileName,
+            fileSize: fileStat.size,
+            uploadedAt: fileStat.mtime.toISOString(),
+          });
         }
       }
     }
-
     return files;
   }
 
   async getFileUrl(caseId: string, filePath: string): Promise<string> {
-    // For FS, return a relative path that can be served
     return `/api/cases/${caseId}/files/${filePath}`;
+  }
+
+  async downloadFile(caseId: string, filePath: string): Promise<DownloadedFile> {
+    const fullPath = join(this.getCasePath(caseId), filePath);
+    if (!existsSync(fullPath)) {
+      throw createError({ statusCode: 404, statusMessage: 'File not found' });
+    }
+    const fileStat = await stat(fullPath);
+    const fileName = basename(filePath);
+    return {
+      stream: createReadStream(fullPath),
+      contentType: guessMimeType(fileName),
+      contentLength: fileStat.size,
+      fileName,
+    };
   }
 }
 
 class S3Storage implements StorageService {
-  private bucket: string;
-  private region: string;
+  private client: S3Client;
 
-  constructor(bucket: string, region: string) {
-    this.bucket = bucket;
-    this.region = region;
+  constructor(
+    private bucket: string,
+    region: string,
+    endpoint: string | undefined,
+    accessKeyId: string,
+    secretAccessKey: string
+  ) {
+    this.client = new S3Client({
+      region,
+      endpoint,
+      forcePathStyle: !!endpoint,
+      credentials: { accessKeyId, secretAccessKey },
+    });
+  }
+
+  private key(caseId: string, filePath: string): string {
+    return `${caseId}/${filePath}`;
   }
 
   async createCaseFolder(caseId: string, _practiceId: string): Promise<string> {
-    // S3 doesn't need explicit folder creation - folders are virtual
-    return `s3://${this.bucket}/cases/${caseId}/`;
+    return `${caseId}/`;
   }
 
   async uploadFile(
     caseId: string,
     slotId: string,
-    _file: Buffer,
+    file: Buffer,
     fileName: string,
     mimeType?: string
   ): Promise<UploadedFile> {
-    // TODO: Implement S3 upload using AWS SDK
-    // const s3Client = new S3Client({ region: this.region });
-    // await s3Client.send(new PutObjectCommand({
-    //   Bucket: this.bucket,
-    //   Key: `cases/${caseId}/${slotId}/${fileName}`,
-    //   Body: file,
-    //   ContentType: mimeType,
-    // }));
-
-    throw new Error('S3 storage not yet implemented');
-
+    const path = `${slotId}/${fileName}`;
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: this.key(caseId, path),
+        Body: file,
+        ContentType: mimeType || guessMimeType(fileName),
+      })
+    );
     return {
-      path: `${slotId}/${fileName}`,
+      path,
       fileName,
-      fileSize: 0,
+      fileSize: file.length,
       mimeType,
       uploadedAt: new Date().toISOString(),
     };
   }
 
-  async deleteFile(_caseId: string, _filePath: string): Promise<void> {
-    // TODO: Implement S3 delete
-    throw new Error('S3 storage not yet implemented');
+  async deleteFile(caseId: string, filePath: string): Promise<void> {
+    await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: this.key(caseId, filePath) }));
   }
 
-  async listFiles(_caseId: string): Promise<UploadedFile[]> {
-    // TODO: Implement S3 list
-    throw new Error('S3 storage not yet implemented');
+  async listFiles(caseId: string): Promise<UploadedFile[]> {
+    const prefix = `${caseId}/`;
+    const result = await this.client.send(new ListObjectsV2Command({ Bucket: this.bucket, Prefix: prefix }));
+    const files: UploadedFile[] = [];
+    for (const obj of result.Contents ?? []) {
+      if (!obj.Key) continue;
+      const relPath = obj.Key.slice(prefix.length);
+      const fileName = basename(relPath);
+      files.push({
+        path: relPath,
+        fileName,
+        fileSize: obj.Size ?? 0,
+        uploadedAt: (obj.LastModified ?? new Date()).toISOString(),
+      });
+    }
+    return files;
   }
 
   async getFileUrl(caseId: string, filePath: string): Promise<string> {
-    // TODO: Generate presigned URL
-    return `https://${this.bucket}.s3.${this.region}.amazonaws.com/cases/${caseId}/${filePath}`;
-  }
-}
-
-class BoxStorage implements StorageService {
-  private rootFolderId: string;
-
-  constructor(rootFolderId: string) {
-    this.rootFolderId = rootFolderId;
+    return `/api/cases/${caseId}/files/${filePath}`;
   }
 
-  async createCaseFolder(_caseId: string, _practiceId: string): Promise<string> {
-    // TODO: Implement Box folder creation using Box SDK
-    // 1. Check if practice folder exists under root, create if not
-    // 2. Create case folder under practice folder
-    throw new Error('Box storage not yet implemented');
-  }
-
-  async uploadFile(
-    _caseId: string,
-    _slotId: string,
-    _file: Buffer,
-    _fileName: string,
-    _mimeType?: string
-  ): Promise<UploadedFile> {
-    // TODO: Implement Box upload
-    throw new Error('Box storage not yet implemented');
-  }
-
-  async deleteFile(_caseId: string, _filePath: string): Promise<void> {
-    // TODO: Implement Box delete
-    throw new Error('Box storage not yet implemented');
-  }
-
-  async listFiles(_caseId: string): Promise<UploadedFile[]> {
-    // TODO: Implement Box list
-    throw new Error('Box storage not yet implemented');
-  }
-
-  async getFileUrl(_caseId: string, _filePath: string): Promise<string> {
-    // TODO: Generate Box shared link or download URL
-    throw new Error('Box storage not yet implemented');
+  async downloadFile(caseId: string, filePath: string): Promise<DownloadedFile> {
+    const result = await this.client.send(
+      new GetObjectCommand({ Bucket: this.bucket, Key: this.key(caseId, filePath) })
+    );
+    if (!result.Body) {
+      throw createError({ statusCode: 404, statusMessage: 'File not found' });
+    }
+    const fileName = basename(filePath);
+    return {
+      stream: result.Body as Readable,
+      contentType: result.ContentType || guessMimeType(fileName),
+      contentLength: result.ContentLength ?? 0,
+      fileName,
+    };
   }
 }
 
 let storageInstance: StorageService | null = null;
 
-export function getStorage(): StorageService {
-  if (storageInstance) {
-    return storageInstance;
-  }
+function buildStorage(): StorageService {
+  const config = useRuntimeConfig();
+  const provider = (config.storageProvider as StorageProvider) || 'fs';
 
-  const storageConfig = getStorageConfig();
-
-  switch (storageConfig.provider) {
+  switch (provider) {
     case 'fs':
-      storageInstance = new FileSystemStorage(storageConfig.basePath || './storage/cases');
-      break;
-    case 's3':
-      if (!storageConfig.s3Bucket || !storageConfig.s3Region) {
-        throw new Error('S3 storage requires s3Bucket and s3Region configuration');
+      return new FileSystemStorage((config.storagePath as string) || './storage/cases');
+    case 's3': {
+      const bucket = config.s3Bucket as string | undefined;
+      const accessKeyId = config.s3AccessKeyId as string | undefined;
+      const secretAccessKey = config.s3SecretAccessKey as string | undefined;
+      if (!bucket || !accessKeyId || !secretAccessKey) {
+        throw new Error('S3 storage requires S3_BUCKET, S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY');
       }
-      storageInstance = new S3Storage(storageConfig.s3Bucket, storageConfig.s3Region);
-      break;
-    case 'box':
-      if (!storageConfig.boxFolderId) {
-        throw new Error('Box storage requires boxFolderId configuration');
-      }
-      storageInstance = new BoxStorage(storageConfig.boxFolderId);
-      break;
+      return new S3Storage(
+        bucket,
+        (config.s3Region as string) || 'auto',
+        config.s3Endpoint as string | undefined,
+        accessKeyId,
+        secretAccessKey
+      );
+    }
     default:
-      throw new Error(`Unknown storage provider: ${storageConfig.provider}`);
+      throw new Error(`Unknown storage provider: ${provider}`);
   }
+}
 
+export function getStorage(): StorageService {
+  if (!storageInstance) {
+    storageInstance = buildStorage();
+  }
   return storageInstance;
 }
 

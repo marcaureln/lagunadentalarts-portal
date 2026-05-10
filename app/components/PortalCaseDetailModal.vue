@@ -4,6 +4,7 @@ interface CaseFile {
   fileName: string;
   fileSize?: number;
   uploadedAt?: string;
+  path?: string;
 }
 
 interface CaseDetail {
@@ -41,6 +42,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   close: [];
+  edit: [caseId: string];
 }>();
 
 const isOpen = ref(false);
@@ -108,6 +110,18 @@ const formatFileSize = (bytes?: number) => {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+const fileUrl = (file: CaseFile) => {
+  const path = file.path ?? `${file.slotId}/${file.fileName}`;
+  return `/api/cases/${props.caseId}/files/${path}`;
+};
+
+const onEdit = () => {
+  if (!caseDetail.value) return;
+  const id = caseDetail.value.id;
+  isOpen.value = false;
+  emit('edit', id);
 };
 
 defineExpose({ open });
@@ -217,7 +231,9 @@ defineExpose({ open });
                   </p>
                 </div>
               </div>
-              <UButton variant="ghost" size="sm" icon="i-ri-download-line" disabled>Download</UButton>
+              <UButton :to="fileUrl(file)" external download variant="ghost" size="sm" icon="i-ri-download-line">
+                Download
+              </UButton>
             </li>
           </ul>
         </UCard>
@@ -260,6 +276,12 @@ defineExpose({ open });
     <template #footer>
       <div class="flex justify-end gap-2">
         <UButton color="neutral" variant="outline" @click="close">Close</UButton>
+        <UButton v-if="caseDetail?.status === 'DRAFT'" color="primary" icon="i-ri-edit-line" @click="onEdit">
+          Continue editing
+        </UButton>
+        <UButton v-else-if="caseDetail?.status === 'NEEDS_INFO'" color="warning" icon="i-ri-edit-line" @click="onEdit">
+          Address &amp; Resubmit
+        </UButton>
       </div>
     </template>
   </UModal>
