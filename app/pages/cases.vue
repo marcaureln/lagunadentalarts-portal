@@ -13,7 +13,9 @@ const UBadge = resolveComponent('UBadge');
 const UButton = resolveComponent('UButton');
 const UDropdownMenu = resolveComponent('UDropdownMenu');
 
-const isPracticeUser = computed(() => ['PRACTICE_STAFF', 'PRACTICE_ADMIN'].includes(user.value?.role || ''));
+const isPracticeUser = computed(() => permissions.isPracticeUser(user.value?.role));
+const isLabUser = computed(() => permissions.isLDAUser(user.value?.role));
+const isArtist = computed(() => user.value?.role === 'USER');
 
 interface ApiCase {
   id: string;
@@ -24,50 +26,164 @@ interface ApiCase {
   practice: { id: string; name: string };
   caseType: { id: string; key: string; label: string };
   createdBy: { id: string; name: string };
+  assignedTo: { id: string; name: string } | null;
 }
 
-// Status filter
-type StatusFilter = 'all' | 'DRAFT' | 'SUBMITTED' | 'NEEDS_INFO' | 'IN_PROGRESS' | 'COMPLETED';
+interface LabUser {
+  id: string;
+  name: string;
+  role: 'USER' | 'ADMIN';
+}
+
+interface CaseTypeOption {
+  id: string;
+  label: string;
+}
+
+interface PracticeOption {
+  id: string;
+  name: string;
+}
+
+type StatusFilter = 'all' | 'SUBMITTED' | 'NEEDS_INFO' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'DRAFT';
+
+const ASSIGNEE_ALL = '__all__';
+const ASSIGNEE_ME = 'me';
+const ASSIGNEE_UNASSIGNED = 'unassigned';
+const TYPE_ALL = '__all__';
+const PRACTICE_ALL = '__all__';
 
 const statusFilter = ref<StatusFilter>((route.query.status as StatusFilter) || 'all');
+const assigneeFilter = ref<string>((route.query.assignee as string) || ASSIGNEE_ALL);
+const caseTypeFilter = ref<string>((route.query.caseType as string) || TYPE_ALL);
+const practiceFilter = ref<string>((route.query.practice as string) || PRACTICE_ALL);
 
-const statusTabs = [
-  { value: 'all', label: 'All Cases', icon: 'i-ri-list-check' },
-  { value: 'DRAFT', label: 'Drafts', icon: 'i-ri-draft-line' },
-  { value: 'SUBMITTED', label: 'Submitted', icon: 'i-ri-send-plane-line' },
-  { value: 'NEEDS_INFO', label: 'Needs Info', icon: 'i-ri-error-warning-line' },
-  { value: 'IN_PROGRESS', label: 'In Progress', icon: 'i-ri-loader-4-line' },
-  { value: 'COMPLETED', label: 'Completed', icon: 'i-ri-checkbox-circle-line' },
-] as const;
+const submittedLabel = computed(() => (isLabUser.value ? 'Inbox' : 'Submitted'));
+const submittedIcon = computed(() => (isLabUser.value ? 'i-ri-inbox-line' : 'i-ri-send-plane-line'));
 
-// Update URL when filter changes
-watch(statusFilter, (newStatus) => {
-  router.replace({
-    query: newStatus === 'all' ? {} : { status: newStatus },
-  });
+const statusTabs = computed(() => {
+  const tabs: Array<{ value: StatusFilter; label: string; icon: string }> = [
+    { value: 'all', label: 'All Cases', icon: 'i-ri-list-check' },
+  ];
+  if (isPracticeUser.value) {
+    tabs.push({ value: 'DRAFT', label: 'Drafts', icon: 'i-ri-draft-line' });
+  }
+  tabs.push(
+    { value: 'SUBMITTED', label: submittedLabel.value, icon: submittedIcon.value },
+    { value: 'NEEDS_INFO', label: 'Needs Info', icon: 'i-ri-error-warning-line' },
+    { value: 'IN_PROGRESS', label: 'In Progress', icon: 'i-ri-loader-4-line' },
+    { value: 'COMPLETED', label: 'Completed', icon: 'i-ri-checkbox-circle-line' },
+    { value: 'CANCELLED', label: 'Cancelled', icon: 'i-ri-close-circle-line' }
+  );
+  return tabs;
 });
 
-// Fetch cases from API with status filter
-const { data: casesData, refresh: refreshCases } = await useFetch<ApiCase[]>('/api/cases', {
-  query: computed(() => ({
-    status: statusFilter.value !== 'all' ? statusFilter.value : undefined,
-  })),
-  watch: [statusFilter],
+// Fetch lookups for filter dropdowns
+const { data: labUsersData } = useFetch<LabUser[]>('/api/lab-users', {
+  lazy: true,
+  default: () => [],
+  immediate: isLabUser.value,
+});
+const { data: caseTypesData } = useFetch<CaseTypeOption[]>('/api/case-types', {
+  lazy: true,
+  default: () => [],
+});
+const { data: practicesData } = useFetch<PracticeOption[]>('/api/practices', {
+  lazy: true,
+  default: () => [],
+  immediate: isLabUser.value,
+});
+
+const assigneeOptions = computed(() => {
+  const opts: Array<{ label: string; value: string }> = [{ label: 'Anyone', value: ASSIGNEE_ALL }];
+  if (isArtist.value) opts.push({ label: 'Assigned to me', value: ASSIGNEE_ME });
+  opts.push({ label: 'Unassigned', value: ASSIGNEE_UNASSIGNED });
+  for (const u of labUsersData.value ?? []) {
+    opts.push({ label: u.name, value: u.id });
+  }
+  return opts;
+});
+
+const caseTypeOptions = computed(() => [
+  { label: 'All types', value: TYPE_ALL },
+  ...(caseTypesData.value ?? []).map((t) => ({ label: t.label, value: t.id })),
+]);
+
+const practiceOptions = computed(() => [
+  { label: 'All practices', value: PRACTICE_ALL },
+  ...(practicesData.value ?? []).map((p) => ({ label: p.name, value: p.id })),
+]);
+
+const hasActiveFilter = computed(
+  () =>
+    assigneeFilter.value !== ASSIGNEE_ALL || caseTypeFilter.value !== TYPE_ALL || practiceFilter.value !== PRACTICE_ALL
+);
+
+const clearFilters = () => {
+  assigneeFilter.value = ASSIGNEE_ALL;
+  caseTypeFilter.value = TYPE_ALL;
+  practiceFilter.value = PRACTICE_ALL;
+};
+
+watch([statusFilter, assigneeFilter, caseTypeFilter, practiceFilter], ([s, a, t, p]) => {
+  const query: Record<string, string> = {};
+  if (s !== 'all') query.status = s;
+  if (a !== ASSIGNEE_ALL) query.assignee = a;
+  if (t !== TYPE_ALL) query.caseType = t;
+  if (p !== PRACTICE_ALL) query.practice = p;
+  router.replace({ query });
+});
+
+const casesQuery = computed(() => ({
+  status: statusFilter.value !== 'all' ? statusFilter.value : undefined,
+  assignedToId: isLabUser.value && assigneeFilter.value !== ASSIGNEE_ALL ? assigneeFilter.value : undefined,
+  caseTypeId: caseTypeFilter.value !== TYPE_ALL ? caseTypeFilter.value : undefined,
+  practiceId: isLabUser.value && practiceFilter.value !== PRACTICE_ALL ? practiceFilter.value : undefined,
+}));
+
+const {
+  data: casesData,
+  refresh: refreshCases,
+  status: casesStatus,
+} = useFetch<ApiCase[]>('/api/cases', {
+  query: casesQuery,
+  lazy: true,
+  default: () => [],
 });
 
 const cases = computed(() => casesData.value || []);
+const isLoadingCases = computed(() => casesStatus.value === 'pending');
 
-// Status counts for badges
-const { data: allCasesData } = await useFetch<ApiCase[]>('/api/cases');
+const { data: allCasesData, refresh: refreshAllCases } = useFetch<ApiCase[]>('/api/cases', {
+  lazy: true,
+  default: () => [],
+});
+
+const matchesActiveFilters = (c: ApiCase): boolean => {
+  if (isLabUser.value && assigneeFilter.value !== ASSIGNEE_ALL) {
+    if (assigneeFilter.value === ASSIGNEE_ME) {
+      if (c.assignedTo?.id !== user.value?.id) return false;
+    } else if (assigneeFilter.value === ASSIGNEE_UNASSIGNED) {
+      if (c.assignedTo != null) return false;
+    } else if (c.assignedTo?.id !== assigneeFilter.value) {
+      return false;
+    }
+  }
+  if (caseTypeFilter.value !== TYPE_ALL && c.caseType.id !== caseTypeFilter.value) return false;
+  if (isLabUser.value && practiceFilter.value !== PRACTICE_ALL && c.practice.id !== practiceFilter.value) return false;
+  return true;
+};
+
 const statusCounts = computed(() => {
-  const all = allCasesData.value || [];
+  const visible = (allCasesData.value || []).filter(matchesActiveFilters);
   return {
-    all: all.length,
-    DRAFT: all.filter((c) => c.status === 'DRAFT').length,
-    SUBMITTED: all.filter((c) => c.status === 'SUBMITTED').length,
-    NEEDS_INFO: all.filter((c) => c.status === 'NEEDS_INFO').length,
-    IN_PROGRESS: all.filter((c) => ['ACCEPTED', 'IN_PROGRESS'].includes(c.status)).length,
-    COMPLETED: all.filter((c) => c.status === 'COMPLETED').length,
+    all: visible.length,
+    DRAFT: visible.filter((c) => c.status === 'DRAFT').length,
+    SUBMITTED: visible.filter((c) => c.status === 'SUBMITTED').length,
+    NEEDS_INFO: visible.filter((c) => c.status === 'NEEDS_INFO').length,
+    IN_PROGRESS: visible.filter((c) => ['ACCEPTED', 'IN_PROGRESS'].includes(c.status)).length,
+    COMPLETED: visible.filter((c) => c.status === 'COMPLETED').length,
+    CANCELLED: visible.filter((c) => c.status === 'CANCELLED').length,
   };
 });
 
@@ -98,7 +214,6 @@ const columns = computed<TableColumn<ApiCase>[]>(() => {
     },
   ];
 
-  // Only show practice column for lab users
   if (!isPracticeUser.value) {
     cols.unshift({
       accessorKey: 'practice',
@@ -117,7 +232,6 @@ const columns = computed<TableColumn<ApiCase>[]>(() => {
       cell: ({ row }) => {
         const status = row.getValue('status') as ApiCase['status'];
         const config = allStatusConfig[status];
-        // Highlight NEEDS_INFO with solid variant
         const variant = status === 'NEEDS_INFO' ? 'solid' : 'subtle';
         return h(UBadge, { color: config.color, variant, label: config.label });
       },
@@ -148,7 +262,20 @@ const columns = computed<TableColumn<ApiCase>[]>(() => {
     }
   );
 
-  // Add actions column for practice users
+  if (isLabUser.value) {
+    cols.push({
+      accessorKey: 'assignedTo',
+      header: 'Assigned To',
+      cell: ({ row }) => {
+        const assignee = row.original.assignedTo;
+        if (!assignee) {
+          return h('span', { class: 'text-sm text-muted italic' }, 'Unassigned');
+        }
+        return h('span', { class: 'text-sm text-gray-700 dark:text-gray-300' }, assignee.name);
+      },
+    });
+  }
+
   if (isPracticeUser.value) {
     cols.push({
       id: 'actions',
@@ -208,7 +335,6 @@ const columns = computed<TableColumn<ApiCase>[]>(() => {
   return cols;
 });
 
-// Edit wizard state
 const editingCaseId = ref<string | null>(null);
 const editWizardRef = ref<{ open: () => void } | null>(null);
 
@@ -219,12 +345,16 @@ const openEditWizard = (caseId: string) => {
   });
 };
 
-const onEditWizardSuccess = () => {
-  editingCaseId.value = null;
+const refreshAll = () => {
   refreshCases();
+  refreshAllCases();
 };
 
-// Case detail modal state
+const onEditWizardSuccess = () => {
+  editingCaseId.value = null;
+  refreshAll();
+};
+
 const viewingCaseId = ref<string | null>(null);
 const caseDetailRef = ref<{ open: () => void } | null>(null);
 
@@ -245,7 +375,7 @@ const deleteDraftCase = async (caseId: string) => {
 
   try {
     await $fetch(`/api/cases/${caseId}`, { method: 'DELETE' });
-    await refreshCases();
+    refreshAll();
   } catch (e) {
     console.error('Failed to delete draft:', e);
   }
@@ -261,6 +391,7 @@ const onRowSelect = (_e: Event, row: TableRow<ApiCase>) => {
 };
 
 const canCreateCase = computed(() => permissions.canCreateCase(user.value?.role));
+const showFilterRow = computed(() => isLabUser.value || (caseTypesData.value?.length ?? 0) > 1);
 </script>
 
 <template>
@@ -271,7 +402,7 @@ const canCreateCase = computed(() => permissions.canCreateCase(user.value?.role)
           <UDashboardSidebarCollapse />
         </template>
         <template #right>
-          <PortalCaseWizard v-if="canCreateCase" @success="refreshCases">
+          <PortalCaseWizard v-if="canCreateCase" @success="refreshAll">
             <UButton icon="i-ri-upload-2-line" color="primary"> Upload New Case </UButton>
           </PortalCaseWizard>
         </template>
@@ -280,7 +411,6 @@ const canCreateCase = computed(() => permissions.canCreateCase(user.value?.role)
 
     <template #body>
       <div class="space-y-6">
-        <!-- Status Filter Tabs -->
         <div class="flex flex-wrap gap-2">
           <UButton
             v-for="tab in statusTabs"
@@ -304,9 +434,56 @@ const canCreateCase = computed(() => permissions.canCreateCase(user.value?.role)
           </UButton>
         </div>
 
-        <!-- Cases Table -->
+        <div v-if="showFilterRow" class="flex flex-wrap items-center gap-3 border-t border-default pt-3">
+          <USelectMenu
+            v-if="isLabUser"
+            v-model="assigneeFilter"
+            :items="assigneeOptions"
+            value-key="value"
+            label-key="label"
+            placeholder="Assignee"
+            icon="i-ri-user-line"
+            class="w-52"
+            size="sm"
+          />
+          <USelectMenu
+            v-model="caseTypeFilter"
+            :items="caseTypeOptions"
+            value-key="value"
+            label-key="label"
+            placeholder="Case type"
+            icon="i-ri-stethoscope-line"
+            class="w-52"
+            size="sm"
+          />
+          <USelectMenu
+            v-if="isLabUser"
+            v-model="practiceFilter"
+            :items="practiceOptions"
+            value-key="value"
+            label-key="label"
+            placeholder="Practice"
+            icon="i-ri-building-line"
+            class="w-52"
+            size="sm"
+          />
+          <UButton
+            v-if="hasActiveFilter"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            icon="i-ri-close-line"
+            @click="clearFilters"
+          >
+            Clear
+          </UButton>
+        </div>
+
         <UCard :ui="{ body: 'p-0!' }">
-          <UTable :data="cases" :columns="columns" @select="onRowSelect">
+          <div v-if="isLoadingCases && cases.length === 0" class="flex items-center justify-center py-16">
+            <UIcon name="i-ri-loader-4-line" class="h-6 w-6 animate-spin text-primary" />
+          </div>
+          <UTable v-else :data="cases" :columns="columns" @select="onRowSelect">
             <template #empty>
               <div class="flex flex-col items-center justify-center py-16">
                 <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
@@ -345,7 +522,7 @@ const canCreateCase = computed(() => permissions.canCreateCase(user.value?.role)
                   >
                     View All Cases
                   </UButton>
-                  <PortalCaseWizard v-if="canCreateCase" @success="refreshCases">
+                  <PortalCaseWizard v-if="canCreateCase" @success="refreshAll">
                     <UButton icon="i-ri-upload-2-line" color="primary">Upload New Case</UButton>
                   </PortalCaseWizard>
                 </div>
@@ -355,7 +532,6 @@ const canCreateCase = computed(() => permissions.canCreateCase(user.value?.role)
         </UCard>
       </div>
 
-      <!-- Edit Wizard (hidden trigger, opened programmatically) -->
       <PortalCaseWizard
         v-if="editingCaseId"
         ref="editWizardRef"
@@ -369,6 +545,7 @@ const canCreateCase = computed(() => permissions.canCreateCase(user.value?.role)
         :case-id="viewingCaseId"
         @close="viewingCaseId = null"
         @edit="onEditFromDetail"
+        @changed="refreshAll"
       />
     </template>
   </UDashboardPanel>

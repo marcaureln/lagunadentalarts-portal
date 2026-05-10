@@ -24,23 +24,44 @@ export default defineEventHandler(async (event) => {
     const query = getQuery(event);
     const status = query.status as string | undefined;
     const limit = query.limit ? parseInt(query.limit as string, 10) : undefined;
+    const assignee = query.assignedToId as string | undefined;
+    const caseTypeId = query.caseTypeId as string | undefined;
+    const practiceIdFilter = query.practiceId as string | undefined;
 
-    // Build status filter
     const statusFilter = status
       ? status === 'IN_PROGRESS'
         ? { status: { in: ['ACCEPTED' as const, 'IN_PROGRESS' as const] } }
         : { status: status as 'DRAFT' | 'SUBMITTED' | 'NEEDS_INFO' | 'COMPLETED' | 'CANCELLED' }
       : {};
 
-    // LDA users can view all cases, practice users can only view their own
+    const assigneeFilter =
+      assignee === 'me'
+        ? { assignedToId: user.id }
+        : assignee === 'unassigned'
+          ? { assignedToId: null }
+          : assignee
+            ? { assignedToId: assignee }
+            : {};
+
+    const caseTypeFilter = caseTypeId ? { caseTypeId } : {};
+
+    const include = {
+      practice: { select: { id: true, name: true } },
+      caseType: { select: { id: true, key: true, label: true } },
+      createdBy: { select: { id: true, name: true } },
+      assignedTo: { select: { id: true, name: true } },
+    };
+
     if (permissions.canViewAllCases(user.role)) {
       const cases = await prisma.case.findMany({
-        where: statusFilter,
-        include: {
-          practice: { select: { id: true, name: true } },
-          caseType: { select: { id: true, key: true, label: true } },
-          createdBy: { select: { id: true, name: true } },
+        where: {
+          status: { not: 'DRAFT' },
+          ...statusFilter,
+          ...assigneeFilter,
+          ...caseTypeFilter,
+          ...(practiceIdFilter && { practiceId: practiceIdFilter }),
         },
+        include,
         orderBy: { createdAt: 'desc' },
         ...(limit && { take: limit }),
       });
@@ -49,12 +70,8 @@ export default defineEventHandler(async (event) => {
 
     if (permissions.isPracticeUser(user.role) && user.practiceId) {
       const cases = await prisma.case.findMany({
-        where: { practiceId: user.practiceId, ...statusFilter },
-        include: {
-          practice: { select: { id: true, name: true } },
-          caseType: { select: { id: true, key: true, label: true } },
-          createdBy: { select: { id: true, name: true } },
-        },
+        where: { practiceId: user.practiceId, ...statusFilter, ...caseTypeFilter },
+        include,
         orderBy: { createdAt: 'desc' },
         ...(limit && { take: limit }),
       });

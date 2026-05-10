@@ -45,6 +45,7 @@ export default defineEventHandler(async (event) => {
       practice: { select: { id: true, name: true } },
       caseType: { select: { id: true, key: true, label: true, fields: true, fileSlots: true, instructions: true } },
       createdBy: { select: { id: true, name: true } },
+      assignedTo: { select: { id: true, name: true } },
       events: {
         orderBy: { createdAt: 'desc' },
         include: {
@@ -61,8 +62,7 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // Check view permission
-  if (!permissions.canViewCase(user.role, user.practiceId, existingCase.practiceId)) {
+  if (!permissions.canViewCase(user.role, user.practiceId, existingCase.practiceId, existingCase.status)) {
     throw createError({
       statusCode: 403,
       statusMessage: 'Insufficient permissions',

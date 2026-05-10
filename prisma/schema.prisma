@@ -21,6 +21,7 @@ model User {
   practice        Practice?   @relation(fields: [practiceId], references: [id])
   managedPractice Practice[]  @relation("PracticeAdmin")
   cases           Case[]
+  assignedCases   Case[]      @relation("CaseAssignee")
   caseEvents      CaseEvent[] @relation("CaseEventCreator")
 }
 
@@ -79,6 +80,8 @@ enum CaseEventType {
   UPDATED
   FILE_UPLOADED
   COMMENT_ADDED
+  ASSIGNED
+  UNASSIGNED
 }
 
 model CaseType {
@@ -107,18 +110,21 @@ model Case {
   files             Json       @default("[]")
   boxFolderId       String?
   createdById       String
+  assignedToId      String?
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
 
-  practice  Practice    @relation(fields: [practiceId], references: [id])
-  patient   Patient?    @relation(fields: [patientId], references: [id])
-  caseType  CaseType    @relation(fields: [caseTypeId], references: [id])
-  createdBy User        @relation(fields: [createdById], references: [id])
-  events    CaseEvent[]
+  practice   Practice    @relation(fields: [practiceId], references: [id])
+  patient    Patient?    @relation(fields: [patientId], references: [id])
+  caseType   CaseType    @relation(fields: [caseTypeId], references: [id])
+  createdBy  User        @relation(fields: [createdById], references: [id])
+  assignedTo User?       @relation("CaseAssignee", fields: [assignedToId], references: [id])
+  events     CaseEvent[]
 
   @@index([practiceId])
   @@index([patientId])
   @@index([status])
+  @@index([assignedToId])
 }
 
 model CaseEvent {

@@ -4,15 +4,17 @@ import { permissions } from '~~/shared/utils/permissions';
 export default defineEventHandler(async (event) => {
   const { user } = await getUserSession(event);
 
-  if (!user || !permissions.canViewPractices(user.role)) {
-    throw createError({
-      statusCode: 403,
-      statusMessage: 'Insufficient permissions',
-    });
+  if (!user) {
+    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' });
   }
 
   if (event.node.req.method === 'GET') {
-    // List all practices
+    // Lab users (artist + manager) need this for case filters; managers also use it
+    // on the admin /practices page. Practice users have no business listing other practices.
+    if (!permissions.canViewPractices(user.role) && !permissions.isLDAUser(user.role)) {
+      throw createError({ statusCode: 403, statusMessage: 'Insufficient permissions' });
+    }
+
     const practices = await prisma.practice.findMany({
       include: {
         _count: {
@@ -25,6 +27,13 @@ export default defineEventHandler(async (event) => {
     });
 
     return practices;
+  }
+
+  if (!permissions.canViewPractices(user.role)) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'Insufficient permissions',
+    });
   }
 
   if (event.node.req.method === 'POST') {

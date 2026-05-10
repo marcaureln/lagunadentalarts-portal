@@ -33,15 +33,23 @@ const limitOptions = [
   { label: '20', value: 20 },
 ];
 
-// Fetch recent cases from API
-const { data: casesData, refresh: refreshCases } = await useFetch<ApiCase[]>('/api/cases', {
+const {
+  data: casesData,
+  refresh: refreshCases,
+  status: casesStatus,
+} = useFetch<ApiCase[]>('/api/cases', {
   query: computed(() => ({ limit: recentCasesLimit.value })),
+  lazy: true,
+  default: () => [],
 });
 
 const cases = computed(() => casesData.value || []);
+const isLoadingCases = computed(() => casesStatus.value === 'pending');
 
-// Fetch all cases for status counts
-const { data: allCasesData } = await useFetch<ApiCase[]>('/api/cases');
+const { data: allCasesData } = useFetch<ApiCase[]>('/api/cases', {
+  lazy: true,
+  default: () => [],
+});
 
 const statusCounts = computed(() => {
   const all = allCasesData.value || [];
@@ -55,12 +63,29 @@ const statusCounts = computed(() => {
 
 type DashboardStatus = 'DRAFT' | 'SUBMITTED' | 'IN_PROGRESS' | 'COMPLETED';
 
-const statusConfig: Record<DashboardStatus, { color: string; icon: string; label: string }> = {
-  DRAFT: { color: 'neutral', icon: 'i-ri-draft-line', label: 'Draft' },
-  SUBMITTED: { color: 'primary', icon: 'i-ri-send-plane-line', label: 'Submitted' },
-  IN_PROGRESS: { color: 'warning', icon: 'i-ri-loader-4-line', label: 'In Progress' },
-  COMPLETED: { color: 'success', icon: 'i-ri-checkbox-circle-line', label: 'Completed' },
-};
+interface DashboardCard {
+  status: DashboardStatus;
+  color: string;
+  icon: string;
+  label: string;
+}
+
+const isLabUser = computed(() => permissions.isLDAUser(user.value?.role));
+
+const dashboardCards = computed<DashboardCard[]>(() => {
+  const cards: DashboardCard[] = [];
+  if (!isLabUser.value) {
+    cards.push({ status: 'DRAFT', color: 'neutral', icon: 'i-ri-draft-line', label: 'Draft' });
+  }
+  cards.push(
+    isLabUser.value
+      ? { status: 'SUBMITTED', color: 'primary', icon: 'i-ri-inbox-line', label: 'Inbox' }
+      : { status: 'SUBMITTED', color: 'primary', icon: 'i-ri-send-plane-line', label: 'Submitted' }
+  );
+  cards.push({ status: 'IN_PROGRESS', color: 'warning', icon: 'i-ri-loader-4-line', label: 'In Progress' });
+  cards.push({ status: 'COMPLETED', color: 'success', icon: 'i-ri-checkbox-circle-line', label: 'Completed' });
+  return cards;
+});
 
 const allStatusConfig = {
   DRAFT: { color: 'neutral', label: 'Draft' },
@@ -238,14 +263,14 @@ const onRowSelect = (_e: Event, row: TableRow<ApiCase>) => {
       <div class="space-y-6">
         <!-- Status Cards -->
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <UCard v-for="(config, status) in statusConfig" :key="status">
+          <UCard v-for="card in dashboardCards" :key="card.status">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-sm text-muted">{{ config.label }}</p>
-                <p class="mt-1 text-2xl font-semibold">{{ statusCounts[status] }}</p>
+                <p class="text-sm text-muted">{{ card.label }}</p>
+                <p class="mt-1 text-2xl font-semibold">{{ statusCounts[card.status] }}</p>
               </div>
-              <div class="flex h-12 w-12 items-center justify-center rounded-lg" :class="`bg-${config.color}/10`">
-                <UIcon :name="config.icon" class="h-6 w-6" :class="`text-${config.color}`" />
+              <div class="flex h-12 w-12 items-center justify-center rounded-lg" :class="`bg-${card.color}/10`">
+                <UIcon :name="card.icon" class="h-6 w-6" :class="`text-${card.color}`" />
               </div>
             </div>
           </UCard>
@@ -262,7 +287,10 @@ const onRowSelect = (_e: Event, row: TableRow<ApiCase>) => {
             </div>
           </template>
 
-          <UTable :data="cases" :columns="columns" sticky class="max-h-96" @select="onRowSelect">
+          <div v-if="isLoadingCases && cases.length === 0" class="flex items-center justify-center py-12">
+            <UIcon name="i-ri-loader-4-line" class="h-6 w-6 animate-spin text-primary" />
+          </div>
+          <UTable v-else :data="cases" :columns="columns" sticky class="max-h-96" @select="onRowSelect">
             <template #empty>
               <div class="flex flex-col items-center justify-center py-12">
                 <UIcon name="i-ri-folder-line" class="mb-4 h-12 w-12 text-gray-400" />

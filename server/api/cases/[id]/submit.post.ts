@@ -57,11 +57,17 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // Check permission - only practice users can submit their own cases
   if (!permissions.canEditCase(user.role, user.practiceId, existingCase.practiceId, existingCase.status)) {
     throw createError({
       statusCode: 403,
-      statusMessage: 'Cannot submit this case. Only DRAFT cases owned by your practice can be submitted.',
+      statusMessage: 'Cannot submit this case.',
+    });
+  }
+
+  if (existingCase.status !== 'DRAFT' && existingCase.status !== 'NEEDS_INFO') {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Only DRAFT or NEEDS_INFO cases can be submitted',
     });
   }
 
@@ -107,7 +113,8 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // Submit the case
+  const fromStatus = existingCase.status;
+
   const result = await prisma.$transaction(async (tx) => {
     const updatedCase = await tx.case.update({
       where: { id: caseId },
@@ -118,15 +125,15 @@ export default defineEventHandler(async (event) => {
         practice: { select: { id: true, name: true } },
         caseType: { select: { id: true, key: true, label: true } },
         createdBy: { select: { id: true, name: true } },
+        assignedTo: { select: { id: true, name: true } },
       },
     });
 
-    // Create SUBMITTED event
     await tx.caseEvent.create({
       data: {
         caseId: caseId,
         type: 'SUBMITTED',
-        fromStatus: 'DRAFT',
+        fromStatus,
         toStatus: 'SUBMITTED',
         createdById: user.id,
       },

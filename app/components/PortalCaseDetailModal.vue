@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { permissions } from '~~/shared/utils/permissions';
+
 interface CaseFile {
   slotId: string;
   fileName: string;
@@ -7,11 +9,13 @@ interface CaseFile {
   path?: string;
 }
 
+type CaseStatus = 'DRAFT' | 'SUBMITTED' | 'NEEDS_INFO' | 'ACCEPTED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+
 interface CaseDetail {
   id: string;
   patientName: string;
   patientExternalId?: string;
-  status: 'DRAFT' | 'SUBMITTED' | 'NEEDS_INFO' | 'ACCEPTED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+  status: CaseStatus;
   data: Record<string, string>;
   files: CaseFile[];
   createdAt: string;
@@ -25,15 +29,22 @@ interface CaseDetail {
     fileSlots: Array<{ id: string; label: string; required?: boolean; accept?: string }>;
   };
   createdBy: { id: string; name: string };
+  assignedTo: { id: string; name: string } | null;
   events: Array<{
     id: string;
     type: string;
     fromStatus?: string;
     toStatus?: string;
-    notes?: string;
+    message?: string | null;
     createdAt: string;
     createdBy: { id: string; name: string };
   }>;
+}
+
+interface LabUser {
+  id: string;
+  name: string;
+  role: 'USER' | 'ADMIN';
 }
 
 const props = defineProps<{
@@ -43,12 +54,20 @@ const props = defineProps<{
 const emit = defineEmits<{
   close: [];
   edit: [caseId: string];
+  changed: [];
 }>();
+
+const { user } = useUserSession();
 
 const isOpen = ref(false);
 const isLoading = ref(false);
 const caseDetail = ref<CaseDetail | null>(null);
 const error = ref('');
+const actionBusy = ref(false);
+const actionError = ref('');
+
+const requestInfoOpen = ref(false);
+const requestInfoMessage = ref('');
 
 const statusConfig = {
   DRAFT: { color: 'neutral', label: 'Draft' },
@@ -67,7 +86,74 @@ const eventTypeLabels: Record<string, string> = {
   UPDATED: 'Case updated',
   FILE_UPLOADED: 'File uploaded',
   COMMENT_ADDED: 'Comment added',
+  ASSIGNED: 'Case assigned',
+  UNASSIGNED: 'Case unassigned',
 };
+
+const role = computed(() => user.value?.role);
+const userId = computed(() => user.value?.id);
+const isLabUser = computed(() => permissions.isLDAUser(role.value));
+const isManager = computed(() => role.value === 'ADMIN');
+const isArtist = computed(() => role.value === 'USER');
+
+const status = computed(() => caseDetail.value?.status);
+const assignedId = computed(() => caseDetail.value?.assignedTo?.id ?? null);
+const ownsCase = computed(() => isManager.value || (assignedId.value != null && assignedId.value === userId.value));
+
+const isTerminal = computed(
+  () => status.value === 'COMPLETED' || status.value === 'CANCELLED' || status.value === 'DRAFT'
+);
+
+const canSelfAssignNow = computed(() => isArtist.value && status.value === 'SUBMITTED' && assignedId.value == null);
+const canManagerAssign = computed(
+  () => isManager.value && status.value && ['SUBMITTED', 'ACCEPTED', 'IN_PROGRESS'].includes(status.value)
+);
+const canStartWorking = computed(() => status.value === 'ACCEPTED' && ownsCase.value);
+const canMarkComplete = computed(() => status.value === 'IN_PROGRESS' && ownsCase.value);
+const canRequestInfo = computed(
+  () => isLabUser.value && status.value && ['SUBMITTED', 'ACCEPTED', 'IN_PROGRESS'].includes(status.value)
+);
+const canCancel = computed(
+  () => isLabUser.value && status.value && ['SUBMITTED', 'NEEDS_INFO', 'ACCEPTED', 'IN_PROGRESS'].includes(status.value)
+);
+
+const labUsers = ref<LabUser[]>([]);
+const labUsersLoaded = ref(false);
+
+const ensureLabUsers = async () => {
+  if (labUsersLoaded.value) return;
+  try {
+    const res = await $fetch<LabUser[]>('/api/lab-users');
+    labUsers.value = res;
+    labUsersLoaded.value = true;
+  } catch (e) {
+    console.error('Failed to load lab users:', e);
+  }
+};
+
+const assignDropdownItems = computed(() => {
+  const items: Array<Array<{ label: string; icon?: string; onSelect: () => void }>> = [];
+
+  const userItems = labUsers.value.map((u) => ({
+    label: u.name + (u.id === assignedId.value ? ' (current)' : ''),
+    icon: u.id === assignedId.value ? 'i-ri-check-line' : undefined,
+    onSelect: () => assignTo(u.id),
+  }));
+
+  if (userItems.length > 0) items.push(userItems);
+
+  if (assignedId.value) {
+    items.push([
+      {
+        label: 'Unassign',
+        icon: 'i-ri-user-unfollow-line',
+        onSelect: () => assignTo(null),
+      },
+    ]);
+  }
+
+  return items;
+});
 
 const loadCaseDetail = async () => {
   isLoading.value = true;
@@ -87,11 +173,17 @@ const loadCaseDetail = async () => {
 const open = () => {
   isOpen.value = true;
   loadCaseDetail();
+  if (isManager.value) {
+    ensureLabUsers();
+  }
 };
 
 const close = () => {
   isOpen.value = false;
   caseDetail.value = null;
+  actionError.value = '';
+  requestInfoOpen.value = false;
+  requestInfoMessage.value = '';
   emit('close');
 };
 
@@ -124,6 +216,54 @@ const onEdit = () => {
   emit('edit', id);
 };
 
+const performAction = async (fn: () => Promise<unknown>) => {
+  if (actionBusy.value) return;
+  actionBusy.value = true;
+  actionError.value = '';
+  try {
+    await fn();
+    await loadCaseDetail();
+    emit('changed');
+  } catch (e: unknown) {
+    const err = e as { statusMessage?: string; data?: { statusMessage?: string }; message?: string };
+    actionError.value = err.statusMessage || err.data?.statusMessage || err.message || 'Action failed';
+  } finally {
+    actionBusy.value = false;
+  }
+};
+
+const assignTo = (assigneeId: string | null) =>
+  performAction(() => $fetch(`/api/cases/${props.caseId}/assign`, { method: 'POST', body: { assigneeId } }));
+
+const assignToMe = () => {
+  if (!userId.value) return;
+  return assignTo(userId.value);
+};
+
+const transitionTo = (to: CaseStatus, message?: string) =>
+  performAction(() => $fetch(`/api/cases/${props.caseId}/transition`, { method: 'POST', body: { to, message } }));
+
+const startWorking = () => transitionTo('IN_PROGRESS');
+const markComplete = () => transitionTo('COMPLETED');
+
+const openRequestInfo = () => {
+  requestInfoMessage.value = '';
+  requestInfoOpen.value = true;
+};
+
+const submitRequestInfo = async () => {
+  const msg = requestInfoMessage.value.trim();
+  if (!msg) return;
+  await transitionTo('NEEDS_INFO', msg);
+  requestInfoOpen.value = false;
+  requestInfoMessage.value = '';
+};
+
+const cancelCase = async () => {
+  if (!confirm('Cancel this case? This cannot be undone.')) return;
+  await transitionTo('CANCELLED');
+};
+
 defineExpose({ open });
 </script>
 
@@ -139,20 +279,17 @@ defineExpose({ open });
     <slot />
 
     <template #body>
-      <!-- Loading state -->
       <div v-if="isLoading" class="flex flex-col items-center justify-center py-12">
         <UIcon name="i-ri-loader-4-line" class="mb-4 h-8 w-8 animate-spin text-primary" />
         <p class="text-muted">Loading case details...</p>
       </div>
 
-      <!-- Error state -->
       <div v-else-if="error" class="py-8 text-center">
         <UIcon name="i-ri-error-warning-line" class="mb-4 h-12 w-12 text-error" />
         <p class="text-error">{{ error }}</p>
         <UButton class="mt-4" variant="outline" @click="loadCaseDetail">Retry</UButton>
       </div>
 
-      <!-- Case details -->
       <div v-else-if="caseDetail" class="space-y-6">
         <!-- Status & Meta -->
         <div class="flex flex-wrap items-center gap-4">
@@ -166,6 +303,41 @@ defineExpose({ open });
           <span class="text-sm text-muted">Created {{ formatDate(caseDetail.createdAt) }}</span>
           <span class="text-sm text-muted">by {{ caseDetail.createdBy.name }}</span>
         </div>
+
+        <!-- Assignment strip (lab users only, non-DRAFT) -->
+        <div
+          v-if="isLabUser && caseDetail.status !== 'DRAFT'"
+          class="flex flex-wrap items-center justify-between gap-3 rounded-md border border-default bg-elevated/50 px-4 py-3"
+        >
+          <div class="flex items-center gap-2 text-sm">
+            <UIcon name="i-ri-user-line" class="h-4 w-4 text-muted" />
+            <span class="text-muted">Assigned to:</span>
+            <span v-if="caseDetail.assignedTo" class="font-medium">{{ caseDetail.assignedTo.name }}</span>
+            <span v-else class="text-muted italic">Unassigned</span>
+          </div>
+
+          <div v-if="!isTerminal" class="flex items-center gap-2">
+            <UButton
+              v-if="canSelfAssignNow"
+              size="sm"
+              color="primary"
+              icon="i-ri-user-add-line"
+              :loading="actionBusy"
+              @click="assignToMe"
+            >
+              Assign to me
+            </UButton>
+
+            <UDropdownMenu v-if="canManagerAssign" :items="assignDropdownItems">
+              <UButton size="sm" color="neutral" variant="outline" icon="i-ri-user-shared-line" :loading="actionBusy">
+                {{ caseDetail.assignedTo ? 'Reassign' : 'Assign…' }}
+              </UButton>
+            </UDropdownMenu>
+          </div>
+        </div>
+
+        <!-- Action error -->
+        <UAlert v-if="actionError" color="error" icon="i-ri-error-warning-line" :description="actionError" />
 
         <!-- Needs Info Alert -->
         <UAlert
@@ -201,7 +373,6 @@ defineExpose({ open });
           </dl>
         </UCard>
 
-        <!-- Lab Slip Data -->
         <UCard v-if="Object.keys(caseDetail.data).length > 0">
           <template #header>
             <h3 class="font-semibold">Lab Slip Details</h3>
@@ -214,7 +385,6 @@ defineExpose({ open });
           </dl>
         </UCard>
 
-        <!-- Files -->
         <UCard v-if="caseDetail.files.length > 0">
           <template #header>
             <h3 class="font-semibold">Uploaded Files</h3>
@@ -238,7 +408,6 @@ defineExpose({ open });
           </ul>
         </UCard>
 
-        <!-- Activity Timeline -->
         <UCard>
           <template #header>
             <h3 class="font-semibold">Activity</h3>
@@ -254,7 +423,9 @@ defineExpose({ open });
                         ? 'i-ri-send-plane-line'
                         : event.type === 'STATUS_CHANGED'
                           ? 'i-ri-refresh-line'
-                          : 'i-ri-edit-line'
+                          : event.type === 'ASSIGNED' || event.type === 'UNASSIGNED'
+                            ? 'i-ri-user-line'
+                            : 'i-ri-edit-line'
                   "
                   class="h-4 w-4 text-muted"
                 />
@@ -263,8 +434,17 @@ defineExpose({ open });
                 <p class="space-x-1 text-sm">
                   <span class="font-medium">{{ event.createdBy.name }}</span>
                   <span class="text-muted"> {{ eventTypeLabels[event.type] || event.type }}</span>
+                  <span v-if="event.type === 'STATUS_CHANGED' && event.fromStatus && event.toStatus" class="text-muted">
+                    · {{ statusConfig[event.fromStatus as CaseStatus].label }} →
+                    {{ statusConfig[event.toStatus as CaseStatus].label }}
+                  </span>
+                  <span v-else-if="event.type === 'ASSIGNED' && event.message" class="text-muted">
+                    · {{ event.message }}
+                  </span>
                 </p>
-                <p v-if="event.notes" class="mt-1 text-sm text-muted">{{ event.notes }}</p>
+                <p v-if="event.message && event.type !== 'ASSIGNED'" class="mt-1 text-sm text-muted">
+                  {{ event.message }}
+                </p>
                 <p class="mt-1 text-xs text-muted">{{ formatDate(event.createdAt) }}</p>
               </div>
             </div>
@@ -274,13 +454,105 @@ defineExpose({ open });
     </template>
 
     <template #footer>
+      <div class="flex w-full flex-wrap items-center justify-between gap-2">
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- Lab destructive / info actions -->
+          <UButton
+            v-if="canRequestInfo"
+            size="sm"
+            color="warning"
+            variant="outline"
+            icon="i-ri-question-line"
+            :disabled="actionBusy"
+            @click="openRequestInfo"
+          >
+            Request info
+          </UButton>
+          <UButton
+            v-if="canCancel"
+            size="sm"
+            color="error"
+            variant="ghost"
+            icon="i-ri-close-circle-line"
+            :loading="actionBusy"
+            @click="cancelCase"
+          >
+            Cancel case
+          </UButton>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <UButton color="neutral" variant="outline" @click="close">Close</UButton>
+
+          <!-- Practice actions -->
+          <UButton v-if="caseDetail?.status === 'DRAFT'" color="primary" icon="i-ri-edit-line" @click="onEdit">
+            Continue editing
+          </UButton>
+          <UButton
+            v-else-if="
+              caseDetail?.status === 'NEEDS_INFO' &&
+              permissions.canEditCase(role, user?.practiceId, caseDetail.practice.id, caseDetail.status)
+            "
+            color="warning"
+            icon="i-ri-edit-line"
+            @click="onEdit"
+          >
+            Address &amp; Resubmit
+          </UButton>
+
+          <!-- Lab workflow actions -->
+          <UButton
+            v-if="canStartWorking"
+            color="primary"
+            icon="i-ri-play-line"
+            :loading="actionBusy"
+            @click="startWorking"
+          >
+            Start working
+          </UButton>
+          <UButton
+            v-if="canMarkComplete"
+            color="success"
+            icon="i-ri-checkbox-circle-line"
+            :loading="actionBusy"
+            @click="markComplete"
+          >
+            Mark complete
+          </UButton>
+        </div>
+      </div>
+    </template>
+  </UModal>
+
+  <!-- Request info sub-modal -->
+  <UModal v-model:open="requestInfoOpen" title="Request more information" :ui="{ content: 'sm:max-w-lg' }">
+    <template #body>
+      <div class="space-y-3">
+        <p class="text-sm text-muted">
+          Describe what the practice needs to clarify or add. They will see this message and be able to edit the case.
+        </p>
+        <UTextarea
+          v-model="requestInfoMessage"
+          :rows="5"
+          autofocus
+          placeholder="e.g. The bite registration is missing, please upload before we proceed."
+          class="w-full"
+        />
+      </div>
+    </template>
+    <template #footer>
       <div class="flex justify-end gap-2">
-        <UButton color="neutral" variant="outline" @click="close">Close</UButton>
-        <UButton v-if="caseDetail?.status === 'DRAFT'" color="primary" icon="i-ri-edit-line" @click="onEdit">
-          Continue editing
+        <UButton color="neutral" variant="outline" :disabled="actionBusy" @click="requestInfoOpen = false">
+          Cancel
         </UButton>
-        <UButton v-else-if="caseDetail?.status === 'NEEDS_INFO'" color="warning" icon="i-ri-edit-line" @click="onEdit">
-          Address &amp; Resubmit
+        <UButton
+          color="warning"
+          icon="i-ri-send-plane-line"
+          :disabled="!requestInfoMessage.trim()"
+          :loading="actionBusy"
+          @click="submitRequestInfo"
+        >
+          Send request
         </UButton>
       </div>
     </template>

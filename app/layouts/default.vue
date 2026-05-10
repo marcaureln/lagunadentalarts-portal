@@ -130,6 +130,7 @@ async function logout() {
         </template>
       </UDashboardSidebar>
 
+      <NuxtLoadingIndicator color="repeating-linear-gradient(to right, var(--ui-primary) 0%, var(--ui-primary) 100%)" />
       <NuxtPage />
     </UDashboardGroup>
   </UApp>
