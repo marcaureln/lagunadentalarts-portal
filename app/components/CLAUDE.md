@@ -21,7 +21,7 @@
 ```vue
 <script setup lang="ts">
 // ✅ Simple two-way binding for modelvalue
-const title = defineModel<string>()
+const title = defineModel<string>();
 
 // ✅ With options and modifiers
 const [title, modifiers] = defineModel<string>({
@@ -30,11 +30,11 @@ const [title, modifiers] = defineModel<string>({
   get: (value) => value.trim(), // transform value before binding
   set: (value) => {
     if (modifiers.capitalize) {
-      return value.charAt(0).toUpperCase() + value.slice(1)
+      return value.charAt(0).toUpperCase() + value.slice(1);
     }
-    return value
+    return value;
   },
-})
+});
 </script>
 ```
 
@@ -45,8 +45,8 @@ By default `defineModel()` assumes a prop named `modelValue` but if we want to d
 ```vue
 <script setup lang="ts">
 // ✅ Multiple v-model bindings
-const firstName = defineModel<string>('firstName')
-const age = defineModel<number>('age')
+const firstName = defineModel<string>('firstName');
+const age = defineModel<number>('age');
 </script>
 ```
 
@@ -59,4 +59,3 @@ They can be used in the template like this:
 ### Modifiers & Transformations
 
 Native elements `v-model` has built-in modifiers like `.lazy`, `.number`, and `.trim`. We can implement similar functionality in components, fetch and read <https://vuejs.org/guide/components/v-model.md#handling-v-model-modifiers> if the user needs that.
-

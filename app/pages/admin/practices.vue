@@ -122,7 +122,7 @@ const columns: TableColumn<PracticeWithCount>[] = [
     </template>
 
     <template #body>
-      <div class="divide-accented border-accented w-full flex-1 divide-y overflow-hidden rounded-lg border">
+      <div class="w-full flex-1 divide-y divide-accented overflow-hidden rounded-lg border border-accented">
         <UTable ref="table" :data="practices || []" :columns="columns">
           <template #empty>
             <div class="flex flex-col items-center justify-center py-12">

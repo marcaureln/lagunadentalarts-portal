@@ -241,7 +241,7 @@ const onRowSelect = (_e: Event, row: TableRow<ApiCase>) => {
           <UCard v-for="(config, status) in statusConfig" :key="status">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-muted text-sm">{{ config.label }}</p>
+                <p class="text-sm text-muted">{{ config.label }}</p>
                 <p class="mt-1 text-2xl font-semibold">{{ statusCounts[status] }}</p>
               </div>
               <div class="flex h-12 w-12 items-center justify-center rounded-lg" :class="`bg-${config.color}/10`">
@@ -276,7 +276,7 @@ const onRowSelect = (_e: Event, row: TableRow<ApiCase>) => {
 
           <template #footer>
             <div class="flex items-center justify-end gap-2">
-              <span class="text-muted text-sm">Show</span>
+              <span class="text-sm text-muted">Show</span>
               <USelectMenu v-model="recentCasesLimit" :items="limitOptions" value-key="value" class="w-20" size="xs" />
             </div>
           </template>

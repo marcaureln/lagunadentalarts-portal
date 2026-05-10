@@ -127,13 +127,13 @@ defineExpose({ open });
     <template #body>
       <!-- Loading state -->
       <div v-if="isLoading" class="flex flex-col items-center justify-center py-12">
-        <UIcon name="i-ri-loader-4-line" class="text-primary mb-4 h-8 w-8 animate-spin" />
+        <UIcon name="i-ri-loader-4-line" class="mb-4 h-8 w-8 animate-spin text-primary" />
         <p class="text-muted">Loading case details...</p>
       </div>
 
       <!-- Error state -->
       <div v-else-if="error" class="py-8 text-center">
-        <UIcon name="i-ri-error-warning-line" class="text-error mb-4 h-12 w-12" />
+        <UIcon name="i-ri-error-warning-line" class="mb-4 h-12 w-12 text-error" />
         <p class="text-error">{{ error }}</p>
         <UButton class="mt-4" variant="outline" @click="loadCaseDetail">Retry</UButton>
       </div>
@@ -149,8 +149,8 @@ defineExpose({ open });
           >
             {{ statusConfig[caseDetail.status].label }}
           </UBadge>
-          <span class="text-muted text-sm">Created {{ formatDate(caseDetail.createdAt) }}</span>
-          <span class="text-muted text-sm">by {{ caseDetail.createdBy.name }}</span>
+          <span class="text-sm text-muted">Created {{ formatDate(caseDetail.createdAt) }}</span>
+          <span class="text-sm text-muted">by {{ caseDetail.createdBy.name }}</span>
         </div>
 
         <!-- Needs Info Alert -->
@@ -169,19 +169,19 @@ defineExpose({ open });
           </template>
           <dl class="grid gap-4 sm:grid-cols-2">
             <div>
-              <dt class="text-muted text-sm">Patient Name</dt>
+              <dt class="text-sm text-muted">Patient Name</dt>
               <dd class="font-medium">{{ caseDetail.patientName }}</dd>
             </div>
             <div v-if="caseDetail.patientExternalId">
-              <dt class="text-muted text-sm">Patient ID</dt>
+              <dt class="text-sm text-muted">Patient ID</dt>
               <dd class="font-medium">{{ caseDetail.patientExternalId }}</dd>
             </div>
             <div>
-              <dt class="text-muted text-sm">Practice</dt>
+              <dt class="text-sm text-muted">Practice</dt>
               <dd class="font-medium">{{ caseDetail.practice.name }}</dd>
             </div>
             <div>
-              <dt class="text-muted text-sm">Case Type</dt>
+              <dt class="text-sm text-muted">Case Type</dt>
               <dd class="font-medium">{{ caseDetail.caseType.label }}</dd>
             </div>
           </dl>
@@ -194,7 +194,7 @@ defineExpose({ open });
           </template>
           <dl class="grid gap-4 sm:grid-cols-2">
             <div v-for="field in caseDetail.caseType.fields" :key="field.id">
-              <dt class="text-muted text-sm">{{ field.label }}</dt>
+              <dt class="text-sm text-muted">{{ field.label }}</dt>
               <dd class="font-medium">{{ caseDetail.data[field.id] || '-' }}</dd>
             </div>
           </dl>
@@ -208,10 +208,10 @@ defineExpose({ open });
           <ul class="divide-y divide-gray-200 dark:divide-gray-700">
             <li v-for="file in caseDetail.files" :key="file.slotId" class="flex items-center justify-between py-3">
               <div class="flex items-center gap-3">
-                <UIcon name="i-ri-file-line" class="text-muted h-5 w-5" />
+                <UIcon name="i-ri-file-line" class="h-5 w-5 text-muted" />
                 <div>
                   <p class="font-medium">{{ file.fileName }}</p>
-                  <p class="text-muted text-xs">
+                  <p class="text-xs text-muted">
                     {{ caseDetail.caseType.fileSlots.find((s) => s.id === file.slotId)?.label || file.slotId }}
                     <span v-if="file.fileSize"> · {{ formatFileSize(file.fileSize) }}</span>
                   </p>
@@ -240,7 +240,7 @@ defineExpose({ open });
                           ? 'i-ri-refresh-line'
                           : 'i-ri-edit-line'
                   "
-                  class="text-muted h-4 w-4"
+                  class="h-4 w-4 text-muted"
                 />
               </div>
               <div class="flex-1">
@@ -248,8 +248,8 @@ defineExpose({ open });
                   <span class="font-medium">{{ event.createdBy.name }}</span>
                   <span class="text-muted"> {{ eventTypeLabels[event.type] || event.type }}</span>
                 </p>
-                <p v-if="event.notes" class="text-muted mt-1 text-sm">{{ event.notes }}</p>
-                <p class="text-muted mt-1 text-xs">{{ formatDate(event.createdAt) }}</p>
+                <p v-if="event.notes" class="mt-1 text-sm text-muted">{{ event.notes }}</p>
+                <p class="mt-1 text-xs text-muted">{{ formatDate(event.createdAt) }}</p>
               </div>
             </div>
           </div>

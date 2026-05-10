@@ -103,7 +103,7 @@ async function logout() {
             <template #account>
               <div class="flex items-center gap-2 text-left">
                 <div
-                  class="bg-primary text-primary-foreground flex h-8 w-8 items-center justify-center rounded-full font-semibold"
+                  class="text-primary-foreground flex h-8 w-8 items-center justify-center rounded-full bg-primary font-semibold"
                 >
                   {{ (user?.name || 'U').charAt(0).toUpperCase() }}
                 </div>

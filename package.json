@@ -9,6 +9,8 @@
     "typecheck": "nuxt typecheck",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "db:generate": "prisma generate",
     "db:migrate:prod": "prisma migrate deploy",
     "db:migrate:dev": "prisma migrate dev",

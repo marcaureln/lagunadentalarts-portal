@@ -503,7 +503,7 @@ const formatFileSize = (bytes?: number) => {
     <template #body>
       <!-- Loading state when fetching existing case -->
       <div v-if="isLoading" class="flex flex-col items-center justify-center py-12">
-        <UIcon name="i-ri-loader-4-line" class="text-primary mb-4 h-8 w-8 animate-spin" />
+        <UIcon name="i-ri-loader-4-line" class="mb-4 h-8 w-8 animate-spin text-primary" />
         <p class="text-muted">Loading case details...</p>
       </div>
 
@@ -536,7 +536,7 @@ const formatFileSize = (bytes?: number) => {
                   @update:search-term="searchPatients"
                   @create="onPatientCreate"
                 />
-                <p v-if="isNewPatient" class="text-muted mt-1 text-xs">
+                <p v-if="isNewPatient" class="mt-1 text-xs text-muted">
                   New patient "{{ step1Form.patientName }}" will be created
                 </p>
               </UFormField>
@@ -591,7 +591,7 @@ const formatFileSize = (bytes?: number) => {
 
         <!-- Step 2: Lab Slip -->
         <div v-else-if="currentStep === 2" class="space-y-4">
-          <p class="text-muted text-sm">Fill in the clinical details for this case.</p>
+          <p class="text-sm text-muted">Fill in the clinical details for this case.</p>
 
           <div v-if="selectedCaseType" class="space-y-4">
             <div v-for="field in selectedCaseType.fields" :key="field.id">
@@ -648,7 +648,7 @@ const formatFileSize = (bytes?: number) => {
 
         <!-- Step 3: Upload Files -->
         <div v-else-if="currentStep === 3" class="space-y-4">
-          <p class="text-muted text-sm">Upload the required files for this case.</p>
+          <p class="text-sm text-muted">Upload the required files for this case.</p>
 
           <div v-if="selectedCaseType" class="space-y-4">
             <div v-for="slot in selectedCaseType.fileSlots" :key="slot.id">
@@ -699,7 +699,7 @@ const formatFileSize = (bytes?: number) => {
 
         <!-- Step 4: Review & Submit -->
         <div v-else-if="currentStep === 4" class="space-y-4">
-          <p class="text-muted text-sm">Review your case details before submitting.</p>
+          <p class="text-sm text-muted">Review your case details before submitting.</p>
 
           <div class="space-y-4">
             <div class="rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
@@ -733,7 +733,7 @@ const formatFileSize = (bytes?: number) => {
                 <li v-for="file in uploadedFiles" :key="file.slotId" class="flex items-center gap-2">
                   <UIcon name="i-ri-file-line" class="h-4 w-4 text-gray-500" />
                   <span>{{ file.fileName }}</span>
-                  <span class="text-muted text-xs">({{ formatFileSize(file.fileSize) }})</span>
+                  <span class="text-xs text-muted">({{ formatFileSize(file.fileSize) }})</span>
                 </li>
                 <li v-if="uploadedFiles.length === 0" class="text-muted">No files uploaded</li>
               </ul>

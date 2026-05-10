@@ -1,5 +1,5 @@
 <template>
-  <div class="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 via-white to-blue-50 px-4">
+  <div class="flex min-h-screen items-center justify-center bg-linear-to-br from-blue-50 via-white to-blue-50 px-4">
     <div class="mx-auto max-w-2xl text-center">
       <div class="mb-8">
         <div class="animate-bounce text-8xl">🦷</div>
@@ -46,7 +46,7 @@ defineProps<{
   error: NuxtError;
 }>();
 
-const getErrorMessage = (statusCode: number) => {
+const getErrorMessage = (statusCode?: number) => {
   switch (statusCode) {
     case 404:
       return 'This page seems to have gone missing, like a tooth that needs replacing! 🦷';

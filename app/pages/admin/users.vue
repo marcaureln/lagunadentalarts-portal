@@ -167,7 +167,7 @@ const columns: TableColumn<User>[] = [
     </template>
 
     <template #body>
-      <div class="divide-accented border-accented w-full flex-1 divide-y rounded-lg border">
+      <div class="w-full flex-1 divide-y divide-accented rounded-lg border border-accented">
         <div class="flex items-center gap-2 overflow-x-auto px-4 py-3.5">
           <USelectMenu
             v-model="selectedPracticeId"
