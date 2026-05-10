@@ -258,29 +258,31 @@ let storageInstance: StorageService | null = null;
 
 function buildStorage(): StorageService {
   const config = useRuntimeConfig();
-  const provider = (config.storageProvider as StorageProvider) || 'fs';
+  const s3Bucket = config.s3Bucket as string | undefined;
+  const s3AccessKeyId = config.s3AccessKeyId as string | undefined;
+  const s3SecretAccessKey = config.s3SecretAccessKey as string | undefined;
+  const s3Endpoint = config.s3Endpoint as string | undefined;
+  const storagePath = config.storagePath as string | undefined;
 
-  switch (provider) {
-    case 'fs':
-      return new FileSystemStorage((config.storagePath as string) || './storage/cases');
-    case 's3': {
-      const bucket = config.s3Bucket as string | undefined;
-      const accessKeyId = config.s3AccessKeyId as string | undefined;
-      const secretAccessKey = config.s3SecretAccessKey as string | undefined;
-      if (!bucket || !accessKeyId || !secretAccessKey) {
-        throw new Error('S3 storage requires S3_BUCKET, S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY');
-      }
-      return new S3Storage(
-        bucket,
-        (config.s3Region as string) || 'auto',
-        config.s3Endpoint as string | undefined,
-        accessKeyId,
-        secretAccessKey
+  const hasS3 = !!(s3Bucket || s3AccessKeyId || s3SecretAccessKey || s3Endpoint);
+  const hasFsPath = !!storagePath;
+
+  if (hasS3 && hasFsPath) {
+    throw new Error(
+      'Ambiguous storage configuration: both S3_* and STORAGE_PATH are set. Configure only one storage backend.'
+    );
+  }
+
+  if (hasS3) {
+    if (!s3Bucket || !s3AccessKeyId || !s3SecretAccessKey) {
+      throw new Error(
+        'Incomplete S3 storage configuration: S3_BUCKET, S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY are all required.'
       );
     }
-    default:
-      throw new Error(`Unknown storage provider: ${provider}`);
+    return new S3Storage(s3Bucket, (config.s3Region as string) || 'auto', s3Endpoint, s3AccessKeyId, s3SecretAccessKey);
   }
+
+  return new FileSystemStorage(storagePath || './storage/cases');
 }
 
 export function getStorage(): StorageService {

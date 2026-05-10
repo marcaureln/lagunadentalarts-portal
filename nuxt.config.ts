@@ -4,8 +4,7 @@ const cacheTTL = 60 * 60 * 24 * 365; // 1 year – you can set this to whatever 
 export default defineNuxtConfig({
   compatibilityDate: '2025-06-14',
   runtimeConfig: {
-    storageProvider: process.env.STORAGE_PROVIDER || 'fs',
-    storagePath: process.env.STORAGE_PATH || './storage/cases',
+    storagePath: process.env.STORAGE_PATH,
     s3Bucket: process.env.S3_BUCKET,
     s3Region: process.env.S3_REGION || 'auto',
     s3Endpoint: process.env.S3_ENDPOINT,
