@@ -1,17 +1,7 @@
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client';
-import { z } from 'zod';
 import { prisma } from '~~/server/utils/prisma';
+import { generateTemporaryPassword } from '~~/server/utils/password';
 import { permissions } from '~~/shared/utils/permissions';
-
-const bodySchema = z
-  .object({
-    name: z.string().min(1).optional(),
-    email: z.email().optional(),
-    role: z.enum(['PRACTICE_STAFF', 'PRACTICE_ADMIN']).optional(),
-  })
-  .refine((data) => data.name !== undefined || data.email !== undefined || data.role !== undefined, {
-    message: 'At least one field must be provided',
-  });
 
 export default defineEventHandler(async (event) => {
   const { user } = await getUserSession(event);
@@ -29,28 +19,34 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, statusMessage: 'Insufficient permissions' });
   }
 
+  if (userId === user.id) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Cannot reset your own password — use /password to change it instead',
+    });
+  }
+
   const target = await prisma.user.findUnique({ where: { id: userId }, select: { id: true, practiceId: true } });
   if (!target || target.practiceId !== practiceId) {
     throw createError({ statusCode: 404, statusMessage: 'User not found in this practice' });
   }
 
-  const body = await readValidatedBody(event, bodySchema.parse);
+  const temporaryPassword = generateTemporaryPassword();
 
   try {
-    const updated = await prisma.user.update({
+    await prisma.user.update({
       where: { id: userId },
       data: {
-        ...(body.name !== undefined && { name: body.name }),
-        ...(body.email !== undefined && { email: body.email }),
-        ...(body.role !== undefined && { role: body.role }),
+        passwordHash: await hashPassword(temporaryPassword),
+        passwordExpiresAt: new Date(),
       },
-      select: { id: true, name: true, email: true, role: true, createdAt: true, updatedAt: true },
     });
-    return updated;
   } catch (e: unknown) {
-    if (e instanceof PrismaClientKnownRequestError && e.code === 'P2002') {
-      throw createError({ statusCode: 409, statusMessage: 'Email already in use' });
+    if (e instanceof PrismaClientKnownRequestError && e.code === 'P2025') {
+      throw createError({ statusCode: 404, statusMessage: 'User not found' });
     }
     throw e;
   }
+
+  return { temporaryPassword };
 });

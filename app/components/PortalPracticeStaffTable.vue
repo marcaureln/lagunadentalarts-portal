@@ -1,40 +1,42 @@
 <script setup lang="ts">
 import { h, resolveComponent } from 'vue';
-import type { TableColumn } from '@nuxt/ui';
+import type { TableColumn, TableRow } from '@nuxt/ui';
 import type { User } from '~~/server/types/user';
-import { roleOptions, getRoleLabel } from '~~/shared/utils/users';
+import { getRoleLabel } from '~~/shared/utils/users';
 
 const props = defineProps<{
   practiceId: string;
 }>();
 
 const UBadge = resolveComponent('UBadge');
-const USelectMenu = resolveComponent('USelectMenu');
 const PortalPracticeStaffModalRemove = resolveComponent('PortalPracticeStaffModalRemove');
 
-const toast = useToast();
 const { user: currentUser } = useUserSession();
 
 const { data: staff, refresh } = useLazyFetch<User[]>(() => `/api/practices/${props.practiceId}/users`);
 
 defineExpose({ refresh });
 
-const practiceRoleOptions = roleOptions.filter(
-  (opt) => opt.value === 'PRACTICE_STAFF' || opt.value === 'PRACTICE_ADMIN'
-);
+const editingUser = ref<User | null>(null);
+const editRef = ref<{ open: () => void } | null>(null);
 
-const updateRole = async (user: User, newRole: string) => {
-  try {
-    await $fetch(`/api/practices/${props.practiceId}/users/${user.id}`, {
-      method: 'PATCH',
-      body: { role: newRole },
-    });
-    toast.add({ description: 'Role updated', color: 'success' });
-    await refresh();
-  } catch (e) {
-    console.error('Failed to update role', e);
-    toast.add({ description: 'Failed to update role', color: 'error' });
-  }
+const openEditUser = (user: User) => {
+  editingUser.value = user;
+  nextTick(() => {
+    editRef.value?.open();
+  });
+};
+
+const onEditSuccess = async () => {
+  await refresh();
+};
+
+const onEditClose = () => {
+  editingUser.value = null;
+};
+
+const onRowSelect = (_e: Event, row: TableRow<User>) => {
+  openEditUser(row.original);
 };
 
 const formatDate = (date: Date | string): string =>
@@ -54,23 +56,8 @@ const columns: TableColumn<User>[] = [
   {
     accessorKey: 'role',
     header: 'Role',
-    cell: ({ row }) => {
-      const user = row.original;
-      const isCurrentUser = user.email === currentUser.value?.email;
-
-      if (isCurrentUser) {
-        const roleLabel = getRoleLabel(row.getValue('role'));
-        return h(UBadge, { variant: 'subtle', color: 'primary', class: 'capitalize' }, () => roleLabel);
-      }
-
-      return h(USelectMenu, {
-        modelValue: row.getValue('role'),
-        items: practiceRoleOptions,
-        valueKey: 'value',
-        searchInput: false,
-        'onUpdate:modelValue': (newRole: string) => updateRole(user, newRole),
-      });
-    },
+    cell: ({ row }) =>
+      h(UBadge, { variant: 'subtle', color: 'primary', class: 'capitalize' }, () => getRoleLabel(row.getValue('role'))),
   },
   {
     accessorKey: 'createdAt',
@@ -79,20 +66,18 @@ const columns: TableColumn<User>[] = [
   },
   {
     id: 'actions',
-    header: 'Actions',
+    header: () => h('div', { class: 'text-right' }, 'Actions'),
     enableHiding: false,
     cell: ({ row }) => {
       const user = row.original;
       const isCurrentUser = user.email === currentUser.value?.email;
       if (isCurrentUser) return;
 
-      return h('div', {}, [
-        h(PortalPracticeStaffModalRemove, {
-          user,
-          practiceId: props.practiceId,
-          onSuccess: refresh,
-        }),
-      ]);
+      return h(
+        'div',
+        { class: 'flex justify-end', onClick: (e: Event) => e.stopPropagation() },
+        h(PortalPracticeStaffModalRemove, { user, practiceId: props.practiceId, onSuccess: refresh })
+      );
     },
   },
 ];
@@ -100,7 +85,7 @@ const columns: TableColumn<User>[] = [
 
 <template>
   <div class="w-full flex-1 overflow-hidden rounded-lg border border-accented">
-    <UTable :data="staff || []" :columns="columns">
+    <UTable :data="staff || []" :columns="columns" @select="onRowSelect">
       <template #empty>
         <div class="flex flex-col items-center justify-center py-12">
           <UIcon name="i-ri-team-line" class="mb-4 h-12 w-12 text-gray-400" />
@@ -109,5 +94,14 @@ const columns: TableColumn<User>[] = [
         </div>
       </template>
     </UTable>
+
+    <PortalPracticeStaffModalEditUser
+      v-if="editingUser"
+      ref="editRef"
+      :user="editingUser"
+      :practice-id="practiceId"
+      @success="onEditSuccess"
+      @close="onEditClose"
+    />
   </div>
 </template>

@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { h, resolveComponent } from 'vue';
-import type { TableColumn } from '@nuxt/ui';
+import type { TableColumn, TableRow } from '@nuxt/ui';
 import type { User } from '~~/server/types/user';
-import { roleOptions, getRoleLabel } from '~~/shared/utils/users';
+import { getRoleLabel } from '~~/shared/utils/users';
 import { permissions } from '~~/shared/utils/permissions';
 
 const UBadge = resolveComponent('UBadge');
-const USelectMenu = resolveComponent('USelectMenu');
 const PortalAdminModalRemoveUser = resolveComponent('PortalAdminModalRemoveUser');
 
 definePageMeta({
@@ -20,33 +19,33 @@ definePageMeta({
 
 useSeoMeta({ title: 'LDA Staff' });
 
-const toast = useToast();
 const { data: users, refresh } = await useFetch<User[]>('/api/admin/users');
 const { user: currentUser } = useUserSession();
 
-const ldaRoleOptions = roleOptions.filter((opt) => opt.value === 'ADMIN' || opt.value === 'USER');
+const editingUser = ref<User | null>(null);
+const editRef = ref<{ open: () => void } | null>(null);
 
-const updateRole = async (user: User, newRole: string) => {
-  try {
-    await $fetch(`/api/admin/users/${user.id}`, {
-      method: 'PATCH',
-      body: { role: newRole },
-    });
-    toast.add({ description: 'User role updated successfully', color: 'success' });
-    await refresh();
-  } catch (e) {
-    console.error('Failed to update role', e);
-    toast.add({ description: 'Failed to update user role', color: 'error' });
-  }
-};
-
-const formatDate = (date: Date | string): string => {
-  return new Date(date).toLocaleDateString('en-US', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
+const openEditUser = (user: User) => {
+  editingUser.value = user;
+  nextTick(() => {
+    editRef.value?.open();
   });
 };
+
+const onEditSuccess = async () => {
+  await refresh();
+};
+
+const onEditClose = () => {
+  editingUser.value = null;
+};
+
+const onRowSelect = (_e: Event, row: TableRow<User>) => {
+  openEditUser(row.original);
+};
+
+const formatDate = (date: Date | string): string =>
+  new Date(date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
 
 const columns: TableColumn<User>[] = [
   {
@@ -62,23 +61,8 @@ const columns: TableColumn<User>[] = [
   {
     accessorKey: 'role',
     header: 'Role',
-    cell: ({ row }) => {
-      const user = row.original;
-      const isCurrentUser = user.email === currentUser.value?.email;
-
-      if (isCurrentUser) {
-        const roleLabel = getRoleLabel(row.getValue('role'));
-        return h(UBadge, { variant: 'subtle', color: 'primary', class: 'capitalize' }, () => roleLabel);
-      }
-
-      return h(USelectMenu, {
-        modelValue: row.getValue('role'),
-        items: ldaRoleOptions,
-        valueKey: 'value',
-        searchInput: false,
-        'onUpdate:modelValue': (newRole: string) => updateRole(user, newRole),
-      });
-    },
+    cell: ({ row }) =>
+      h(UBadge, { variant: 'subtle', color: 'primary', class: 'capitalize' }, () => getRoleLabel(row.getValue('role'))),
   },
   {
     accessorKey: 'createdAt',
@@ -119,7 +103,7 @@ const columns: TableColumn<User>[] = [
 
     <template #body>
       <div class="w-full flex-1 overflow-hidden rounded-lg border border-accented">
-        <UTable :data="users || []" :columns="columns">
+        <UTable :data="users || []" :columns="columns" @select="onRowSelect">
           <template #empty>
             <div class="flex flex-col items-center justify-center py-8">
               <UIcon name="i-ri-user-line" class="mb-3 h-10 w-10 text-gray-400" />
@@ -131,6 +115,14 @@ const columns: TableColumn<User>[] = [
           </template>
         </UTable>
       </div>
+
+      <PortalAdminModalEditUser
+        v-if="editingUser"
+        ref="editRef"
+        :user="editingUser"
+        @success="onEditSuccess"
+        @close="onEditClose"
+      />
     </template>
   </UDashboardPanel>
 </template>
