@@ -81,53 +81,25 @@ async function logout() {
         </template>
 
         <template #footer="{ collapsed }">
-          <UDropdownMenu
-            :items="[
-              [
-                {
-                  label: user?.name || 'User',
-                  slot: 'account',
-                  disabled: true,
-                },
-              ],
-              [
-                {
-                  label: 'Logout',
-                  icon: 'i-ri-logout-box-r-line',
-                  onSelect: logout,
-                },
-              ],
-            ]"
-            :ui="{ content: 'w-(--reka-dropdown-menu-trigger-width)' }"
-            :popper="{ strategy: 'absolute', placement: 'top' }"
-          >
-            <template #account>
-              <div class="flex items-center gap-2 text-left">
-                <div
-                  class="text-primary-foreground flex h-8 w-8 items-center justify-center rounded-full bg-primary font-semibold"
-                >
-                  {{ (user?.name || 'U').charAt(0).toUpperCase() }}
-                </div>
-                <div class="flex-1 truncate text-sm">
-                  <div class="text-foreground font-medium">{{ user?.name || 'User' }}</div>
-                  <div class="text-muted">{{ role }}</div>
-                </div>
-              </div>
-            </template>
-
-            <UButton
-              color="neutral"
-              variant="ghost"
-              class="w-full justify-start"
-              :class="{ 'justify-center': collapsed }"
-            >
+          <div class="flex w-full flex-col gap-2 pb-2">
+            <div class="flex w-full items-center gap-2 px-2" :class="{ 'justify-center': collapsed }">
               <UAvatar :alt="user?.name || 'User'" size="sm" />
               <div v-if="!collapsed" class="flex-1 truncate text-left text-sm">
                 <div class="text-foreground font-medium">{{ user?.name || 'User' }}</div>
                 <div class="text-muted">{{ role }}</div>
               </div>
-            </UButton>
-          </UDropdownMenu>
+            </div>
+
+            <UButton
+              color="error"
+              variant="soft"
+              icon="i-ri-logout-box-r-line"
+              block
+              :class="{ 'justify-center': collapsed, 'justify-start': !collapsed }"
+              :label="collapsed ? undefined : 'Logout'"
+              @click="logout"
+            />
+          </div>
         </template>
       </UDashboardSidebar>
 
