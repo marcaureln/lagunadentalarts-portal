@@ -19,6 +19,7 @@ interface ApiResource {
 }
 
 const { data, status } = useFetch<ApiResource[]>('/api/resources', {
+  key: 'resources-list',
   lazy: true,
   default: () => [],
 });

@@ -30,6 +30,7 @@ const {
   refresh,
   status,
 } = useFetch<ApiResource[]>('/api/resources', {
+  key: 'resources-list',
   lazy: true,
   default: () => [],
 });
@@ -47,22 +48,48 @@ watch(
 const isLoading = computed(() => status.value === 'pending');
 
 const persistOrder = async () => {
+  // VueUse's default onUpdate applies the move in a nextTick; wait for it.
+  await nextTick();
   try {
     await $fetch('/api/admin/resources/reorder', {
       method: 'POST',
       body: { orderedIds: resources.value.map((r) => r.id) },
     });
+    // Invalidate the shared cache so the public /resources page reflects the new order.
+    await refreshNuxtData('resources-list');
   } catch (e) {
     console.error('Failed to save new order', e);
     refresh();
   }
 };
 
-useSortable('.resources-tbody', resources, {
+const tbodyEl = ref<HTMLElement | null>(null);
+const { start, stop } = useSortable(tbodyEl, resources, {
   animation: 150,
   handle: '.drag-handle',
-  onUpdate: persistOrder,
+  onEnd: (e) => {
+    if (e.oldIndex === e.newIndex) return;
+    persistOrder();
+  },
 });
+
+// useSortable's onMounted runs before the tbody exists (v-if while loading).
+// Attach as soon as the table renders; re-attach across nav back/forth.
+watch(
+  () => !isLoading.value && resources.value.length > 0,
+  (ready) => {
+    if (ready) {
+      nextTick(() => {
+        tbodyEl.value = document.querySelector<HTMLElement>('.resources-tbody');
+        start();
+      });
+    } else {
+      stop();
+      tbodyEl.value = null;
+    }
+  },
+  { immediate: true }
+);
 
 const addRef = ref<{ open: () => void } | null>(null);
 const editing = ref<ApiResource | null>(null);
