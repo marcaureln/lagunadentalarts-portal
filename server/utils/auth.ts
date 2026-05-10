@@ -1,20 +1,25 @@
-export function extractEmailFromMicrosoftUser(rawUser: any): string | null {
-  // 1. Try direct email fields first
+interface MicrosoftRawUser {
+  email?: string | null;
+  mail?: string | null;
+  otherMails?: string[] | null;
+  userPrincipalName?: string | null;
+}
+
+export function extractEmailFromMicrosoftUser(rawUser: MicrosoftRawUser): string | null {
   if (rawUser.email) return rawUser.email;
   if (rawUser.mail) return rawUser.mail;
   if (Array.isArray(rawUser.otherMails) && rawUser.otherMails.length > 0) {
-    return rawUser.otherMails[0];
+    return rawUser.otherMails[0] ?? null;
   }
 
-  // 2. Fallback: parse from userPrincipalName for guest accounts
-  if (rawUser.userPrincipalName?.includes('#EXT#@')) {
-    const upn = rawUser.userPrincipalName; // alexmarcaureln_gmail.com#EXT#@tenant.onmicrosoft.com
-    const beforeExt = upn.split('#EXT#@')[0]; // "alexmarcaureln_gmail.com"
-    // handle common pattern "<local>_gmail.com"
-    if (beforeExt.endsWith('_gmail.com')) {
+  // Guest accounts (#EXT#@) have the real email embedded in userPrincipalName
+  // as "<local>_<domain>#EXT#@tenant.onmicrosoft.com" with `.` in the original domain replaced by `_`.
+  const upn = rawUser.userPrincipalName;
+  if (upn?.includes('#EXT#@')) {
+    const beforeExt = upn.split('#EXT#@')[0];
+    if (beforeExt?.endsWith('_gmail.com')) {
       return beforeExt.replace('_gmail.com', '@gmail.com');
     }
-    // If they later have other domains, you can expand this logic
   }
 
   return null;
