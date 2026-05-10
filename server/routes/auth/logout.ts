@@ -8,5 +8,5 @@ export default defineEventHandler(async (event) => {
     return sendRedirect(event, redirectTo);
   }
 
-  return sendRedirect(event, '/portal/login');
+  return sendRedirect(event, '/login');
 });

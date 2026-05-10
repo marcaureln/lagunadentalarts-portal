@@ -6,6 +6,6 @@
 
 <script lang="ts" setup>
 useSeoMeta({
-  titleTemplate: '%s — Laguna Dental Arts',
+  titleTemplate: '%s — LDA Portal',
 });
 </script>

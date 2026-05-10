@@ -8,10 +8,6 @@ const UBadge = resolveComponent('UBadge');
 const UTooltip = resolveComponent('UTooltip');
 const PortalAdminModalEditPractice = resolveComponent('PortalAdminModalEditPractice');
 
-definePageMeta({
-  layout: 'portal',
-});
-
 const { data: practices, refresh } = await useFetch<PracticeWithCount[]>('/api/practices');
 
 const router = useRouter();
@@ -43,7 +39,7 @@ async function deletePractice(practice: PracticeWithCount) {
 }
 
 function viewPracticeUsers(practice: PracticeWithCount) {
-  router.push(`/portal/admin/users?practiceId=${practice.id}`);
+  router.push(`/admin/users?practiceId=${practice.id}`);
 }
 
 const columns: TableColumn<PracticeWithCount>[] = [

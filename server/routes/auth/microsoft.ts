@@ -43,10 +43,10 @@ export default defineOAuthMicrosoftEventHandler({
       },
     });
 
-    return sendRedirect(event, '/portal');
+    return sendRedirect(event, '/');
   },
   onError(event: H3Event, error: unknown) {
     console.error('Microsoft OAuth Error:', error);
-    return sendRedirect(event, '/portal/login?error=OAuthError');
+    return sendRedirect(event, '/login?error=OAuthError');
   },
 });

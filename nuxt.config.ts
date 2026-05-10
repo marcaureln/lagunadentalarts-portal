@@ -35,8 +35,6 @@ export default defineNuxtConfig({
   },
   modules: [
     '@nuxt/ui',
-    '@nuxtjs/seo',
-    '@nuxt/content',
     '@nuxt/eslint',
     '@nuxt/icon',
     '@nuxt/fonts',
@@ -46,20 +44,11 @@ export default defineNuxtConfig({
     'nuxt-auth-utils',
     'nuxt-mcp-dev',
   ],
-  site: {
-    url: 'https://lagunadentalarts.com/',
-    name: 'Laguna Dental Arts',
-    description: 'Laguna Dental Arts is a premier dental practice offering comprehensive care in California.',
-    defaultLocale: 'en',
-  },
   fonts: {
     defaults: {
       weights: [100, 300, 400, 500, 600, 700],
       styles: ['normal', 'italic'],
     },
-  },
-  linkChecker: {
-    enabled: false, // TODO: Enable this in production
   },
   typescript: {
     tsConfig: {

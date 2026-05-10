@@ -39,7 +39,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
 
     toast.add({ description: 'Password updated successfully', color: 'success' });
 
-    await navigateTo('/auth/logout?redirectTo=/portal/login?passwordChanged=1', { external: true });
+    await navigateTo('/auth/logout?redirectTo=/login?passwordChanged=1', { external: true });
   } catch (e: unknown) {
     console.error(e);
     error.value = 'Failed to update password';

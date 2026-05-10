@@ -54,6 +54,6 @@ export default defineEventHandler(async (event) => {
 
   return {
     success: true,
-    redirectTo: isExpired ? '/portal/password' : '/portal',
+    redirectTo: isExpired ? '/password' : '/',
   };
 });

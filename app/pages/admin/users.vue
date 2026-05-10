@@ -11,11 +11,10 @@ const USelectMenu = resolveComponent('USelectMenu');
 const PortalAdminModalRemoveUser = resolveComponent('PortalAdminModalRemoveUser');
 
 definePageMeta({
-  layout: 'portal',
   middleware: async () => {
     const { user } = useUserSession();
     if (!permissions.canManageAllUsers(user.value?.role)) {
-      return navigateTo('/portal');
+      return navigateTo('/');
     }
   },
 });
