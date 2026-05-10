@@ -45,7 +45,7 @@ interface PracticeOption {
   name: string;
 }
 
-type StatusFilter = 'all' | 'SUBMITTED' | 'NEEDS_INFO' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'DRAFT';
+type StatusFilter = 'SUBMITTED' | 'NEEDS_INFO' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'DRAFT';
 
 const ASSIGNEE_ALL = '__all__';
 const ASSIGNEE_ME = 'me';
@@ -53,18 +53,11 @@ const ASSIGNEE_UNASSIGNED = 'unassigned';
 const TYPE_ALL = '__all__';
 const PRACTICE_ALL = '__all__';
 
-const statusFilter = ref<StatusFilter>((route.query.status as StatusFilter) || 'all');
-const assigneeFilter = ref<string>((route.query.assignee as string) || ASSIGNEE_ALL);
-const caseTypeFilter = ref<string>((route.query.caseType as string) || TYPE_ALL);
-const practiceFilter = ref<string>((route.query.practice as string) || PRACTICE_ALL);
-
 const submittedLabel = computed(() => (isLabUser.value ? 'Inbox' : 'Submitted'));
 const submittedIcon = computed(() => (isLabUser.value ? 'i-ri-inbox-line' : 'i-ri-send-plane-line'));
 
 const statusTabs = computed(() => {
-  const tabs: Array<{ value: StatusFilter; label: string; icon: string }> = [
-    { value: 'all', label: 'All Cases', icon: 'i-ri-list-check' },
-  ];
+  const tabs: Array<{ value: StatusFilter; label: string; icon: string }> = [];
   if (isPracticeUser.value) {
     tabs.push({ value: 'DRAFT', label: 'Drafts', icon: 'i-ri-draft-line' });
   }
@@ -77,6 +70,18 @@ const statusTabs = computed(() => {
   );
   return tabs;
 });
+
+const defaultStatus = computed<StatusFilter>(() => (isPracticeUser.value ? 'DRAFT' : 'SUBMITTED'));
+const VALID_STATUSES: StatusFilter[] = ['DRAFT', 'SUBMITTED', 'NEEDS_INFO', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
+const queryStatus = route.query.status as string | undefined;
+const statusFilter = ref<StatusFilter>(
+  queryStatus && VALID_STATUSES.includes(queryStatus as StatusFilter)
+    ? (queryStatus as StatusFilter)
+    : defaultStatus.value
+);
+const assigneeFilter = ref<string>((route.query.assignee as string) || ASSIGNEE_ALL);
+const caseTypeFilter = ref<string>((route.query.caseType as string) || TYPE_ALL);
+const practiceFilter = ref<string>((route.query.practice as string) || PRACTICE_ALL);
 
 // Fetch lookups for filter dropdowns
 const { data: labUsersData } = useFetch<LabUser[]>('/api/lab-users', {
@@ -127,7 +132,7 @@ const clearFilters = () => {
 
 watch([statusFilter, assigneeFilter, caseTypeFilter, practiceFilter], ([s, a, t, p]) => {
   const query: Record<string, string> = {};
-  if (s !== 'all') query.status = s;
+  query.status = s;
   if (a !== ASSIGNEE_ALL) query.assignee = a;
   if (t !== TYPE_ALL) query.caseType = t;
   if (p !== PRACTICE_ALL) query.practice = p;
@@ -135,7 +140,7 @@ watch([statusFilter, assigneeFilter, caseTypeFilter, practiceFilter], ([s, a, t,
 });
 
 const casesQuery = computed(() => ({
-  status: statusFilter.value !== 'all' ? statusFilter.value : undefined,
+  status: statusFilter.value,
   assignedToId: isLabUser.value && assigneeFilter.value !== ASSIGNEE_ALL ? assigneeFilter.value : undefined,
   caseTypeId: caseTypeFilter.value !== TYPE_ALL ? caseTypeFilter.value : undefined,
   practiceId: isLabUser.value && practiceFilter.value !== PRACTICE_ALL ? practiceFilter.value : undefined,
@@ -177,7 +182,6 @@ const matchesActiveFilters = (c: ApiCase): boolean => {
 const statusCounts = computed(() => {
   const visible = (allCasesData.value || []).filter(matchesActiveFilters);
   return {
-    all: visible.length,
     DRAFT: visible.filter((c) => c.status === 'DRAFT').length,
     SUBMITTED: visible.filter((c) => c.status === 'SUBMITTED').length,
     NEEDS_INFO: visible.filter((c) => c.status === 'NEEDS_INFO').length,
@@ -488,44 +492,19 @@ const showFilterRow = computed(() => isLabUser.value || (caseTypesData.value?.le
               <div class="flex flex-col items-center justify-center py-16">
                 <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
                   <UIcon
-                    :name="
-                      statusFilter === 'all'
-                        ? 'i-ri-folder-line'
-                        : statusTabs.find((t) => t.value === statusFilter)?.icon || 'i-ri-folder-line'
-                    "
+                    :name="statusTabs.find((t) => t.value === statusFilter)?.icon || 'i-ri-folder-line'"
                     class="h-8 w-8 text-gray-400"
                   />
                 </div>
                 <h3 class="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  {{
-                    statusFilter === 'all'
-                      ? 'No cases yet'
-                      : `No ${statusTabs.find((t) => t.value === statusFilter)?.label.toLowerCase()}`
-                  }}
+                  No {{ statusTabs.find((t) => t.value === statusFilter)?.label.toLowerCase() }}
                 </h3>
                 <p class="mb-6 max-w-sm text-center text-gray-500">
-                  <template v-if="statusFilter === 'all'">
-                    {{
-                      canCreateCase
-                        ? 'Upload your first case to get started.'
-                        : 'Cases will appear here once submitted.'
-                    }}
-                  </template>
-                  <template v-else> There are no cases with this status. Try selecting a different filter. </template>
+                  There are no cases with this status. Try selecting a different tab.
                 </p>
-                <div class="flex gap-3">
-                  <UButton
-                    v-if="statusFilter !== 'all'"
-                    variant="outline"
-                    color="neutral"
-                    @click.stop="statusFilter = 'all'"
-                  >
-                    View All Cases
-                  </UButton>
-                  <PortalCaseWizard v-if="canCreateCase" @success="refreshAll">
-                    <UButton icon="i-ri-upload-2-line" color="primary">Upload New Case</UButton>
-                  </PortalCaseWizard>
-                </div>
+                <PortalCaseWizard v-if="canCreateCase" @success="refreshAll">
+                  <UButton icon="i-ri-upload-2-line" color="primary">Upload New Case</UButton>
+                </PortalCaseWizard>
               </div>
             </template>
           </UTable>
