@@ -27,7 +27,9 @@ logs
 .history
 
 # AI stuff
-.claude/settings.local.json
+.agents
+.claude
+!.claude/settings.json
 
 # Storage
 storage
