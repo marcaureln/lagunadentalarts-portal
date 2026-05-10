@@ -1,6 +1,7 @@
+import { randomUUID } from 'crypto';
 import { createReadStream, existsSync } from 'fs';
 import { mkdir, writeFile, unlink, readdir, stat } from 'fs/promises';
-import { basename, join } from 'path';
+import { basename, dirname, join } from 'path';
 import type { Readable } from 'stream';
 import {
   S3Client,
@@ -30,6 +31,12 @@ export interface UploadedFile {
   uploadedAt: string;
 }
 
+export interface UploadedResource {
+  storageKey: string;
+  fileSize: number;
+  mimeType: string;
+}
+
 export interface DownloadedFile {
   stream: Readable;
   contentType: string;
@@ -44,6 +51,14 @@ export interface StorageService {
   listFiles(caseId: string): Promise<UploadedFile[]>;
   getFileUrl(caseId: string, filePath: string): Promise<string>;
   downloadFile(caseId: string, filePath: string): Promise<DownloadedFile>;
+  uploadResource(file: Buffer, fileName: string, mimeType: string): Promise<UploadedResource>;
+  deleteResource(storageKey: string): Promise<void>;
+  downloadResource(storageKey: string): Promise<DownloadedFile>;
+}
+
+function buildResourceKey(fileName: string): string {
+  const safe = fileName.replace(/[^\w.-]+/g, '_');
+  return `resources/${randomUUID()}-${safe}`;
 }
 
 const DEFAULT_CONTENT_TYPE = 'application/octet-stream';
@@ -158,6 +173,37 @@ class FileSystemStorage implements StorageService {
       fileName,
     };
   }
+
+  private get resourcesPath(): string {
+    return join(dirname(this.basePath), 'resources');
+  }
+
+  async uploadResource(file: Buffer, fileName: string, mimeType: string): Promise<UploadedResource> {
+    if (!existsSync(this.resourcesPath)) await mkdir(this.resourcesPath, { recursive: true });
+    const storageKey = buildResourceKey(fileName);
+    await writeFile(join(this.resourcesPath, basename(storageKey)), file);
+    return { storageKey, fileSize: file.length, mimeType };
+  }
+
+  async deleteResource(storageKey: string): Promise<void> {
+    const filePath = join(this.resourcesPath, basename(storageKey));
+    if (existsSync(filePath)) await unlink(filePath);
+  }
+
+  async downloadResource(storageKey: string): Promise<DownloadedFile> {
+    const filePath = join(this.resourcesPath, basename(storageKey));
+    if (!existsSync(filePath)) {
+      throw createError({ statusCode: 404, statusMessage: 'File not found' });
+    }
+    const fileStat = await stat(filePath);
+    const fileName = basename(storageKey);
+    return {
+      stream: createReadStream(filePath),
+      contentType: guessMimeType(fileName),
+      contentLength: fileStat.size,
+      fileName,
+    };
+  }
 }
 
 class S3Storage implements StorageService {
@@ -245,6 +291,37 @@ class S3Storage implements StorageService {
       throw createError({ statusCode: 404, statusMessage: 'File not found' });
     }
     const fileName = basename(filePath);
+    return {
+      stream: result.Body as Readable,
+      contentType: result.ContentType || guessMimeType(fileName),
+      contentLength: result.ContentLength ?? 0,
+      fileName,
+    };
+  }
+
+  async uploadResource(file: Buffer, fileName: string, mimeType: string): Promise<UploadedResource> {
+    const storageKey = buildResourceKey(fileName);
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: storageKey,
+        Body: file,
+        ContentType: mimeType,
+      })
+    );
+    return { storageKey, fileSize: file.length, mimeType };
+  }
+
+  async deleteResource(storageKey: string): Promise<void> {
+    await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: storageKey }));
+  }
+
+  async downloadResource(storageKey: string): Promise<DownloadedFile> {
+    const result = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: storageKey }));
+    if (!result.Body) {
+      throw createError({ statusCode: 404, statusMessage: 'File not found' });
+    }
+    const fileName = basename(storageKey);
     return {
       stream: result.Body as Readable,
       contentType: result.ContentType || guessMimeType(fileName),

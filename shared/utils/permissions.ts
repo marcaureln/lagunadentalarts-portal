@@ -45,6 +45,9 @@ export const permissions = {
   },
   canViewAllCases: (role?: UserRole) => (role ? LAB_ROLES.includes(role) : false),
 
+  canManageResources: (role?: UserRole) => role === 'ADMIN',
+  canViewResources: (role?: UserRole) => !!role,
+
   // Lab manager can assign / reassign / unassign anyone.
   canAssignAny: (role?: UserRole) => role === 'ADMIN',
 

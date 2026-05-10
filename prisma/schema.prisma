@@ -18,11 +18,12 @@ model User {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
-  practice        Practice?   @relation(fields: [practiceId], references: [id])
-  managedPractice Practice[]  @relation("PracticeAdmin")
-  cases           Case[]
-  assignedCases   Case[]      @relation("CaseAssignee")
-  caseEvents      CaseEvent[] @relation("CaseEventCreator")
+  practice          Practice?   @relation(fields: [practiceId], references: [id])
+  managedPractice   Practice[]  @relation("PracticeAdmin")
+  cases             Case[]
+  assignedCases     Case[]      @relation("CaseAssignee")
+  caseEvents        CaseEvent[] @relation("CaseEventCreator")
+  uploadedResources Resource[]  @relation("ResourceUploader")
 }
 
 model Practice {
@@ -125,6 +126,24 @@ model Case {
   @@index([patientId])
   @@index([status])
   @@index([assignedToId])
+}
+
+model Resource {
+  id           String   @id @default(cuid())
+  title        String
+  description  String?
+  fileName     String
+  storageKey   String   @unique
+  fileSize     Int
+  mimeType     String
+  sortOrder    Int      @default(0)
+  uploadedById String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  uploadedBy User @relation("ResourceUploader", fields: [uploadedById], references: [id])
+
+  @@index([sortOrder])
 }
 
 model CaseEvent {
