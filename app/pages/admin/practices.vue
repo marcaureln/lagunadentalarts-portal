@@ -8,6 +8,8 @@ const UBadge = resolveComponent('UBadge');
 const UTooltip = resolveComponent('UTooltip');
 const PortalAdminModalEditPractice = resolveComponent('PortalAdminModalEditPractice');
 
+useSeoMeta({ title: 'Practice Management' });
+
 const { data: practices, refresh } = await useFetch<PracticeWithCount[]>('/api/practices');
 
 const router = useRouter();

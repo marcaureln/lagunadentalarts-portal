@@ -7,6 +7,8 @@ const { user } = useUserSession();
 const route = useRoute();
 const router = useRouter();
 
+useSeoMeta({ title: 'Cases' });
+
 const UBadge = resolveComponent('UBadge');
 const UButton = resolveComponent('UButton');
 const UDropdownMenu = resolveComponent('UDropdownMenu');

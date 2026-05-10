@@ -6,6 +6,6 @@
 
 <script lang="ts" setup>
 useSeoMeta({
-  titleTemplate: '%s — LDA Portal',
+  titleTemplate: (title) => (title ? `${title} — Laguna Dental Arts` : 'Laguna Dental Arts'),
 });
 </script>

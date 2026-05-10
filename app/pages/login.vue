@@ -6,6 +6,8 @@ definePageMeta({
   layout: 'auth',
 });
 
+useSeoMeta({ title: 'Login' });
+
 const route = useRoute();
 const error = computed(() => route.query.error);
 const passwordChanged = computed(() => route.query.passwordChanged === '1');

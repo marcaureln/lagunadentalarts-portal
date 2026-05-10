@@ -5,6 +5,8 @@ import { permissions } from '~~/shared/utils/permissions';
 
 const { user } = useUserSession();
 
+useSeoMeta({ title: 'Home' });
+
 const UBadge = resolveComponent('UBadge');
 const UButton = resolveComponent('UButton');
 const UDropdownMenu = resolveComponent('UDropdownMenu');

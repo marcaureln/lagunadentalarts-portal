@@ -19,6 +19,8 @@ definePageMeta({
   },
 });
 
+useSeoMeta({ title: 'User Management' });
+
 const route = useRoute();
 const toast = useToast();
 const { data: users, refresh } = await useFetch<User[]>('/api/admin/users');
