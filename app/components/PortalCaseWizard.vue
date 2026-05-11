@@ -1,43 +1,7 @@
 <script setup lang="ts">
 import * as z from 'zod';
 import type { FormSubmitEvent } from '@nuxt/ui';
-
-interface CaseTypeField {
-  id: string;
-  label: string;
-  type: 'text' | 'select' | 'textarea';
-  required: boolean;
-  options?: string[];
-}
-
-interface CaseTypeFileSlot {
-  id: string;
-  label: string;
-  required: boolean;
-  accept?: string;
-}
-
-interface CaseType {
-  id: string;
-  key: string;
-  label: string;
-  fields: CaseTypeField[];
-  fileSlots: CaseTypeFileSlot[];
-  instructions: string | null;
-}
-
-interface CaseFile {
-  slotId: string;
-  fileName: string;
-  fileSize?: number;
-  uploadedAt?: string;
-}
-
-interface Patient {
-  id: string;
-  name: string;
-  externalId: string | null;
-}
+import type { CaseFile, CaseType } from '~~/shared/types/case';
 
 interface CreatedCase {
   id: string;
@@ -62,26 +26,24 @@ const emit = defineEmits<{
 
 const toast = useToast();
 
-// Expose open method for programmatic usage (must be before await)
 const isOpen = ref(false);
 const open = () => {
   isOpen.value = true;
 };
 defineExpose({ open });
 
-// Fetch case types
 const { data: caseTypes } = await useFetch<CaseType[]>('/api/case-types');
 
-// Wizard state
 const isLoading = ref(false);
 const isEditMode = computed(() => !!props.caseId);
 const currentStep = ref(1);
 const totalSteps = 4;
-const isSavingDraft = ref(false);
-const isSubmittingCase = ref(false);
 const error = ref('');
 
-// Created case (after step 1)
+const submission = useCaseSubmission();
+const isSavingDraft = submission.isSavingDraft;
+const isSubmittingCase = submission.isSubmittingCase;
+
 const createdCase = ref<CreatedCase | null>(null);
 
 // Step 1: Patient & Case Type
@@ -99,37 +61,11 @@ const step1Form = reactive<Step1Schema>({
   caseTypeId: '',
 });
 
-// Patient selection with autocomplete + create
 const selectedPatient = ref<{ label: string; value: string } | undefined>(undefined);
-const patientSearchTerm = ref('');
-const patientResults = ref<Patient[]>([]);
 const isNewPatient = ref(false);
 
-const searchPatients = useDebounceFn(async (query: string) => {
-  if (!query || query.length < 2) {
-    patientResults.value = [];
-    return;
-  }
+const patientSearch = usePatientSearch();
 
-  try {
-    const results = await $fetch<Patient[]>('/api/patients', {
-      query: { search: query },
-    });
-    patientResults.value = results;
-  } catch (e) {
-    console.error('Failed to search patients:', e);
-    patientResults.value = [];
-  }
-}, 300);
-
-const patientOptions = computed(() => {
-  return patientResults.value.map((p) => ({
-    value: p.id,
-    label: p.name + (p.externalId ? ` (${p.externalId})` : ''),
-  }));
-});
-
-// Handle patient creation from InputMenu
 const onPatientCreate = (item: string) => {
   isNewPatient.value = true;
   step1Form.patientName = item;
@@ -137,7 +73,6 @@ const onPatientCreate = (item: string) => {
   selectedPatient.value = { label: item, value: '__new__' };
 };
 
-// Watch for patient selection changes
 watch(selectedPatient, (patient) => {
   if (!patient) {
     isNewPatient.value = false;
@@ -145,52 +80,38 @@ watch(selectedPatient, (patient) => {
     step1Form.patientExternalId = '';
     return;
   }
+  if (patient.value === '__new__') return;
 
-  if (patient.value === '__new__') {
-    // New patient - already handled by onPatientCreate
-    return;
-  }
-
-  // Existing patient selected
   isNewPatient.value = false;
-  const existingPatient = patientResults.value.find((p) => p.id === patient.value);
-  if (existingPatient) {
-    step1Form.patientName = existingPatient.name;
-    step1Form.patientExternalId = existingPatient.externalId || '';
+  const existing = patientSearch.results.value.find((p) => p.id === patient.value);
+  if (existing) {
+    step1Form.patientName = existing.name;
+    step1Form.patientExternalId = existing.externalId || '';
   }
 });
 
-// Computed to get selectedPatientId for API calls
 const selectedPatientId = computed(() => {
-  if (!selectedPatient.value || selectedPatient.value.value === '__new__') {
-    return null;
-  }
+  if (!selectedPatient.value || selectedPatient.value.value === '__new__') return null;
   return selectedPatient.value.value;
 });
 
-// Step 2: Lab Slip Data (dynamic based on case type)
+// Step 2: Lab Slip Data
 const labSlipData = ref<Record<string, string>>({});
 
 // Step 3: File uploads
 const uploadedFiles = ref<CaseFile[]>([]);
 const slotFiles = ref<Record<string, File | undefined>>({});
+const pendingFiles = ref<Map<string, File>>(new Map());
 
 // Step 4: Consent
 const consentChecked = ref(false);
 
-// Computed
 const selectedCaseType = computed(() => {
   if (!caseTypes.value || !step1Form.caseTypeId) return null;
   return caseTypes.value.find((ct) => ct.id === step1Form.caseTypeId) || null;
 });
 
-const caseTypeOptions = computed(() => {
-  if (!caseTypes.value) return [];
-  return caseTypes.value.map((ct) => ({
-    value: ct.id,
-    label: ct.label,
-  }));
-});
+const caseTypeOptions = computed(() => (caseTypes.value ?? []).map((ct) => ({ value: ct.id, label: ct.label })));
 
 const requiredFieldsMissing = computed(() => {
   if (!selectedCaseType.value) return [];
@@ -217,12 +138,11 @@ const canSubmit = computed(() => consentChecked.value);
 
 const stepTitles = ['Patient & Case Type', 'Lab Slip', 'Upload Files', 'Review & Submit'];
 
-// Methods
 const resetWizard = () => {
   currentStep.value = 1;
   selectedPatient.value = undefined;
-  patientSearchTerm.value = '';
-  patientResults.value = [];
+  patientSearch.term.value = '';
+  patientSearch.results.value = [];
   isNewPatient.value = false;
   step1Form.patientName = '';
   step1Form.patientExternalId = '';
@@ -239,89 +159,69 @@ const resetWizard = () => {
 const closeWizard = (emitSuccess = false) => {
   isOpen.value = false;
   resetWizard();
-  if (emitSuccess) {
-    emit('success');
-  }
+  if (emitSuccess) emit('success');
 };
 
-// Load existing case for editing
 const loadExistingCase = async (caseId: string) => {
   isLoading.value = true;
   error.value = '';
-
   try {
     const res = await $fetch<CreatedCase>(`/api/cases/${caseId}`);
     createdCase.value = res;
 
-    // Populate step 1 form
     if (res.patientId) {
-      // Existing patient linked
       selectedPatient.value = {
         label: res.patientName + (res.patientExternalId ? ` (${res.patientExternalId})` : ''),
         value: res.patientId,
       };
       isNewPatient.value = false;
     } else {
-      // New patient (not yet linked)
       selectedPatient.value = { label: res.patientName, value: '__new__' };
       isNewPatient.value = true;
     }
     step1Form.patientName = res.patientName;
     step1Form.patientExternalId = res.patientExternalId || '';
     step1Form.caseTypeId = res.caseType.id;
-
-    // Populate step 2 lab slip data
     labSlipData.value = (res.data as Record<string, string>) || {};
-
-    // Populate step 3 files
     uploadedFiles.value = res.files || [];
 
-    // Determine which step to start at based on completion
     const hasLabSlipData = Object.keys(labSlipData.value).length > 0;
     const hasFiles = uploadedFiles.value.length > 0;
-
-    if (hasFiles) {
-      currentStep.value = 4; // Go to review
-    } else if (hasLabSlipData) {
-      currentStep.value = 3; // Go to files
-    } else {
-      currentStep.value = 2; // Go to lab slip
-    }
+    if (hasFiles) currentStep.value = 4;
+    else if (hasLabSlipData) currentStep.value = 3;
+    else currentStep.value = 2;
   } catch (e: unknown) {
-    if (e && typeof e === 'object' && 'statusMessage' in e) {
-      error.value = String((e as { statusMessage?: unknown }).statusMessage || 'Failed to load case');
-    } else {
-      error.value = 'Failed to load case';
-    }
+    error.value =
+      e && typeof e === 'object' && 'statusMessage' in e
+        ? String((e as { statusMessage?: unknown }).statusMessage || 'Failed to load case')
+        : 'Failed to load case';
     toast.add({ description: error.value, color: 'error' });
   } finally {
     isLoading.value = false;
   }
 };
 
-// Watch for modal open to load existing case
 watch(isOpen, async (newVal) => {
   if (newVal && props.caseId) {
     await loadExistingCase(props.caseId);
   }
 });
 
-const handleStep1Submit = async (_event: FormSubmitEvent<Step1Schema>) => {
-  // Just move to next step - no API call
+const handleStep1Submit = (_event: FormSubmitEvent<Step1Schema>) => {
   currentStep.value = 2;
 };
-
 const goToStep3 = () => {
-  // Just move to next step - no API call
   currentStep.value = 3;
 };
-
-const pendingFiles = ref<Map<string, File>>(new Map());
+const goToStep4 = () => {
+  currentStep.value = 4;
+};
+const goBack = () => {
+  if (currentStep.value > 1) currentStep.value--;
+};
 
 const handleFileUpload = (slotId: string, file: File) => {
-  // Store the file for later upload and track metadata
   pendingFiles.value.set(slotId, file);
-
   const existingIndex = uploadedFiles.value.findIndex((f) => f.slotId === slotId);
   const fileData: CaseFile = {
     slotId,
@@ -329,165 +229,37 @@ const handleFileUpload = (slotId: string, file: File) => {
     fileSize: file.size,
     uploadedAt: new Date().toISOString(),
   };
+  if (existingIndex >= 0) uploadedFiles.value[existingIndex] = fileData;
+  else uploadedFiles.value.push(fileData);
+};
 
-  if (existingIndex >= 0) {
-    uploadedFiles.value[existingIndex] = fileData;
+const buildPayload = () => ({
+  patientId: selectedPatientId.value,
+  patientName: step1Form.patientName,
+  patientExternalId: step1Form.patientExternalId || null,
+  caseTypeId: step1Form.caseTypeId,
+  data: labSlipData.value,
+});
+
+const persist = async (submit: boolean) => {
+  error.value = '';
+  const result = await submission.saveCase({
+    caseId: createdCase.value?.id || props.caseId || null,
+    payload: buildPayload(),
+    pendingFiles: pendingFiles.value,
+    submit,
+    successMessage: submit ? 'Case submitted successfully!' : 'Draft saved successfully!',
+  });
+  if (result !== null) {
+    createdCase.value = result;
+    closeWizard(true);
   } else {
-    uploadedFiles.value.push(fileData);
+    error.value = submission.error.value ?? (submit ? 'Failed to submit case' : 'Failed to save draft');
   }
 };
 
-const _removeFile = (slotId: string) => {
-  uploadedFiles.value = uploadedFiles.value.filter((f) => f.slotId !== slotId);
-  pendingFiles.value.delete(slotId);
-  slotFiles.value[slotId] = undefined;
-};
-
-const goToStep4 = () => {
-  // Just move to next step - no API call
-  currentStep.value = 4;
-};
-
-const saveDraft = async () => {
-  isSavingDraft.value = true;
-  error.value = '';
-
-  try {
-    let caseId = createdCase.value?.id || props.caseId;
-
-    if (caseId) {
-      // Update existing case
-      const res = await $fetch<CreatedCase>(`/api/cases/${caseId}`, {
-        method: 'PATCH',
-        body: {
-          patientId: selectedPatientId.value,
-          patientName: step1Form.patientName,
-          patientExternalId: step1Form.patientExternalId || null,
-          data: labSlipData.value,
-        },
-      });
-      createdCase.value = res;
-    } else {
-      // Create new case as draft
-      const res = await $fetch<CreatedCase>('/api/cases', {
-        method: 'POST',
-        body: {
-          patientId: selectedPatientId.value,
-          patientName: step1Form.patientName,
-          patientExternalId: step1Form.patientExternalId || null,
-          caseTypeId: step1Form.caseTypeId,
-          data: labSlipData.value,
-        },
-      });
-      createdCase.value = res;
-      caseId = res.id;
-    }
-
-    // Upload any pending files
-    for (const [slotId, file] of pendingFiles.value.entries()) {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('slotId', slotId);
-
-      await $fetch(`/api/cases/${caseId}/files`, {
-        method: 'POST',
-        body: formData,
-      });
-    }
-    pendingFiles.value.clear();
-
-    toast.add({ description: 'Draft saved successfully!', color: 'success' });
-    closeWizard(true);
-  } catch (e: unknown) {
-    if (e && typeof e === 'object' && 'statusMessage' in e) {
-      error.value = String((e as { statusMessage?: unknown }).statusMessage || 'Failed to save draft');
-    } else {
-      error.value = 'Failed to save draft';
-    }
-    toast.add({ description: error.value, color: 'error' });
-  } finally {
-    isSavingDraft.value = false;
-  }
-};
-
-const submitCase = async () => {
-  isSubmittingCase.value = true;
-  error.value = '';
-
-  try {
-    let caseId = createdCase.value?.id || props.caseId;
-
-    if (caseId) {
-      // Update existing case first
-      await $fetch<CreatedCase>(`/api/cases/${caseId}`, {
-        method: 'PATCH',
-        body: {
-          patientId: selectedPatientId.value,
-          patientName: step1Form.patientName,
-          patientExternalId: step1Form.patientExternalId || null,
-          data: labSlipData.value,
-        },
-      });
-    } else {
-      // Create new case
-      const res = await $fetch<CreatedCase>('/api/cases', {
-        method: 'POST',
-        body: {
-          patientId: selectedPatientId.value,
-          patientName: step1Form.patientName,
-          patientExternalId: step1Form.patientExternalId || null,
-          caseTypeId: step1Form.caseTypeId,
-          data: labSlipData.value,
-        },
-      });
-      createdCase.value = res;
-      caseId = res.id;
-    }
-
-    // Upload any pending files
-    for (const [slotId, file] of pendingFiles.value.entries()) {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('slotId', slotId);
-
-      await $fetch(`/api/cases/${caseId}/files`, {
-        method: 'POST',
-        body: formData,
-      });
-    }
-    pendingFiles.value.clear();
-
-    // Submit the case
-    await $fetch(`/api/cases/${caseId}/submit`, {
-      method: 'POST',
-    });
-
-    toast.add({ description: 'Case submitted successfully!', color: 'success' });
-    closeWizard(true);
-  } catch (e: unknown) {
-    if (e && typeof e === 'object' && 'statusMessage' in e) {
-      error.value = String((e as { statusMessage?: unknown }).statusMessage || 'Failed to submit case');
-    } else {
-      error.value = 'Failed to submit case';
-    }
-    toast.add({ description: error.value, color: 'error' });
-  } finally {
-    isSubmittingCase.value = false;
-  }
-};
-
-const goBack = () => {
-  if (currentStep.value > 1) {
-    currentStep.value--;
-  }
-};
-
-const formatFileSize = (bytes?: number) => {
-  if (!bytes) return '';
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-};
+const saveDraft = () => persist(false);
+const submitCase = () => persist(true);
 </script>
 
 <template>
@@ -501,14 +273,12 @@ const formatFileSize = (bytes?: number) => {
     <slot />
 
     <template #body>
-      <!-- Loading state when fetching existing case -->
       <div v-if="isLoading" class="flex flex-col items-center justify-center py-12">
         <UIcon name="i-ri-loader-4-line" class="mb-4 h-8 w-8 animate-spin text-primary" />
         <p class="text-muted">Loading case details...</p>
       </div>
 
       <template v-else>
-        <!-- Progress bar -->
         <div class="mb-6 flex gap-2">
           <div
             v-for="step in totalSteps"
@@ -525,15 +295,15 @@ const formatFileSize = (bytes?: number) => {
               <UFormField label="Patient" name="patientName" required>
                 <UInputMenu
                   v-model="selectedPatient"
-                  v-model:search-term="patientSearchTerm"
-                  :items="patientOptions"
+                  v-model:search-term="patientSearch.term.value"
+                  :items="patientSearch.options.value"
                   :loading="false"
                   create-item
                   ignore-filter
                   placeholder="Search or type patient name..."
                   class="w-full"
                   icon="i-ri-user-line"
-                  @update:search-term="searchPatients"
+                  @update:search-term="patientSearch.search"
                   @create="onPatientCreate"
                 />
                 <p v-if="isNewPatient" class="mt-1 text-xs text-muted">
@@ -580,8 +350,9 @@ const formatFileSize = (bytes?: number) => {
                     :loading="isSavingDraft"
                     :disabled="isSubmittingCase || !step1Form.patientName || !step1Form.caseTypeId"
                     @click="saveDraft"
-                    >Save Draft</UButton
                   >
+                    Save Draft
+                  </UButton>
                   <UButton type="submit">Next</UButton>
                 </div>
               </div>
@@ -639,8 +410,9 @@ const formatFileSize = (bytes?: number) => {
                 :loading="isSavingDraft"
                 :disabled="isSubmittingCase || !step1Form.patientName || !step1Form.caseTypeId"
                 @click="saveDraft"
-                >Save Draft</UButton
               >
+                Save Draft
+              </UButton>
               <UButton :disabled="!canProceedStep2" @click="goToStep3">Next</UButton>
             </div>
           </div>
@@ -690,8 +462,9 @@ const formatFileSize = (bytes?: number) => {
                 :loading="isSavingDraft"
                 :disabled="isSubmittingCase || !step1Form.patientName || !step1Form.caseTypeId"
                 @click="saveDraft"
-                >Save Draft</UButton
               >
+                Save Draft
+              </UButton>
               <UButton :disabled="!canProceedStep3" @click="goToStep4">Next</UButton>
             </div>
           </div>
@@ -699,54 +472,14 @@ const formatFileSize = (bytes?: number) => {
 
         <!-- Step 4: Review & Submit -->
         <div v-else-if="currentStep === 4" class="space-y-4">
-          <p class="text-sm text-muted">Review your case details before submitting.</p>
-
-          <div class="space-y-4">
-            <div class="rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
-              <h4 class="mb-2 font-medium">Patient Information</h4>
-              <dl class="grid grid-cols-2 gap-2 text-sm">
-                <dt class="text-muted">Name:</dt>
-                <dd>{{ step1Form.patientName }}</dd>
-                <dt class="text-muted">External ID:</dt>
-                <dd>{{ step1Form.patientExternalId || '-' }}</dd>
-              </dl>
-            </div>
-
-            <div class="rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
-              <h4 class="mb-2 font-medium">Case Type</h4>
-              <p>{{ selectedCaseType?.label }}</p>
-            </div>
-
-            <div class="rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
-              <h4 class="mb-2 font-medium">Lab Slip Details</h4>
-              <dl class="grid grid-cols-2 gap-2 text-sm">
-                <template v-for="field in selectedCaseType?.fields" :key="field.id">
-                  <dt class="text-muted">{{ field.label }}:</dt>
-                  <dd>{{ labSlipData[field.id] || '-' }}</dd>
-                </template>
-              </dl>
-            </div>
-
-            <div class="rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
-              <h4 class="mb-2 font-medium">Uploaded Files</h4>
-              <ul class="space-y-1 text-sm">
-                <li v-for="file in uploadedFiles" :key="file.slotId" class="flex items-center gap-2">
-                  <UIcon name="i-ri-file-line" class="h-4 w-4 text-gray-500" />
-                  <span>{{ file.fileName }}</span>
-                  <span class="text-xs text-muted">({{ formatFileSize(file.fileSize) }})</span>
-                </li>
-                <li v-if="uploadedFiles.length === 0" class="text-muted">No files uploaded</li>
-              </ul>
-            </div>
-
-            <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
-              <UCheckbox
-                v-model="consentChecked"
-                label="I confirm that all information is accurate"
-                description="By submitting this case, I acknowledge that the case will be processed and charges may apply. This action cannot be undone."
-              />
-            </div>
-          </div>
+          <PortalCaseWizardStep4Review
+            v-model:consent-checked="consentChecked"
+            :patient-name="step1Form.patientName"
+            :patient-external-id="step1Form.patientExternalId || ''"
+            :case-type="selectedCaseType"
+            :lab-slip-data="labSlipData"
+            :uploaded-files="uploadedFiles"
+          />
 
           <UAlert v-if="error" color="error" variant="soft" :title="error" />
 
@@ -759,8 +492,9 @@ const formatFileSize = (bytes?: number) => {
                 :loading="isSavingDraft"
                 :disabled="isSubmittingCase || !step1Form.patientName || !step1Form.caseTypeId"
                 @click="saveDraft"
-                >Save Draft</UButton
               >
+                Save Draft
+              </UButton>
               <UButton
                 color="primary"
                 :loading="isSubmittingCase"
