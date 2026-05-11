@@ -7,9 +7,25 @@ defineProps<{
   caseType: CaseType | null;
   labSlipData: Record<string, string>;
   uploadedFiles: CaseFile[];
+  error: string;
+  isSavingDraft: boolean;
+  isSubmittingCase: boolean;
+  step1Valid: boolean;
+  isUploading: boolean;
+  uploadCurrentFileName: string | null;
+  uploadOverallProgress: number;
 }>();
 
 const consentChecked = defineModel<boolean>('consentChecked', { required: true });
+
+const emit = defineEmits<{
+  cancel: [];
+  back: [];
+  saveDraft: [];
+  submit: [];
+}>();
+
+const canSubmit = computed(() => consentChecked.value);
 
 const formatFileSize = (bytes?: number) => {
   if (!bytes) return '';
@@ -67,6 +83,42 @@ const formatFileSize = (bytes?: number) => {
           label="I confirm that all information is accurate"
           description="By submitting this case, I acknowledge that the case will be processed and charges may apply. This action cannot be undone."
         />
+      </div>
+    </div>
+
+    <div v-if="isUploading" class="rounded-md border border-default bg-elevated/40 px-3 py-2">
+      <div class="mb-1 flex items-center justify-between text-xs text-muted">
+        <span class="truncate">Uploading {{ uploadCurrentFileName ?? 'files' }}…</span>
+        <span class="ml-2 shrink-0 tabular-nums">{{ Math.round(uploadOverallProgress * 100) }}%</span>
+      </div>
+      <UProgress :model-value="Math.round(uploadOverallProgress * 100)" size="sm" />
+    </div>
+
+    <UAlert v-if="error" color="error" variant="soft" :title="error" />
+
+    <div class="mt-6 flex justify-between">
+      <div class="flex gap-2">
+        <UButton type="button" color="neutral" variant="ghost" @click="emit('cancel')">Cancel</UButton>
+        <UButton type="button" color="neutral" variant="ghost" @click="emit('back')">Back</UButton>
+      </div>
+      <div class="flex gap-2">
+        <UButton
+          color="neutral"
+          variant="outline"
+          :loading="isSavingDraft"
+          :disabled="isSubmittingCase || !step1Valid"
+          @click="emit('saveDraft')"
+        >
+          Save Draft
+        </UButton>
+        <UButton
+          color="primary"
+          :loading="isSubmittingCase"
+          :disabled="isSavingDraft || !canSubmit"
+          @click="emit('submit')"
+        >
+          Submit Case
+        </UButton>
       </div>
     </div>
   </div>
