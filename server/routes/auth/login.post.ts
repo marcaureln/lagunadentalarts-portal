@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import type { Role } from '@prisma/client';
 import { prisma } from '~~/server/utils/prisma';
 
 const bodySchema = z.object({
@@ -10,18 +9,19 @@ const bodySchema = z.object({
 export default defineEventHandler(async (event) => {
   const { email, password } = await readValidatedBody(event, bodySchema.parse);
 
-  const dbUser = (await prisma.user.findUnique({
+  const dbUser = await prisma.user.findUnique({
     where: { email },
-  })) as unknown as {
-    id: string;
-    email: string;
-    name: string;
-    pfp: string | null;
-    role: Role;
-    practiceId: string | null;
-    passwordHash: string | null;
-    passwordExpiresAt?: Date | null;
-  } | null;
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      pfp: true,
+      role: true,
+      practiceId: true,
+      passwordHash: true,
+      passwordExpiresAt: true,
+    },
+  });
 
   if (!dbUser?.passwordHash) {
     throw createError({
