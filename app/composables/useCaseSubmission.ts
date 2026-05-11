@@ -21,21 +21,37 @@ interface CreatedCase {
   createdBy: { id: string; name: string };
 }
 
+export interface UploadProgressEvent {
+  slotId: string;
+  fileName: string;
+  progress: number;
+}
+
 export function useCaseSubmission() {
+  const toast = useToast();
   const saveMutation = useApiMutation<CreatedCase>('Failed to save case');
-  const fileMutation = useApiMutation('Failed to upload file');
   const submitMutation = useApiMutation('Failed to submit case');
 
-  // Persists the case (create or update), uploads any pending files, optionally calls /submit.
-  // Returns the resulting case on success, or null on any failure (toasts already fired by useApiMutation).
+  const isUploadingFile = ref(false);
+  const uploadError = ref<string | null>(null);
+  const activeUpload = ref<{ cancel: () => Promise<void> } | null>(null);
+
+  const cancelUpload = async (): Promise<void> => {
+    await activeUpload.value?.cancel();
+  };
+
+  // Persists the case (create or update), uploads any pending files via the chunked-upload protocol,
+  // optionally calls /submit. Returns the resulting case on success, or null on any failure.
   const saveCase = async (params: {
     caseId: string | null;
     payload: SaveCasePayload;
     pendingFiles: Map<string, File>;
     submit: boolean;
     successMessage?: string;
+    onUploadProgress?: (event: UploadProgressEvent) => void;
   }): Promise<CreatedCase | null> => {
     let caseId = params.caseId;
+    uploadError.value = null;
 
     const persisted = caseId
       ? await saveMutation.mutate(`/api/cases/${caseId}`, { method: 'PATCH', body: params.payload })
@@ -44,12 +60,27 @@ export function useCaseSubmission() {
     if (persisted === null) return null;
     caseId = persisted.id;
 
-    for (const [slotId, file] of params.pendingFiles) {
-      const fd = new FormData();
-      fd.append('file', file);
-      fd.append('slotId', slotId);
-      const upload = await fileMutation.mutate(`/api/cases/${caseId}/files`, { method: 'POST', body: fd });
-      if (upload === null) return null;
+    isUploadingFile.value = true;
+    try {
+      for (const [slotId, file] of params.pendingFiles) {
+        const upload = useChunkedUpload({ caseId, slotId, file });
+        activeUpload.value = upload;
+        const stopWatch = watch(upload.progress, (p) =>
+          params.onUploadProgress?.({ slotId, fileName: file.name, progress: p })
+        );
+        const result = await upload.start();
+        stopWatch();
+        activeUpload.value = null;
+        if (result === null) {
+          if (upload.state.value === 'aborted') return null;
+          uploadError.value = upload.error.value ?? 'Failed to upload file';
+          toast.add({ description: uploadError.value, color: 'error' });
+          return null;
+        }
+      }
+    } finally {
+      isUploadingFile.value = false;
+      activeUpload.value = null;
     }
     params.pendingFiles.clear();
 
@@ -61,7 +92,6 @@ export function useCaseSubmission() {
       );
       if (submitted === null) return null;
     } else if (params.successMessage) {
-      const toast = useToast();
       toast.add({ description: params.successMessage, color: 'success' });
     }
 
@@ -69,11 +99,11 @@ export function useCaseSubmission() {
   };
 
   const isBusy = computed(
-    () => saveMutation.isLoading.value || fileMutation.isLoading.value || submitMutation.isLoading.value
+    () => saveMutation.isLoading.value || isUploadingFile.value || submitMutation.isLoading.value
   );
-  const isSavingDraft = computed(() => saveMutation.isLoading.value || fileMutation.isLoading.value);
+  const isSavingDraft = computed(() => saveMutation.isLoading.value || isUploadingFile.value);
   const isSubmittingCase = computed(() => submitMutation.isLoading.value);
-  const error = computed(() => saveMutation.error.value ?? fileMutation.error.value ?? submitMutation.error.value);
+  const error = computed(() => saveMutation.error.value ?? uploadError.value ?? submitMutation.error.value);
 
-  return { saveCase, isBusy, isSavingDraft, isSubmittingCase, error };
+  return { saveCase, cancelUpload, isBusy, isSavingDraft, isSubmittingCase, error };
 }

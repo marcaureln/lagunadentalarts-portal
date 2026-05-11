@@ -102,6 +102,18 @@ const labSlipData = ref<Record<string, string>>({});
 const uploadedFiles = ref<CaseFile[]>([]);
 const slotFiles = ref<Record<string, File | undefined>>({});
 const pendingFiles = ref<Map<string, File>>(new Map());
+const uploadSlotProgress = ref<Record<string, number>>({});
+const uploadTotalBytes = ref(0);
+const uploadCurrentFileName = ref<string | null>(null);
+const uploadOverallProgress = computed(() => {
+  if (uploadTotalBytes.value === 0) return 0;
+  let bytesUploaded = 0;
+  for (const [slotId, file] of pendingFiles.value) {
+    bytesUploaded += (uploadSlotProgress.value[slotId] ?? 0) * file.size;
+  }
+  return bytesUploaded / uploadTotalBytes.value;
+});
+const isUploading = computed(() => uploadTotalBytes.value > 0 && uploadOverallProgress.value < 1);
 
 // Step 4: Consent
 const consentChecked = ref(false);
@@ -151,6 +163,9 @@ const resetWizard = () => {
   uploadedFiles.value = [];
   slotFiles.value = {};
   pendingFiles.value.clear();
+  uploadSlotProgress.value = {};
+  uploadTotalBytes.value = 0;
+  uploadCurrentFileName.value = null;
   consentChecked.value = false;
   createdCase.value = null;
   error.value = '';
@@ -201,11 +216,15 @@ const loadExistingCase = async (caseId: string) => {
   }
 };
 
-watch(isOpen, async (newVal) => {
-  if (newVal && props.caseId) {
-    await loadExistingCase(props.caseId);
-  }
-});
+watch(
+  isOpen,
+  async (newVal) => {
+    if (newVal && props.caseId) {
+      await loadExistingCase(props.caseId);
+    }
+  },
+  { immediate: true }
+);
 
 const handleStep1Submit = (_event: FormSubmitEvent<Step1Schema>) => {
   currentStep.value = 2;
@@ -243,12 +262,22 @@ const buildPayload = () => ({
 
 const persist = async (submit: boolean) => {
   error.value = '';
+  uploadSlotProgress.value = {};
+  uploadCurrentFileName.value = null;
+  uploadTotalBytes.value = 0;
+  for (const file of pendingFiles.value.values()) {
+    uploadTotalBytes.value += file.size;
+  }
   const result = await submission.saveCase({
     caseId: createdCase.value?.id || props.caseId || null,
     payload: buildPayload(),
     pendingFiles: pendingFiles.value,
     submit,
     successMessage: submit ? 'Case submitted successfully!' : 'Draft saved successfully!',
+    onUploadProgress: ({ slotId, fileName, progress }) => {
+      uploadCurrentFileName.value = fileName;
+      uploadSlotProgress.value = { ...uploadSlotProgress.value, [slotId]: progress };
+    },
   });
   if (result !== null) {
     createdCase.value = result;
@@ -260,6 +289,13 @@ const persist = async (submit: boolean) => {
 
 const saveDraft = () => persist(false);
 const submitCase = () => persist(true);
+
+const cancelAndClose = async () => {
+  if (isUploading.value) {
+    await submission.cancelUpload();
+  }
+  closeWizard(false);
+};
 </script>
 
 <template>
@@ -268,6 +304,8 @@ const submitCase = () => persist(true);
     :title="isEditMode ? 'Continue Case' : 'Upload New Case'"
     :description="`Step ${currentStep} of ${totalSteps}: ${stepTitles[currentStep - 1]}`"
     scrollable
+    :dismissible="false"
+    :close="false"
     :ui="{ content: 'sm:max-w-2xl' }"
   >
     <slot />
@@ -341,7 +379,7 @@ const submitCase = () => persist(true);
               <UAlert v-if="error" color="error" variant="soft" :title="error" />
 
               <div class="mt-6 flex justify-between">
-                <UButton type="button" color="neutral" variant="ghost" @click="closeWizard(false)">Cancel</UButton>
+                <UButton type="button" color="neutral" variant="ghost" @click="cancelAndClose">Cancel</UButton>
                 <div class="flex gap-2">
                   <UButton
                     type="button"
@@ -402,7 +440,10 @@ const submitCase = () => persist(true);
           <UAlert v-if="error" color="error" variant="soft" :title="error" />
 
           <div class="mt-6 flex justify-between">
-            <UButton type="button" color="neutral" variant="ghost" @click="goBack">Back</UButton>
+            <div class="flex gap-2">
+              <UButton type="button" color="neutral" variant="ghost" @click="cancelAndClose">Cancel</UButton>
+              <UButton type="button" color="neutral" variant="ghost" @click="goBack">Back</UButton>
+            </div>
             <div class="flex gap-2">
               <UButton
                 color="neutral"
@@ -443,6 +484,14 @@ const submitCase = () => persist(true);
             </div>
           </div>
 
+          <div v-if="isUploading" class="rounded-md border border-default bg-elevated/40 px-3 py-2">
+            <div class="mb-1 flex items-center justify-between text-xs text-muted">
+              <span class="truncate">Uploading {{ uploadCurrentFileName ?? 'files' }}…</span>
+              <span class="ml-2 shrink-0 tabular-nums">{{ Math.round(uploadOverallProgress * 100) }}%</span>
+            </div>
+            <UProgress :model-value="Math.round(uploadOverallProgress * 100)" size="sm" />
+          </div>
+
           <UAlert
             v-if="requiredFilesMissing.length > 0"
             color="warning"
@@ -454,7 +503,10 @@ const submitCase = () => persist(true);
           <UAlert v-if="error" color="error" variant="soft" :title="error" />
 
           <div class="mt-6 flex justify-between">
-            <UButton type="button" color="neutral" variant="ghost" @click="goBack">Back</UButton>
+            <div class="flex gap-2">
+              <UButton type="button" color="neutral" variant="ghost" @click="cancelAndClose">Cancel</UButton>
+              <UButton type="button" color="neutral" variant="ghost" @click="goBack">Back</UButton>
+            </div>
             <div class="flex gap-2">
               <UButton
                 color="neutral"
@@ -481,10 +533,21 @@ const submitCase = () => persist(true);
             :uploaded-files="uploadedFiles"
           />
 
+          <div v-if="isUploading" class="rounded-md border border-default bg-elevated/40 px-3 py-2">
+            <div class="mb-1 flex items-center justify-between text-xs text-muted">
+              <span class="truncate">Uploading {{ uploadCurrentFileName ?? 'files' }}…</span>
+              <span class="ml-2 shrink-0 tabular-nums">{{ Math.round(uploadOverallProgress * 100) }}%</span>
+            </div>
+            <UProgress :model-value="Math.round(uploadOverallProgress * 100)" size="sm" />
+          </div>
+
           <UAlert v-if="error" color="error" variant="soft" :title="error" />
 
           <div class="mt-6 flex justify-between">
-            <UButton type="button" color="neutral" variant="ghost" @click="goBack">Back</UButton>
+            <div class="flex gap-2">
+              <UButton type="button" color="neutral" variant="ghost" @click="cancelAndClose">Cancel</UButton>
+              <UButton type="button" color="neutral" variant="ghost" @click="goBack">Back</UButton>
+            </div>
             <div class="flex gap-2">
               <UButton
                 color="neutral"

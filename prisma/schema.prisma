@@ -18,12 +18,13 @@ model User {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
-  practice          Practice?   @relation(fields: [practiceId], references: [id])
-  managedPractice   Practice[]  @relation("PracticeAdmin")
+  practice          Practice?       @relation(fields: [practiceId], references: [id])
+  managedPractice   Practice[]      @relation("PracticeAdmin")
   cases             Case[]
-  assignedCases     Case[]      @relation("CaseAssignee")
-  caseEvents        CaseEvent[] @relation("CaseEventCreator")
-  uploadedResources Resource[]  @relation("ResourceUploader")
+  assignedCases     Case[]          @relation("CaseAssignee")
+  caseEvents        CaseEvent[]     @relation("CaseEventCreator")
+  uploadedResources Resource[]      @relation("ResourceUploader")
+  uploadSessions    UploadSession[]
 }
 
 model Practice {
@@ -115,12 +116,13 @@ model Case {
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
 
-  practice   Practice    @relation(fields: [practiceId], references: [id])
-  patient    Patient?    @relation(fields: [patientId], references: [id])
-  caseType   CaseType    @relation(fields: [caseTypeId], references: [id])
-  createdBy  User        @relation(fields: [createdById], references: [id])
-  assignedTo User?       @relation("CaseAssignee", fields: [assignedToId], references: [id])
-  events     CaseEvent[]
+  practice       Practice        @relation(fields: [practiceId], references: [id])
+  patient        Patient?        @relation(fields: [patientId], references: [id])
+  caseType       CaseType        @relation(fields: [caseTypeId], references: [id])
+  createdBy      User            @relation(fields: [createdById], references: [id])
+  assignedTo     User?           @relation("CaseAssignee", fields: [assignedToId], references: [id])
+  events         CaseEvent[]
+  uploadSessions UploadSession[]
 
   @@index([practiceId])
   @@index([patientId])
@@ -144,6 +146,35 @@ model Resource {
   uploadedBy User @relation("ResourceUploader", fields: [uploadedById], references: [id])
 
   @@index([sortOrder])
+}
+
+enum UploadStatus {
+  PENDING
+  COMPLETED
+  ABORTED
+}
+
+model UploadSession {
+  id               String       @id @default(cuid())
+  caseId           String
+  slotId           String
+  fileName         String
+  fileSize         Int
+  mimeType         String
+  chunkSize        Int
+  totalChunks      Int
+  externalUploadId String
+  backend          String
+  status           UploadStatus @default(PENDING)
+  createdById      String
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  case      Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  createdBy User @relation(fields: [createdById], references: [id])
+
+  @@index([caseId, status])
+  @@index([status, createdAt])
 }
 
 model CaseEvent {

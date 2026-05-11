@@ -44,6 +44,7 @@ export default defineNuxtConfig({
     '@vueuse/nuxt',
     'nuxt-auth-utils',
   ],
+  components: [{ path: '~/components', pathPrefix: false }],
   fonts: {
     defaults: {
       weights: [100, 300, 400, 500, 600, 700],

@@ -4,9 +4,12 @@ import { S3Storage } from './s3-storage';
 
 export * from './types';
 
-let storageInstance: StorageService | null = null;
+export type StorageBackend = 's3' | 'fs';
 
-function buildStorage(): StorageService {
+let storageInstance: StorageService | null = null;
+let backendName: StorageBackend | null = null;
+
+function buildStorage(): { storage: StorageService; backend: StorageBackend } {
   const config = useRuntimeConfig();
   const s3Bucket = config.s3Bucket as string | undefined;
   const s3AccessKeyId = config.s3AccessKeyId as string | undefined;
@@ -29,19 +32,38 @@ function buildStorage(): StorageService {
         'Incomplete S3 storage configuration: S3_BUCKET, S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY are all required.'
       );
     }
-    return new S3Storage(s3Bucket, (config.s3Region as string) || 'auto', s3Endpoint, s3AccessKeyId, s3SecretAccessKey);
+    return {
+      storage: new S3Storage(
+        s3Bucket,
+        (config.s3Region as string) || 'auto',
+        s3Endpoint,
+        s3AccessKeyId,
+        s3SecretAccessKey
+      ),
+      backend: 's3',
+    };
   }
 
-  return new FileSystemStorage(storagePath || './storage/cases');
+  return { storage: new FileSystemStorage(storagePath || './storage/cases'), backend: 'fs' };
 }
 
 export function getStorage(): StorageService {
   if (!storageInstance) {
-    storageInstance = buildStorage();
+    const built = buildStorage();
+    storageInstance = built.storage;
+    backendName = built.backend;
   }
   return storageInstance;
 }
 
+export function getStorageBackend(): StorageBackend {
+  if (!backendName) {
+    getStorage();
+  }
+  return backendName as StorageBackend;
+}
+
 export function resetStorageInstance(): void {
   storageInstance = null;
+  backendName = null;
 }
