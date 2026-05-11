@@ -2,14 +2,7 @@ import { prisma } from '~~/server/utils/prisma';
 import { getStorage } from '~~/server/utils/storage';
 import { requireCaseId } from '~~/server/utils/routeParams';
 import { permissions } from '~~/shared/utils/permissions';
-
-interface CaseFile {
-  slotId: string;
-  fileName: string;
-  fileSize?: number;
-  uploadedAt?: string;
-  path?: string;
-}
+import { caseFilesArraySchema } from '~~/shared/schemas/case';
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
@@ -34,7 +27,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, statusMessage: 'Insufficient permissions' });
   }
 
-  const files = (existingCase.files as unknown as CaseFile[] | null) ?? [];
+  const files = caseFilesArraySchema.parse(existingCase.files ?? []);
   const known = files.some((f) => {
     const knownPath = f.path ?? `${f.slotId}/${f.fileName}`;
     return knownPath === filePath;

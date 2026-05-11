@@ -38,7 +38,7 @@ export default defineEventHandler(async (event) => {
     data: {
       passwordHash: await hashPassword(newPassword),
       passwordExpiresAt: null,
-    } as unknown as Parameters<typeof prisma.user.update>[0]['data'],
+    },
   });
 
   await setUserSession(event, {

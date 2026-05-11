@@ -1,28 +1,8 @@
 import { prisma } from '~~/server/utils/prisma';
 import { requireCaseId } from '~~/server/utils/routeParams';
 import { permissions } from '~~/shared/utils/permissions';
-
-interface CaseTypeField {
-  id: string;
-  label: string;
-  type: string;
-  required: boolean;
-  options?: string[];
-}
-
-interface CaseTypeFileSlot {
-  id: string;
-  label: string;
-  required: boolean;
-  accept?: string;
-}
-
-interface CaseFile {
-  slotId: string;
-  fileName: string;
-  fileSize?: number;
-  uploadedAt?: string;
-}
+import type { CaseData } from '~~/shared/types/case';
+import { caseFilesArraySchema, caseTypeFieldsArraySchema, caseTypeFileSlotsArraySchema } from '~~/shared/schemas/case';
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
@@ -58,8 +38,8 @@ export default defineEventHandler(async (event) => {
   }
 
   // Validate required fields from case type
-  const fields = existingCase.caseType.fields as unknown as CaseTypeField[];
-  const data = existingCase.data as Record<string, unknown>;
+  const fields = caseTypeFieldsArraySchema.parse(existingCase.caseType.fields ?? []);
+  const data = (existingCase.data ?? {}) as CaseData;
   const missingFields: string[] = [];
 
   for (const field of fields) {
@@ -79,8 +59,8 @@ export default defineEventHandler(async (event) => {
   }
 
   // Validate required file slots
-  const fileSlots = existingCase.caseType.fileSlots as unknown as CaseTypeFileSlot[];
-  const files = existingCase.files as unknown as CaseFile[];
+  const fileSlots = caseTypeFileSlotsArraySchema.parse(existingCase.caseType.fileSlots ?? []);
+  const files = caseFilesArraySchema.parse(existingCase.files ?? []);
   const missingSlots: string[] = [];
 
   for (const slot of fileSlots) {

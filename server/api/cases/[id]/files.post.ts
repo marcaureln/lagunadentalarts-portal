@@ -1,6 +1,7 @@
 import { permissions } from '~~/shared/utils/permissions';
 import { getStorage } from '~~/server/utils/storage';
 import { requireCaseId } from '~~/server/utils/routeParams';
+import { caseFilesArraySchema } from '~~/shared/schemas/case';
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
@@ -59,14 +60,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // Update case with new files
-  const currentFiles =
-    (existingCase.files as unknown as Array<{
-      slotId: string;
-      fileName: string;
-      fileSize: number;
-      path: string;
-      uploadedAt: string;
-    }>) || [];
+  const currentFiles = caseFilesArraySchema.parse(existingCase.files ?? []);
 
   // Replace or add files for the uploaded slots
   for (const newFile of uploadedFiles) {
