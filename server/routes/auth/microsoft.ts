@@ -37,7 +37,7 @@ export default defineOAuthMicrosoftEventHandler({
         id: dbUser.id,
         email,
         name: dbUser.name,
-        pfp: dbUser.pfp,
+        avatarUrl: dbUser.avatarUrl,
         role: dbUser.role,
         practiceId: dbUser.practiceId,
         passwordExpiresAt: null,

@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
         id: true,
         name: true,
         email: true,
-        pfp: true,
+        avatarUrl: true,
         role: true,
         practiceId: true,
         createdAt: true,
