@@ -43,7 +43,6 @@ export default defineNuxtConfig({
     '@nuxt/image',
     '@vueuse/nuxt',
     'nuxt-auth-utils',
-    'nuxt-mcp-dev',
   ],
   fonts: {
     defaults: {
