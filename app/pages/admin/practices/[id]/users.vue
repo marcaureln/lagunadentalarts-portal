@@ -2,7 +2,11 @@
 definePageMeta({ middleware: 'admin-only' });
 
 const route = useRoute();
-const practiceId = computed(() => route.params.id as string);
+const practiceId = computed<string>(() => {
+  const id = route.params.id;
+  if (Array.isArray(id)) return id[0] ?? '';
+  return id ?? '';
+});
 
 const { data: practice } = await useFetch<{ id: string; name: string }>(() => `/api/practices/${practiceId.value}`);
 

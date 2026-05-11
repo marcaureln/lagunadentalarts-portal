@@ -3,8 +3,9 @@ import * as z from 'zod';
 import type { FormSubmitEvent } from '@nuxt/ui';
 import type { User } from '~~/server/types/user';
 import { roleOptions } from '~~/shared/utils/users';
+import { ldaRoleSchema } from '~~/shared/schemas/user';
 import { useTemporaryPassword } from '~~/app/composables/useTemporaryPassword';
-import { getErrorMessage } from '~~/app/utils/errors';
+import { useApiMutation } from '~~/app/composables/useApiMutation';
 
 const props = defineProps<{ user?: User }>();
 const emit = defineEmits<{ success: []; close: [] }>();
@@ -33,16 +34,22 @@ const addForm = reactive<AddSchema>({ email: '', name: '', role: 'USER', useSso:
 const editForm = reactive<EditSchema>({
   name: props.user?.name ?? '',
   email: props.user?.email ?? '',
-  role: (props.user?.role as 'ADMIN' | 'USER') ?? 'USER',
+  role: ldaRoleSchema.safeParse(props.user?.role).data ?? 'USER',
 });
 
 const ldaRoleOptions = roleOptions.filter((opt) => opt.value === 'USER' || opt.value === 'ADMIN');
 
 const isOpen = ref(false);
-const isSubmitting = ref(false);
-const isResetting = ref(false);
-const error = ref('');
-const toast = useToast();
+
+const addMutation = useApiMutation<{ user: unknown; temporaryPassword: string | null }>('Failed to add staff member');
+const editMutation = useApiMutation('Failed to update user');
+const resetPasswordMutation = useApiMutation<{ temporaryPassword: string }>('Failed to reset password');
+
+const isSubmitting = computed(() => addMutation.isLoading.value || editMutation.isLoading.value);
+const isResetting = resetPasswordMutation.isLoading;
+const error = computed(
+  () => addMutation.error.value ?? editMutation.error.value ?? resetPasswordMutation.error.value ?? ''
+);
 
 const { temporaryPassword, isLocked, copyTemporaryPassword, reset: resetTempPassword } = useTemporaryPassword();
 
@@ -52,7 +59,6 @@ const open = () => {
 
 const close = () => {
   isOpen.value = false;
-  error.value = '';
   resetTempPassword();
   emit('close');
 };
@@ -62,55 +68,36 @@ const resetAddForm = () => {
   addForm.name = '';
   addForm.role = 'USER';
   addForm.useSso = true;
-  error.value = '';
   resetTempPassword();
 };
 
 const onAddSubmit = async (event: FormSubmitEvent<AddSchema>) => {
   if (isLocked.value) return;
-  isSubmitting.value = true;
-  error.value = '';
   resetTempPassword();
-
-  try {
-    const res = await $fetch<{ user: unknown; temporaryPassword: string | null }>('/api/admin/users', {
-      method: 'POST',
-      body: event.data,
-    });
-    temporaryPassword.value = res.temporaryPassword;
-    toast.add({ description: 'Staff member added successfully', color: 'success' });
-
-    if (!temporaryPassword.value) {
-      resetAddForm();
-      emit('success');
-      close();
-    } else {
-      emit('success');
-    }
-  } catch (e: unknown) {
-    error.value = getErrorMessage(e, 'Failed to add staff member');
-    toast.add({ description: error.value, color: 'error' });
-  } finally {
-    isSubmitting.value = false;
+  const res = await addMutation.mutate(
+    '/api/admin/users',
+    { method: 'POST', body: event.data },
+    { successMessage: 'Staff member added successfully' }
+  );
+  if (!res) return;
+  temporaryPassword.value = res.temporaryPassword;
+  emit('success');
+  if (!temporaryPassword.value) {
+    resetAddForm();
+    close();
   }
 };
 
 const onEditSubmit = async (_event: FormSubmitEvent<EditSchema>) => {
   if (isLocked.value || !props.user) return;
-  isSubmitting.value = true;
-  error.value = '';
-
-  try {
-    await $fetch(`/api/admin/users/${props.user.id}`, { method: 'PATCH', body: editForm });
-    toast.add({ description: 'User updated', color: 'success' });
-    emit('success');
-    close();
-  } catch (e: unknown) {
-    error.value = getErrorMessage(e, 'Failed to update user');
-    toast.add({ description: error.value, color: 'error' });
-  } finally {
-    isSubmitting.value = false;
-  }
+  const ok = await editMutation.mutate(
+    `/api/admin/users/${props.user.id}`,
+    { method: 'PATCH', body: editForm },
+    { successMessage: 'User updated' }
+  );
+  if (ok === null) return;
+  emit('success');
+  close();
 };
 
 const resetPassword = async () => {
@@ -119,23 +106,14 @@ const resetPassword = async () => {
     `Reset password for ${props.user.email}? They will be forced to set a new password on next login.`
   );
   if (!confirmed) return;
-
-  isResetting.value = true;
-  error.value = '';
-
-  try {
-    const res = await $fetch<{ temporaryPassword: string }>(`/api/admin/users/${props.user.id}/reset-password`, {
-      method: 'POST',
-    });
-    temporaryPassword.value = res.temporaryPassword;
-    toast.add({ description: 'Password reset — share the temp password securely', color: 'success' });
-    emit('success');
-  } catch (e: unknown) {
-    error.value = getErrorMessage(e, 'Failed to reset password');
-    toast.add({ description: error.value, color: 'error' });
-  } finally {
-    isResetting.value = false;
-  }
+  const res = await resetPasswordMutation.mutate(
+    `/api/admin/users/${props.user.id}/reset-password`,
+    { method: 'POST' },
+    { successMessage: 'Password reset — share the temp password securely' }
+  );
+  if (!res) return;
+  temporaryPassword.value = res.temporaryPassword;
+  emit('success');
 };
 
 defineExpose({ open });

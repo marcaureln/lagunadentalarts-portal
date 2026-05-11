@@ -6,7 +6,7 @@ import { routes } from '~~/shared/config/routes';
 const { user } = useUserSession();
 const role = computed(() => getRoleLabel(user.value?.role));
 
-const open = ref(false);
+const isMobileSidebarOpen = ref(false);
 
 const links = computed(() => {
   const accessibleRoutes = routes.getAccessibleRoutes(user.value?.role);
@@ -24,7 +24,7 @@ const links = computed(() => {
       icon: homeRoute.icon,
       to: homeRoute.href,
       onSelect: () => {
-        open.value = false;
+        isMobileSidebarOpen.value = false;
       },
     });
   }
@@ -36,7 +36,7 @@ const links = computed(() => {
       icon: route.icon,
       to: route.href,
       onSelect: () => {
-        open.value = false;
+        isMobileSidebarOpen.value = false;
       },
     });
   });
@@ -51,7 +51,7 @@ const links = computed(() => {
         icon: route.icon,
         to: route.href,
         onSelect: () => {
-          open.value = false;
+          isMobileSidebarOpen.value = false;
         },
       })),
     });
@@ -68,7 +68,7 @@ async function logout() {
 <template>
   <UApp>
     <UDashboardGroup unit="rem">
-      <UDashboardSidebar id="portal" v-model:open="open" collapsible resizable>
+      <UDashboardSidebar id="portal" v-model:open="isMobileSidebarOpen" collapsible resizable>
         <template #header="{ collapsed }">
           <NuxtLink to="/" class="mx-auto">
             <img v-if="!collapsed" src="/logo.png" alt="Laguna Dental Arts" class="h-14" />

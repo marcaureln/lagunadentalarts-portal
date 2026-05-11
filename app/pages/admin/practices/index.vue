@@ -2,6 +2,7 @@
 import { h, resolveComponent } from 'vue';
 import type { TableColumn, TableRow } from '@nuxt/ui';
 import type { PracticeWithCount } from '~~/shared/types/practice';
+import { useApiMutation } from '~~/app/composables/useApiMutation';
 
 const UButton = resolveComponent('UButton');
 const UBadge = resolveComponent('UBadge');
@@ -10,34 +11,21 @@ const PortalAdminPracticeFormModal = resolveComponent('PortalAdminPracticeFormMo
 
 useSeoMeta({ title: 'Practice Management' });
 
-const { data: practices, refresh } = await useFetch<PracticeWithCount[]>('/api/practices');
+const { data: practices, error: practicesError, refresh } = await useFetch<PracticeWithCount[]>('/api/practices');
 
 const router = useRouter();
-const toast = useToast();
 const table = useTemplateRef('table');
+const deletePracticeMutation = useApiMutation('Failed to delete practice');
 
 async function deletePractice(practice: PracticeWithCount) {
   const confirmed = confirm(`Are you sure you want to delete "${practice.name}"?`);
   if (!confirmed) return;
-
-  try {
-    await $fetch(`/api/practices/${practice.id}`, {
-      method: 'DELETE',
-    });
-
-    toast.add({
-      description: 'Practice deleted successfully',
-      color: 'success',
-    });
-
-    refresh();
-  } catch (e: unknown) {
-    console.error(e);
-    toast.add({
-      description: 'Failed to delete practice',
-      color: 'error',
-    });
-  }
+  const ok = await deletePracticeMutation.mutate(
+    `/api/practices/${practice.id}`,
+    { method: 'DELETE' },
+    { successMessage: 'Practice deleted successfully' }
+  );
+  if (ok !== null) refresh();
 }
 
 function viewPracticeUsers(practice: PracticeWithCount) {
@@ -129,7 +117,12 @@ const columns: TableColumn<PracticeWithCount>[] = [
       <div class="w-full flex-1 divide-y divide-accented overflow-hidden rounded-lg border border-accented">
         <UTable ref="table" :data="practices || []" :columns="columns" @select="onRowSelect">
           <template #empty>
-            <div class="flex flex-col items-center justify-center py-12">
+            <div v-if="practicesError" class="flex flex-col items-center justify-center py-12">
+              <UIcon name="i-ri-error-warning-line" class="mb-4 h-12 w-12 text-error" />
+              <h3 class="mb-2 text-lg font-medium text-gray-900">Failed to load practices</h3>
+              <UButton class="mt-2" variant="outline" @click="refresh()">Retry</UButton>
+            </div>
+            <div v-else class="flex flex-col items-center justify-center py-12">
               <UIcon name="i-ri-building-line" class="mb-4 h-12 w-12 text-gray-400" />
               <h3 class="mb-2 text-lg font-medium text-gray-900">No practices found</h3>
               <p class="mb-4 max-w-sm text-center text-gray-500">Get started by adding a new practice.</p>

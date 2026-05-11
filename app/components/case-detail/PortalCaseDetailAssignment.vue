@@ -10,7 +10,7 @@ const props = defineProps<{
   labUsers: LabUser[];
   canSelfAssignNow: boolean;
   canManagerAssign: boolean;
-  isTerminal: boolean;
+  isLabInactionable: boolean;
   busy: boolean;
   anyBusy: boolean;
 }>();
@@ -22,10 +22,10 @@ const emit = defineEmits<{
 
 const dropdownItems = computed(() => {
   const groups: Array<Array<{ label: string; icon?: string; onSelect: () => void }>> = [];
-  const userItems = props.labUsers.map((u) => ({
-    label: u.name + (u.id === props.assignedTo?.id ? ' (current)' : ''),
-    icon: u.id === props.assignedTo?.id ? 'i-ri-check-line' : undefined,
-    onSelect: () => emit('assign', u.id),
+  const userItems = props.labUsers.map((labUser) => ({
+    label: labUser.name + (labUser.id === props.assignedTo?.id ? ' (current)' : ''),
+    icon: labUser.id === props.assignedTo?.id ? 'i-ri-check-line' : undefined,
+    onSelect: () => emit('assign', labUser.id),
   }));
   if (userItems.length > 0) groups.push(userItems);
   if (props.assignedTo) {
@@ -46,7 +46,7 @@ const dropdownItems = computed(() => {
       <span v-else class="text-muted italic">Unassigned</span>
     </div>
 
-    <div v-if="!isTerminal" class="flex items-center gap-2">
+    <div v-if="!isLabInactionable" class="flex items-center gap-2">
       <UButton
         v-if="canSelfAssignNow"
         size="sm"

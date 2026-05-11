@@ -3,8 +3,9 @@ import * as z from 'zod';
 import type { FormSubmitEvent } from '@nuxt/ui';
 import type { User } from '~~/server/types/user';
 import { roleOptions } from '~~/shared/utils/users';
+import { practiceRoleSchema } from '~~/shared/schemas/user';
 import { useTemporaryPassword } from '~~/app/composables/useTemporaryPassword';
-import { getErrorMessage } from '~~/app/utils/errors';
+import { useApiMutation } from '~~/app/composables/useApiMutation';
 
 const props = defineProps<{ practiceId: string; user?: User }>();
 const emit = defineEmits<{ success: []; close: [] }>();
@@ -32,7 +33,7 @@ const addForm = reactive<AddSchema>({ email: '', name: '', role: 'PRACTICE_STAFF
 const editForm = reactive<EditSchema>({
   name: props.user?.name ?? '',
   email: props.user?.email ?? '',
-  role: (props.user?.role as 'PRACTICE_STAFF' | 'PRACTICE_ADMIN') ?? 'PRACTICE_STAFF',
+  role: practiceRoleSchema.safeParse(props.user?.role).data ?? 'PRACTICE_STAFF',
 });
 
 const practiceRoleOptions = roleOptions.filter(
@@ -40,10 +41,16 @@ const practiceRoleOptions = roleOptions.filter(
 );
 
 const isOpen = ref(false);
-const isSubmitting = ref(false);
-const isResetting = ref(false);
-const error = ref('');
-const toast = useToast();
+
+const addMutation = useApiMutation<{ user: unknown; temporaryPassword: string | null }>('Failed to add staff');
+const editMutation = useApiMutation('Failed to update staff');
+const resetPasswordMutation = useApiMutation<{ temporaryPassword: string }>('Failed to reset password');
+
+const isSubmitting = computed(() => addMutation.isLoading.value || editMutation.isLoading.value);
+const isResetting = resetPasswordMutation.isLoading;
+const error = computed(
+  () => addMutation.error.value ?? editMutation.error.value ?? resetPasswordMutation.error.value ?? ''
+);
 
 const { temporaryPassword, isLocked, copyTemporaryPassword, reset: resetTempPassword } = useTemporaryPassword();
 
@@ -53,7 +60,6 @@ const open = () => {
 
 const close = () => {
   isOpen.value = false;
-  error.value = '';
   resetTempPassword();
   emit('close');
 };
@@ -62,61 +68,36 @@ const resetAddForm = () => {
   addForm.email = '';
   addForm.name = '';
   addForm.role = 'PRACTICE_STAFF';
-  error.value = '';
   resetTempPassword();
 };
 
 const onAddSubmit = async (event: FormSubmitEvent<AddSchema>) => {
   if (isLocked.value) return;
-  isSubmitting.value = true;
-  error.value = '';
   resetTempPassword();
-
-  try {
-    const res = await $fetch<{ user: unknown; temporaryPassword: string | null }>(
-      `/api/practices/${props.practiceId}/users`,
-      {
-        method: 'POST',
-        body: event.data,
-      }
-    );
-    temporaryPassword.value = res.temporaryPassword;
-    toast.add({ description: 'Staff added successfully', color: 'success' });
-
-    if (!temporaryPassword.value) {
-      resetAddForm();
-      emit('success');
-      close();
-    } else {
-      emit('success');
-    }
-  } catch (e: unknown) {
-    error.value = getErrorMessage(e, 'Failed to add staff');
-    toast.add({ description: error.value, color: 'error' });
-  } finally {
-    isSubmitting.value = false;
+  const res = await addMutation.mutate(
+    `/api/practices/${props.practiceId}/users`,
+    { method: 'POST', body: event.data },
+    { successMessage: 'Staff added successfully' }
+  );
+  if (!res) return;
+  temporaryPassword.value = res.temporaryPassword;
+  emit('success');
+  if (!temporaryPassword.value) {
+    resetAddForm();
+    close();
   }
 };
 
 const onEditSubmit = async (_event: FormSubmitEvent<EditSchema>) => {
   if (isLocked.value || !props.user) return;
-  isSubmitting.value = true;
-  error.value = '';
-
-  try {
-    await $fetch(`/api/practices/${props.practiceId}/users/${props.user.id}`, {
-      method: 'PATCH',
-      body: editForm,
-    });
-    toast.add({ description: 'Staff updated', color: 'success' });
-    emit('success');
-    close();
-  } catch (e: unknown) {
-    error.value = getErrorMessage(e, 'Failed to update staff');
-    toast.add({ description: error.value, color: 'error' });
-  } finally {
-    isSubmitting.value = false;
-  }
+  const ok = await editMutation.mutate(
+    `/api/practices/${props.practiceId}/users/${props.user.id}`,
+    { method: 'PATCH', body: editForm },
+    { successMessage: 'Staff updated' }
+  );
+  if (ok === null) return;
+  emit('success');
+  close();
 };
 
 const resetPassword = async () => {
@@ -125,24 +106,14 @@ const resetPassword = async () => {
     `Reset password for ${props.user.email}? They will be forced to set a new password on next login.`
   );
   if (!confirmed) return;
-
-  isResetting.value = true;
-  error.value = '';
-
-  try {
-    const res = await $fetch<{ temporaryPassword: string }>(
-      `/api/practices/${props.practiceId}/users/${props.user.id}/reset-password`,
-      { method: 'POST' }
-    );
-    temporaryPassword.value = res.temporaryPassword;
-    toast.add({ description: 'Password reset — share the temp password securely', color: 'success' });
-    emit('success');
-  } catch (e: unknown) {
-    error.value = getErrorMessage(e, 'Failed to reset password');
-    toast.add({ description: error.value, color: 'error' });
-  } finally {
-    isResetting.value = false;
-  }
+  const res = await resetPasswordMutation.mutate(
+    `/api/practices/${props.practiceId}/users/${props.user.id}/reset-password`,
+    { method: 'POST' },
+    { successMessage: 'Password reset — share the temp password securely' }
+  );
+  if (!res) return;
+  temporaryPassword.value = res.temporaryPassword;
+  emit('success');
 };
 
 defineExpose({ open });

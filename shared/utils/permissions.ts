@@ -3,8 +3,8 @@ import type { UserRole } from '~~/server/types/user';
 
 export type { CaseStatusName };
 
-const LAB_ROLES: UserRole[] = ['USER', 'ADMIN'];
-const PRACTICE_ROLES: UserRole[] = ['PRACTICE_STAFF', 'PRACTICE_ADMIN'];
+export const LAB_ROLES: readonly UserRole[] = ['USER', 'ADMIN'] as const;
+export const PRACTICE_ROLES: readonly UserRole[] = ['PRACTICE_STAFF', 'PRACTICE_ADMIN'] as const;
 const PRACTICE_EDITABLE_STATUSES: CaseStatusName[] = ['DRAFT', 'NEEDS_INFO'];
 
 export const ASSIGNABLE_STATUSES: readonly CaseStatusName[] = ['SUBMITTED', 'ACCEPTED', 'IN_PROGRESS'] as const;
@@ -113,9 +113,4 @@ export const permissions = {
         return false;
     }
   },
-
-  /**
-   * @deprecated Use `permissions.isLabUser` instead. Kept for one-cycle compat during the lab/lda rename.
-   */
-  isLDAUser: (role?: UserRole) => (role ? LAB_ROLES.includes(role) : false),
 };

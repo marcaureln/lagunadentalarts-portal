@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   if (event.node.req.method === 'GET') {
     // Lab users (artist + manager) need this for case filters; managers also use it
     // on the admin /practices page. Practice users have no business listing other practices.
-    if (!permissions.canViewPractices(user.role) && !permissions.isLDAUser(user.role)) {
+    if (!permissions.canViewPractices(user.role) && !permissions.isLabUser(user.role)) {
       throw createError({ statusCode: 403, statusMessage: 'Insufficient permissions' });
     }
 

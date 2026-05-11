@@ -14,7 +14,11 @@ const PortalConfirmDeleteModal = resolveComponent('PortalConfirmDeleteModal');
 
 const { user: currentUser } = useUserSession();
 
-const { data: staff, refresh } = useLazyFetch<User[]>(() => `/api/practices/${props.practiceId}/users`);
+const {
+  data: staff,
+  error: staffError,
+  refresh,
+} = useLazyFetch<User[]>(() => `/api/practices/${props.practiceId}/users`);
 
 defineExpose({ refresh });
 
@@ -97,7 +101,12 @@ const columns: TableColumn<User>[] = [
   <div class="w-full flex-1 overflow-hidden rounded-lg border border-accented">
     <UTable :data="staff || []" :columns="columns" @select="onRowSelect">
       <template #empty>
-        <div class="flex flex-col items-center justify-center py-12">
+        <div v-if="staffError" class="flex flex-col items-center justify-center py-12">
+          <UIcon name="i-ri-error-warning-line" class="mb-4 h-12 w-12 text-error" />
+          <h3 class="mb-2 text-lg font-medium text-gray-900">Failed to load staff</h3>
+          <UButton class="mt-2" variant="outline" @click="refresh()">Retry</UButton>
+        </div>
+        <div v-else class="flex flex-col items-center justify-center py-12">
           <UIcon name="i-ri-team-line" class="mb-4 h-12 w-12 text-gray-400" />
           <h3 class="mb-2 text-lg font-medium text-gray-900">No staff yet</h3>
           <p class="max-w-sm text-center text-gray-500">Use “Add Staff” above to get started.</p>

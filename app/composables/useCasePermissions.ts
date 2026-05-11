@@ -1,4 +1,4 @@
-import { permissions, type CaseStatusName } from '~~/shared/utils/permissions';
+import { permissions, ASSIGNABLE_STATUSES, TERMINAL_STATUSES, type CaseStatusName } from '~~/shared/utils/permissions';
 
 interface CaseLike {
   status: CaseStatusName;
@@ -6,8 +6,8 @@ interface CaseLike {
   practiceId: string;
 }
 
-const ASSIGN_ACTIVE_STATUSES: CaseStatusName[] = ['SUBMITTED', 'ACCEPTED', 'IN_PROGRESS'];
-const TERMINAL_STATUSES: CaseStatusName[] = ['COMPLETED', 'CANCELLED', 'DRAFT'];
+// Lab users can't act on a DRAFT (not yet submitted) or a terminal case.
+const LAB_INACTIONABLE_STATUSES: readonly CaseStatusName[] = [...TERMINAL_STATUSES, 'DRAFT'] as const;
 
 export function useCasePermissions(case_: Ref<CaseLike | null | undefined>) {
   const { user } = useUserSession();
@@ -16,13 +16,12 @@ export function useCasePermissions(case_: Ref<CaseLike | null | undefined>) {
   const userPracticeId = computed(() => user.value?.practiceId ?? null);
 
   const isManager = computed(() => role.value === 'ADMIN');
-  const isArtist = computed(() => role.value === 'USER');
-  const isLabUser = computed(() => permissions.isLDAUser(role.value));
+  const isLabUser = computed(() => permissions.isLabUser(role.value));
 
   const status = computed(() => case_.value?.status ?? null);
   const assignedId = computed(() => case_.value?.assignedToId ?? null);
   const ownsCase = computed(() => isManager.value || (assignedId.value != null && assignedId.value === userId.value));
-  const isTerminal = computed(() => status.value != null && TERMINAL_STATUSES.includes(status.value));
+  const isLabInactionable = computed(() => status.value != null && LAB_INACTIONABLE_STATUSES.includes(status.value));
 
   const canTransitionTo = (toStatus: CaseStatusName) =>
     computed(() => {
@@ -44,12 +43,14 @@ export function useCasePermissions(case_: Ref<CaseLike | null | undefined>) {
     return !!c && permissions.canSelfAssign(role.value, c.assignedToId ?? null);
   });
 
-  const canSelfAssignNow = computed(() => isArtist.value && status.value === 'SUBMITTED' && assignedId.value == null);
+  const canSelfAssignNow = computed(
+    () => role.value === 'USER' && status.value === 'SUBMITTED' && assignedId.value == null
+  );
 
   const canAssignAny = computed(() => permissions.canAssignAny(role.value));
 
   const canManagerAssign = computed(
-    () => isManager.value && status.value != null && ASSIGN_ACTIVE_STATUSES.includes(status.value)
+    () => isManager.value && status.value != null && ASSIGNABLE_STATUSES.includes(status.value)
   );
 
   return {
@@ -57,12 +58,11 @@ export function useCasePermissions(case_: Ref<CaseLike | null | undefined>) {
     userId,
     userPracticeId,
     isManager,
-    isArtist,
     isLabUser,
     status,
     assignedId,
     ownsCase,
-    isTerminal,
+    isLabInactionable,
     canStartWorking: canTransitionTo('IN_PROGRESS'),
     canMarkComplete: canTransitionTo('COMPLETED'),
     canRequestInfo: canTransitionTo('NEEDS_INFO'),

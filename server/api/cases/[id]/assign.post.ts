@@ -43,7 +43,7 @@ export default defineEventHandler(async (event) => {
       select: { id: true, role: true, practiceId: true },
     });
 
-    if (!assignee || !permissions.isLDAUser(assignee.role) || assignee.practiceId) {
+    if (!assignee || !permissions.isLabUser(assignee.role) || assignee.practiceId) {
       throw createError({ statusCode: 400, statusMessage: 'Assignee must be a lab user' });
     }
   }

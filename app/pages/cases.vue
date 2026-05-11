@@ -4,6 +4,7 @@ import type { TableColumn, TableRow } from '@nuxt/ui';
 import { permissions, type CaseStatusName } from '~~/shared/utils/permissions';
 import { formatDate } from '~~/shared/utils/format';
 import { CASE_STATUS_META } from '~~/shared/utils/caseStatus';
+import { useApiMutation } from '~~/app/composables/useApiMutation';
 
 const { user } = useUserSession();
 const route = useRoute();
@@ -16,8 +17,7 @@ const UButton = resolveComponent('UButton');
 const UDropdownMenu = resolveComponent('UDropdownMenu');
 
 const isPracticeUser = computed(() => permissions.isPracticeUser(user.value?.role));
-const isLabUser = computed(() => permissions.isLDAUser(user.value?.role));
-const isArtist = computed(() => user.value?.role === 'USER');
+const isLabUser = computed(() => permissions.isLabUser(user.value?.role));
 
 interface ApiCase {
   id: string;
@@ -103,7 +103,7 @@ const { data: practicesData } = useFetch<PracticeOption[]>('/api/practices', {
 
 const assigneeOptions = computed(() => {
   const opts: Array<{ label: string; value: string }> = [{ label: 'Anyone', value: ASSIGNEE_ALL }];
-  if (isArtist.value) opts.push({ label: 'Assigned to me', value: ASSIGNEE_ME });
+  if (user.value?.role === 'USER') opts.push({ label: 'Assigned to me', value: ASSIGNEE_ME });
   opts.push({ label: 'Unassigned', value: ASSIGNEE_UNASSIGNED });
   for (const u of labUsersData.value ?? []) {
     opts.push({ label: u.name, value: u.id });
@@ -188,14 +188,14 @@ const { data: rawStatusCounts, refresh: refreshCounts } = useFetch<Record<CaseSt
 
 // Tabs use 6 buckets; ACCEPTED is folded into IN_PROGRESS to match the server's IN_PROGRESS filter.
 const statusCounts = computed(() => {
-  const c = rawStatusCounts.value ?? zeroCounts();
+  const counts = rawStatusCounts.value ?? zeroCounts();
   return {
-    DRAFT: c.DRAFT,
-    SUBMITTED: c.SUBMITTED,
-    NEEDS_INFO: c.NEEDS_INFO,
-    IN_PROGRESS: c.ACCEPTED + c.IN_PROGRESS,
-    COMPLETED: c.COMPLETED,
-    CANCELLED: c.CANCELLED,
+    DRAFT: counts.DRAFT,
+    SUBMITTED: counts.SUBMITTED,
+    NEEDS_INFO: counts.NEEDS_INFO,
+    IN_PROGRESS: counts.ACCEPTED + counts.IN_PROGRESS,
+    COMPLETED: counts.COMPLETED,
+    CANCELLED: counts.CANCELLED,
   };
 });
 
@@ -241,18 +241,12 @@ const columns = computed<TableColumn<ApiCase>[]>(() => {
     {
       accessorKey: 'createdAt',
       header: 'Created',
-      cell: ({ row }) => {
-        const date = row.getValue('createdAt') as string;
-        return h('span', { class: 'text-sm' }, formatDate(date as string));
-      },
+      cell: ({ row }) => h('span', { class: 'text-sm' }, formatDate(row.original.createdAt)),
     },
     {
       accessorKey: 'updatedAt',
       header: 'Updated',
-      cell: ({ row }) => {
-        const date = row.getValue('updatedAt') as string;
-        return h('span', { class: 'text-sm text-muted' }, formatDate(date as string));
-      },
+      cell: ({ row }) => h('span', { class: 'text-sm text-muted' }, formatDate(row.original.updatedAt)),
     },
     {
       accessorKey: 'createdBy',
@@ -372,15 +366,12 @@ const onEditFromDetail = (caseId: string) => {
   openEditWizard(caseId);
 };
 
+const deleteDraftMutation = useApiMutation('Failed to delete draft');
+
 const deleteDraftCase = async (caseId: string) => {
   if (!confirm('Are you sure you want to delete this draft?')) return;
-
-  try {
-    await $fetch(`/api/cases/${caseId}`, { method: 'DELETE' });
-    refreshAll();
-  } catch (e) {
-    console.error('Failed to delete draft:', e);
-  }
+  const ok = await deleteDraftMutation.mutate(`/api/cases/${caseId}`, { method: 'DELETE' });
+  if (ok !== null) refreshAll();
 };
 
 const onRowSelect = (_e: Event, row: TableRow<ApiCase>) => {

@@ -233,7 +233,7 @@ defineExpose({ open });
           :lab-users="labUsers"
           :can-self-assign-now="perms.canSelfAssignNow.value"
           :can-manager-assign="perms.canManagerAssign.value"
-          :is-terminal="perms.isTerminal.value"
+          :is-lab-inactionable="perms.isLabInactionable.value"
           :busy="busyAction === 'assign'"
           :any-busy="isAnyBusy"
           @assign-to-me="onAssignToMe"

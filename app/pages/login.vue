@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import * as z from 'zod';
 import type { FormSubmitEvent } from '@nuxt/ui';
+import { useApiMutation } from '~~/app/composables/useApiMutation';
 
 definePageMeta({
   layout: 'auth',
@@ -25,8 +26,9 @@ const form = reactive<Schema>({
 });
 
 const showPassword = ref(false);
-const isSubmitting = ref(false);
-const formError = ref('');
+const loginMutation = useApiMutation<{ success: boolean; redirectTo: string }>('Invalid email or password');
+const isSubmitting = loginMutation.isLoading;
+const formError = computed(() => loginMutation.error.value ?? '');
 
 const errorMessage = computed(() => {
   switch (error.value) {
@@ -42,25 +44,12 @@ const errorMessage = computed(() => {
 });
 
 async function onSubmit(event: FormSubmitEvent<Schema>) {
-  isSubmitting.value = true;
-  formError.value = '';
-
-  try {
-    const res = await $fetch<{ success: boolean; redirectTo: string }>('/auth/login', {
-      method: 'POST',
-      body: {
-        email: event.data.email,
-        password: event.data.password,
-      },
-    });
-
-    await navigateTo(res.redirectTo);
-  } catch (e: unknown) {
-    console.error(e);
-    formError.value = 'Invalid email or password';
-  } finally {
-    isSubmitting.value = false;
-  }
+  const res = await loginMutation.mutate(
+    '/auth/login',
+    { method: 'POST', body: { email: event.data.email, password: event.data.password } },
+    { errorMessage: 'Invalid email or password', silent: true }
+  );
+  if (res) await navigateTo(res.redirectTo);
 }
 </script>
 

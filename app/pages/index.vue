@@ -4,6 +4,7 @@ import type { TableColumn, TableRow } from '@nuxt/ui';
 import { permissions, type CaseStatusName } from '~~/shared/utils/permissions';
 import { formatDate } from '~~/shared/utils/format';
 import { CASE_STATUS_META } from '~~/shared/utils/caseStatus';
+import { useApiMutation } from '~~/app/composables/useApiMutation';
 
 const { user } = useUserSession();
 
@@ -65,12 +66,12 @@ const { data: rawStatusCounts } = useFetch<Record<CaseStatusName, number>>('/api
 
 // Dashboard folds ACCEPTED + IN_PROGRESS into one "In Progress" bucket.
 const statusCounts = computed(() => {
-  const c = rawStatusCounts.value ?? zeroCounts();
+  const counts = rawStatusCounts.value ?? zeroCounts();
   return {
-    DRAFT: c.DRAFT,
-    SUBMITTED: c.SUBMITTED,
-    IN_PROGRESS: c.ACCEPTED + c.IN_PROGRESS,
-    COMPLETED: c.COMPLETED,
+    DRAFT: counts.DRAFT,
+    SUBMITTED: counts.SUBMITTED,
+    IN_PROGRESS: counts.ACCEPTED + counts.IN_PROGRESS,
+    COMPLETED: counts.COMPLETED,
   };
 });
 
@@ -83,7 +84,7 @@ interface DashboardCard {
   label: string;
 }
 
-const isLabUser = computed(() => permissions.isLDAUser(user.value?.role));
+const isLabUser = computed(() => permissions.isLabUser(user.value?.role));
 
 const dashboardCards = computed<DashboardCard[]>(() => {
   const cards: DashboardCard[] = [];
@@ -143,8 +144,7 @@ const columns = computed<TableColumn<ApiCase>[]>(() => {
       accessorKey: 'createdAt',
       header: 'Created',
       cell: ({ row }) => {
-        const date = row.getValue('createdAt') as string;
-        return h('span', { class: 'text-sm' }, formatDate(date as string));
+        return h('span', { class: 'text-sm' }, formatDate(row.original.createdAt));
       },
     },
     {
@@ -242,15 +242,12 @@ const onEditFromDetail = (caseId: string) => {
   openEditWizard(caseId);
 };
 
+const deleteDraftMutation = useApiMutation('Failed to delete draft');
+
 const deleteDraftCase = async (caseId: string) => {
   if (!confirm('Are you sure you want to delete this draft?')) return;
-
-  try {
-    await $fetch(`/api/cases/${caseId}`, { method: 'DELETE' });
-    await refreshCases();
-  } catch (e) {
-    console.error('Failed to delete draft:', e);
-  }
+  const ok = await deleteDraftMutation.mutate(`/api/cases/${caseId}`, { method: 'DELETE' });
+  if (ok !== null) await refreshCases();
 };
 
 const onRowSelect = (_e: Event, row: TableRow<ApiCase>) => {

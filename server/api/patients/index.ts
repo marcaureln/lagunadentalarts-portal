@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { prisma } from '~~/server/utils/prisma';
+import { permissions } from '~~/shared/utils/permissions';
 
 const createPatientSchema = z.object({
   name: z.string().min(1, 'Patient name is required'),
@@ -9,8 +10,7 @@ const createPatientSchema = z.object({
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
 
-  // Only practice users can access patients
-  if (!['PRACTICE_STAFF', 'PRACTICE_ADMIN'].includes(user.role) || !user.practiceId) {
+  if (!permissions.isPracticeUser(user.role) || !user.practiceId) {
     throw createError({
       statusCode: 403,
       statusMessage: 'Only practice users can access patients',

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Practice, PracticeCreateInput } from '~~/shared/types/practice';
-import { getErrorMessage } from '~~/app/utils/errors';
+import { useApiMutation } from '~~/app/composables/useApiMutation';
 
 const props = defineProps<{ practice?: Practice }>();
 const emit = defineEmits<{ success: []; close: [] }>();
@@ -15,9 +15,10 @@ const state = reactive<PracticeCreateInput>({
 });
 
 const isOpen = ref(false);
-const isSubmitting = ref(false);
-const error = ref('');
-const toast = useToast();
+
+const mutation = useApiMutation(isEdit.value ? 'Failed to update practice' : 'Failed to create practice');
+const isSubmitting = mutation.isLoading;
+const error = computed(() => mutation.error.value ?? '');
 
 const open = () => {
   isOpen.value = true;
@@ -25,7 +26,6 @@ const open = () => {
 
 const close = () => {
   isOpen.value = false;
-  error.value = '';
   emit('close');
 };
 
@@ -34,30 +34,25 @@ const resetForm = () => {
   state.address = '';
   state.phone = '';
   state.email = '';
-  error.value = '';
 };
 
 const submit = async () => {
-  isSubmitting.value = true;
-  error.value = '';
-
-  try {
-    if (isEdit.value && props.practice) {
-      await $fetch(`/api/practices/${props.practice.id}`, { method: 'PUT', body: state });
-      toast.add({ title: 'Success', description: 'Practice updated successfully', color: 'success' });
-    } else {
-      await $fetch('/api/practices', { method: 'POST', body: state });
-      toast.add({ title: 'Success', description: 'Practice created successfully', color: 'success' });
-      resetForm();
-    }
-    emit('success');
-    close();
-  } catch (e: unknown) {
-    error.value = getErrorMessage(e, isEdit.value ? 'Failed to update practice' : 'Failed to create practice');
-    toast.add({ description: error.value, color: 'error' });
-  } finally {
-    isSubmitting.value = false;
-  }
+  const ok =
+    isEdit.value && props.practice
+      ? await mutation.mutate(
+          `/api/practices/${props.practice.id}`,
+          { method: 'PUT', body: state },
+          { successMessage: 'Practice updated successfully' }
+        )
+      : await mutation.mutate(
+          '/api/practices',
+          { method: 'POST', body: state },
+          { successMessage: 'Practice created successfully' }
+        );
+  if (ok === null) return;
+  if (!isEdit.value) resetForm();
+  emit('success');
+  close();
 };
 
 defineExpose({ open });

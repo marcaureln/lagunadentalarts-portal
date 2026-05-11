@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import * as z from 'zod';
 import type { FormSubmitEvent } from '@nuxt/ui';
+import { useApiMutation } from '~~/app/composables/useApiMutation';
 
 definePageMeta({
   layout: 'auth',
@@ -22,33 +23,21 @@ const state = reactive<Schema>({
 
 const showCurrent = ref(false);
 const showNew = ref(false);
-const isSubmitting = ref(false);
-const error = ref('');
-const toast = useToast();
+const passwordMutation = useApiMutation('Failed to update password');
+const isSubmitting = passwordMutation.isLoading;
+const error = computed(() => passwordMutation.error.value ?? '');
 
 async function onSubmit(event: FormSubmitEvent<Schema>) {
-  isSubmitting.value = true;
-  error.value = '';
-
-  try {
-    await $fetch('/api/auth/password', {
+  const ok = await passwordMutation.mutate(
+    '/api/auth/password',
+    {
       method: 'POST',
-      body: {
-        currentPassword: event.data.currentPassword,
-        newPassword: event.data.newPassword,
-      },
-    });
-
-    toast.add({ description: 'Password updated successfully', color: 'success' });
-
-    await navigateTo('/auth/logout?redirectTo=/login?passwordChanged=1', { external: true });
-  } catch (e: unknown) {
-    console.error(e);
-    error.value = 'Failed to update password';
-    toast.add({ description: error.value, color: 'error' });
-  } finally {
-    isSubmitting.value = false;
-  }
+      body: { currentPassword: event.data.currentPassword, newPassword: event.data.newPassword },
+    },
+    { successMessage: 'Password updated successfully' }
+  );
+  if (ok === null) return;
+  await navigateTo('/auth/logout?redirectTo=/login?passwordChanged=1', { external: true });
 }
 </script>
 

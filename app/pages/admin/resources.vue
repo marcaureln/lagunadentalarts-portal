@@ -4,6 +4,7 @@ import type { TableColumn } from '@nuxt/ui';
 import { useSortable } from '@vueuse/integrations/useSortable';
 import { permissions } from '~~/shared/utils/permissions';
 import { formatDate } from '~~/shared/utils/format';
+import { useApiMutation } from '~~/app/composables/useApiMutation';
 
 const { user } = useUserSession();
 
@@ -48,18 +49,19 @@ watch(
 
 const isLoading = computed(() => status.value === 'pending');
 
+const reorderMutation = useApiMutation('Failed to save new order');
+
 const persistOrder = async () => {
   // VueUse's default onUpdate applies the move in a nextTick; wait for it.
   await nextTick();
-  try {
-    await $fetch('/api/admin/resources/reorder', {
-      method: 'POST',
-      body: { orderedIds: resources.value.map((r) => r.id) },
-    });
+  const ok = await reorderMutation.mutate('/api/admin/resources/reorder', {
+    method: 'POST',
+    body: { orderedIds: resources.value.map((r) => r.id) },
+  });
+  if (ok !== null) {
     // Invalidate the shared cache so the public /resources page reflects the new order.
     await refreshNuxtData('resources-list');
-  } catch (e) {
-    console.error('Failed to save new order', e);
+  } else {
     refresh();
   }
 };
@@ -106,14 +108,12 @@ const onSuccess = () => {
   refresh();
 };
 
+const deleteResourceMutation = useApiMutation('Failed to delete resource');
+
 const deleteResource = async (resource: ApiResource) => {
   if (!confirm(`Delete "${resource.title}"? This cannot be undone.`)) return;
-  try {
-    await $fetch(`/api/admin/resources/${resource.id}`, { method: 'DELETE' });
-    refresh();
-  } catch (e) {
-    console.error('Failed to delete resource', e);
-  }
+  const ok = await deleteResourceMutation.mutate(`/api/admin/resources/${resource.id}`, { method: 'DELETE' });
+  if (ok !== null) refresh();
 };
 
 const formatBytes = (bytes: number) => {

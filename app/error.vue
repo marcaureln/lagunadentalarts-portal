@@ -14,7 +14,7 @@
 
       <div class="mb-8">
         <p class="mb-4 text-lg text-gray-600">
-          {{ getErrorMessage(error.statusCode) }}
+          {{ getStatusCodeMessage(error.statusCode) }}
         </p>
         <p class="text-gray-500">Don't worry, our dental experts are on it!</p>
       </div>
@@ -46,7 +46,7 @@ defineProps<{
   error: NuxtError;
 }>();
 
-const getErrorMessage = (statusCode?: number) => {
+const getStatusCodeMessage = (statusCode?: number) => {
   switch (statusCode) {
     case 404:
       return 'This page seems to have gone missing, like a tooth that needs replacing! 🦷';
