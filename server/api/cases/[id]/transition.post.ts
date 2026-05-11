@@ -33,15 +33,15 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Case is already in this status' });
   }
 
-  const allowed = permissions.canTransition(
-    user.role,
-    user.id,
+  const allowed = permissions.canTransition({
+    role: user.role,
+    userId: user.id,
     fromStatus,
-    to,
-    existingCase.assignedToId,
-    user.practiceId,
-    existingCase.practiceId
-  );
+    toStatus: to,
+    assignedToId: existingCase.assignedToId,
+    userPracticeId: user.practiceId,
+    casePracticeId: existingCase.practiceId,
+  });
 
   if (!allowed) {
     throw createError({ statusCode: 403, statusMessage: 'Transition not allowed' });

@@ -76,7 +76,12 @@ const canResubmitNeedsInfo = computed(() => {
   if (!c) return false;
   return (
     c.status === 'NEEDS_INFO' &&
-    permissions.canEditCase(perms.role.value, user.value?.practiceId, c.practice.id, c.status)
+    permissions.canEditCase({
+      role: perms.role.value,
+      userPracticeId: user.value?.practiceId,
+      casePracticeId: c.practice.id,
+      caseStatus: c.status,
+    })
   );
 });
 

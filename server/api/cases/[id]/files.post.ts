@@ -20,7 +20,14 @@ export default defineEventHandler(async (event) => {
   }
 
   // Check edit permission
-  if (!permissions.canEditCase(user.role, user.practiceId, existingCase.practiceId, existingCase.status)) {
+  if (
+    !permissions.canEditCase({
+      role: user.role,
+      userPracticeId: user.practiceId,
+      casePracticeId: existingCase.practiceId,
+      caseStatus: existingCase.status,
+    })
+  ) {
     throw createError({ statusCode: 403, statusMessage: 'You do not have permission to upload files to this case' });
   }
 

@@ -1,6 +1,6 @@
 import { prisma } from '~~/server/utils/prisma';
 import { requireCaseId } from '~~/server/utils/routeParams';
-import { permissions } from '~~/shared/utils/permissions';
+import { permissions, SUBMITTABLE_STATUSES } from '~~/shared/utils/permissions';
 import type { CaseData } from '~~/shared/types/case';
 import { caseFilesArraySchema, caseTypeFieldsArraySchema, caseTypeFileSlotsArraySchema } from '~~/shared/schemas/case';
 
@@ -23,14 +23,21 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  if (!permissions.canEditCase(user.role, user.practiceId, existingCase.practiceId, existingCase.status)) {
+  if (
+    !permissions.canEditCase({
+      role: user.role,
+      userPracticeId: user.practiceId,
+      casePracticeId: existingCase.practiceId,
+      caseStatus: existingCase.status,
+    })
+  ) {
     throw createError({
       statusCode: 403,
       statusMessage: 'Cannot submit this case.',
     });
   }
 
-  if (existingCase.status !== 'DRAFT' && existingCase.status !== 'NEEDS_INFO') {
+  if (!SUBMITTABLE_STATUSES.includes(existingCase.status)) {
     throw createError({
       statusCode: 400,
       statusMessage: 'Only DRAFT or NEEDS_INFO cases can be submitted',

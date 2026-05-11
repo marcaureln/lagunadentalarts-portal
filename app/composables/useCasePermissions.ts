@@ -28,15 +28,15 @@ export function useCasePermissions(case_: Ref<CaseLike | null | undefined>) {
     computed(() => {
       const c = case_.value;
       if (!c) return false;
-      return permissions.canTransition(
-        role.value,
-        userId.value,
-        c.status,
+      return permissions.canTransition({
+        role: role.value,
+        userId: userId.value,
+        fromStatus: c.status,
         toStatus,
-        c.assignedToId ?? null,
-        userPracticeId.value,
-        c.practiceId
-      );
+        assignedToId: c.assignedToId ?? null,
+        userPracticeId: userPracticeId.value,
+        casePracticeId: c.practiceId,
+      });
     });
 
   const canSelfAssign = computed(() => {

@@ -48,7 +48,14 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  if (!permissions.canViewCase(user.role, user.practiceId, existingCase.practiceId, existingCase.status)) {
+  if (
+    !permissions.canViewCase({
+      role: user.role,
+      userPracticeId: user.practiceId,
+      casePracticeId: existingCase.practiceId,
+      caseStatus: existingCase.status,
+    })
+  ) {
     throw createError({
       statusCode: 403,
       statusMessage: 'Insufficient permissions',
@@ -61,7 +68,14 @@ export default defineEventHandler(async (event) => {
 
   if (event.node.req.method === 'PATCH') {
     // Check edit permission
-    if (!permissions.canEditCase(user.role, user.practiceId, existingCase.practiceId, existingCase.status)) {
+    if (
+      !permissions.canEditCase({
+        role: user.role,
+        userPracticeId: user.practiceId,
+        casePracticeId: existingCase.practiceId,
+        caseStatus: existingCase.status,
+      })
+    ) {
       throw createError({
         statusCode: 403,
         statusMessage: 'Cannot edit this case. Only DRAFT cases owned by your practice can be edited.',
@@ -127,7 +141,14 @@ export default defineEventHandler(async (event) => {
     }
 
     // Check edit permission (same as edit - must own the case)
-    if (!permissions.canEditCase(user.role, user.practiceId, existingCase.practiceId, existingCase.status)) {
+    if (
+      !permissions.canEditCase({
+        role: user.role,
+        userPracticeId: user.practiceId,
+        casePracticeId: existingCase.practiceId,
+        caseStatus: existingCase.status,
+      })
+    ) {
       throw createError({
         statusCode: 403,
         statusMessage: 'Cannot delete this case',

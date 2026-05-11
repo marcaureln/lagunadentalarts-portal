@@ -6,7 +6,17 @@ export type { CaseStatusName };
 const LAB_ROLES: UserRole[] = ['USER', 'ADMIN'];
 const PRACTICE_ROLES: UserRole[] = ['PRACTICE_STAFF', 'PRACTICE_ADMIN'];
 const PRACTICE_EDITABLE_STATUSES: CaseStatusName[] = ['DRAFT', 'NEEDS_INFO'];
+
 export const ASSIGNABLE_STATUSES: readonly CaseStatusName[] = ['SUBMITTED', 'ACCEPTED', 'IN_PROGRESS'] as const;
+export const REQUESTABLE_INFO_STATUSES: readonly CaseStatusName[] = ['SUBMITTED', 'ACCEPTED', 'IN_PROGRESS'] as const;
+export const CANCELLABLE_STATUSES: readonly CaseStatusName[] = [
+  'SUBMITTED',
+  'NEEDS_INFO',
+  'ACCEPTED',
+  'IN_PROGRESS',
+] as const;
+export const TERMINAL_STATUSES: readonly CaseStatusName[] = ['COMPLETED', 'CANCELLED'] as const;
+export const SUBMITTABLE_STATUSES: readonly CaseStatusName[] = ['DRAFT', 'NEEDS_INFO'] as const;
 
 export const permissions = {
   canManageAllUsers: (role?: UserRole) => role === 'ADMIN',
@@ -14,7 +24,9 @@ export const permissions = {
   canViewPractices: (role?: UserRole) => role === 'ADMIN',
   canManagePractices: (role?: UserRole) => role === 'ADMIN',
   isPracticeUser: (role?: UserRole) => (role ? PRACTICE_ROLES.includes(role) : false),
-  isLDAUser: (role?: UserRole) => (role ? LAB_ROLES.includes(role) : false),
+  isLabUser: (role?: UserRole) => (role ? LAB_ROLES.includes(role) : false),
+  isLabAdmin: (role?: UserRole) => role === 'ADMIN',
+  isPracticeAdmin: (role?: UserRole) => role === 'PRACTICE_ADMIN',
   isAdmin: (role?: UserRole) => (role ? ['ADMIN', 'PRACTICE_ADMIN'].includes(role) : false),
   canManageStaff: (role?: UserRole, userPracticeId?: string | null, targetPracticeId?: string) => {
     if (role === 'ADMIN') return true;
@@ -22,7 +34,13 @@ export const permissions = {
     return false;
   },
   canCreateCase: (role?: UserRole) => (role ? PRACTICE_ROLES.includes(role) : false),
-  canViewCase: (role?: UserRole, userPracticeId?: string | null, casePracticeId?: string, caseStatus?: string) => {
+  canViewCase: (args: {
+    role?: UserRole;
+    userPracticeId?: string | null;
+    casePracticeId?: string;
+    caseStatus?: string;
+  }) => {
+    const { role, userPracticeId, casePracticeId, caseStatus } = args;
     if (!role) return false;
     if (LAB_ROLES.includes(role)) {
       // Drafts belong to the practice until submitted; the lab should not see them.
@@ -31,7 +49,13 @@ export const permissions = {
     if (PRACTICE_ROLES.includes(role) && userPracticeId === casePracticeId) return true;
     return false;
   },
-  canEditCase: (role?: UserRole, userPracticeId?: string | null, casePracticeId?: string, caseStatus?: string) => {
+  canEditCase: (args: {
+    role?: UserRole;
+    userPracticeId?: string | null;
+    casePracticeId?: string;
+    caseStatus?: string;
+  }) => {
+    const { role, userPracticeId, casePracticeId, caseStatus } = args;
     if (!role) return false;
     if (PRACTICE_ROLES.includes(role) && userPracticeId === casePracticeId) {
       return PRACTICE_EDITABLE_STATUSES.includes(caseStatus as CaseStatusName);
@@ -50,17 +74,17 @@ export const permissions = {
   canSelfAssign: (role: UserRole | undefined, currentAssigneeId: string | null | undefined) =>
     role === 'USER' && currentAssigneeId == null,
 
-  // Single source of truth for status transitions. Returns true if the actor may make this move.
-  // SUBMITTED -> ACCEPTED is handled by the assign endpoint, so it returns false here.
-  canTransition: (
-    role: UserRole | undefined,
-    userId: string | undefined,
-    fromStatus: CaseStatusName,
-    toStatus: CaseStatusName,
-    assignedToId: string | null | undefined,
-    userPracticeId?: string | null,
-    casePracticeId?: string
-  ): boolean => {
+  // Single source of truth for status transitions. SUBMITTED -> ACCEPTED is handled by the assign endpoint.
+  canTransition: (args: {
+    role: UserRole | undefined;
+    userId: string | undefined;
+    fromStatus: CaseStatusName;
+    toStatus: CaseStatusName;
+    assignedToId: string | null | undefined;
+    userPracticeId?: string | null;
+    casePracticeId?: string;
+  }): boolean => {
+    const { role, userId, fromStatus, toStatus, assignedToId, userPracticeId, casePracticeId } = args;
     if (!role) return false;
 
     // Practice resubmits a NEEDS_INFO case.
@@ -82,11 +106,16 @@ export const permissions = {
       case 'COMPLETED':
         return fromStatus === 'IN_PROGRESS' && ownsCase;
       case 'NEEDS_INFO':
-        return ['SUBMITTED', 'ACCEPTED', 'IN_PROGRESS'].includes(fromStatus);
+        return ASSIGNABLE_STATUSES.includes(fromStatus);
       case 'CANCELLED':
-        return ['SUBMITTED', 'NEEDS_INFO', 'ACCEPTED', 'IN_PROGRESS'].includes(fromStatus);
+        return CANCELLABLE_STATUSES.includes(fromStatus);
       default:
         return false;
     }
   },
+
+  /**
+   * @deprecated Use `permissions.isLabUser` instead. Kept for one-cycle compat during the lab/lda rename.
+   */
+  isLDAUser: (role?: UserRole) => (role ? LAB_ROLES.includes(role) : false),
 };

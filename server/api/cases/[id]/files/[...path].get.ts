@@ -23,7 +23,13 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Case not found' });
   }
 
-  if (!permissions.canViewCase(user.role, user.practiceId, existingCase.practiceId)) {
+  if (
+    !permissions.canViewCase({
+      role: user.role,
+      userPracticeId: user.practiceId,
+      casePracticeId: existingCase.practiceId,
+    })
+  ) {
     throw createError({ statusCode: 403, statusMessage: 'Insufficient permissions' });
   }
 
