@@ -6,7 +6,7 @@ import type { PracticeWithCount } from '~~/shared/types/practice';
 const UButton = resolveComponent('UButton');
 const UBadge = resolveComponent('UBadge');
 const UTooltip = resolveComponent('UTooltip');
-const PortalAdminModalEditPractice = resolveComponent('PortalAdminModalEditPractice');
+const PortalAdminPracticeFormModal = resolveComponent('PortalAdminPracticeFormModal');
 
 useSeoMeta({ title: 'Practice Management' });
 
@@ -93,7 +93,7 @@ const columns: TableColumn<PracticeWithCount>[] = [
             onClick: () => viewPracticeUsers(practice),
           })
         ),
-        h(PortalAdminModalEditPractice, {
+        h(PortalAdminPracticeFormModal, {
           practice,
           onSuccess: refresh,
         }),
@@ -120,7 +120,7 @@ const columns: TableColumn<PracticeWithCount>[] = [
           <UDashboardSidebarCollapse />
         </template>
         <template #right>
-          <PortalAdminModalAddPractice @success="refresh" />
+          <PortalAdminPracticeFormModal @success="refresh" />
         </template>
       </UDashboardNavbar>
     </template>
@@ -133,7 +133,7 @@ const columns: TableColumn<PracticeWithCount>[] = [
               <UIcon name="i-ri-building-line" class="mb-4 h-12 w-12 text-gray-400" />
               <h3 class="mb-2 text-lg font-medium text-gray-900">No practices found</h3>
               <p class="mb-4 max-w-sm text-center text-gray-500">Get started by adding a new practice.</p>
-              <PortalAdminModalAddPractice @success="refresh" />
+              <PortalAdminPracticeFormModal @success="refresh" />
             </div>
           </template>
         </UTable>

@@ -1,14 +1,5 @@
 <script setup lang="ts">
-import { permissions } from '~~/shared/utils/permissions';
-
-definePageMeta({
-  middleware: async () => {
-    const { user } = useUserSession();
-    if (!permissions.canManageAllUsers(user.value?.role)) {
-      return navigateTo('/');
-    }
-  },
-});
+definePageMeta({ middleware: 'admin-only' });
 
 const route = useRoute();
 const practiceId = computed(() => route.params.id as string);
@@ -34,7 +25,7 @@ const onStaffAdded = () => staffTableRef.value?.refresh();
           <UButton variant="ghost" color="neutral" icon="i-ri-arrow-left-line" to="/admin/practices">
             Back to practices
           </UButton>
-          <PortalPracticeStaffModalAdd :practice-id="practiceId" @success="onStaffAdded" />
+          <PortalPracticeStaffFormModal :practice-id="practiceId" @success="onStaffAdded" />
         </template>
       </UDashboardNavbar>
     </template>

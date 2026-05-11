@@ -7,14 +7,7 @@ const createPatientSchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const { user } = await getUserSession(event);
-
-  if (!user) {
-    throw createError({
-      statusCode: 401,
-      statusMessage: 'Unauthorized',
-    });
-  }
+  const { user } = await requireUserSession(event);
 
   // Only practice users can access patients
   if (!['PRACTICE_STAFF', 'PRACTICE_ADMIN'].includes(user.role) || !user.practiceId) {

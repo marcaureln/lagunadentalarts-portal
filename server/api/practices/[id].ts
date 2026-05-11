@@ -1,23 +1,10 @@
 import { prisma } from '~~/server/utils/prisma';
+import { requirePracticeId } from '~~/server/utils/routeParams';
 import { permissions } from '~~/shared/utils/permissions';
 
 export default defineEventHandler(async (event) => {
-  const { user } = await getUserSession(event);
-  const practiceId = getRouterParam(event, 'id');
-
-  if (!user) {
-    throw createError({
-      statusCode: 401,
-      statusMessage: 'Unauthorized',
-    });
-  }
-
-  if (!practiceId) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: 'Practice ID is required',
-    });
-  }
+  const { user } = await requireUserSession(event);
+  const practiceId = requirePracticeId(event);
 
   if (event.node.req.method === 'GET') {
     // Get practice details

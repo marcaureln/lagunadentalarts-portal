@@ -27,7 +27,7 @@ const onStaffAdded = () => staffTableRef.value?.refresh();
           <UDashboardSidebarCollapse />
         </template>
         <template #right>
-          <PortalPracticeStaffModalAdd v-if="practiceId" :practice-id="practiceId" @success="onStaffAdded" />
+          <PortalPracticeStaffFormModal v-if="practiceId" :practice-id="practiceId" @success="onStaffAdded" />
         </template>
       </UDashboardNavbar>
     </template>

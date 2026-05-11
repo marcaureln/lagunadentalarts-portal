@@ -1,25 +1,13 @@
-import { prisma } from '~~/server/utils/prisma';
-import { permissions } from '~~/shared/utils/permissions';
-import { generateTemporaryPassword } from '~~/server/utils/password';
 import { z } from 'zod';
+import { prisma } from '~~/server/utils/prisma';
+import { generateTemporaryPassword } from '~~/server/utils/password';
+import { requirePracticeId } from '~~/server/utils/routeParams';
+import { permissions } from '~~/shared/utils/permissions';
+import { practiceRoleSchema } from '~~/shared/schemas/user';
 
 export default defineEventHandler(async (event) => {
-  const { user } = await getUserSession(event);
-  const practiceId = getRouterParam(event, 'id');
-
-  if (!user) {
-    throw createError({
-      statusCode: 401,
-      statusMessage: 'Unauthorized',
-    });
-  }
-
-  if (!practiceId) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: 'Practice ID is required',
-    });
-  }
+  const { user } = await requireUserSession(event);
+  const practiceId = requirePracticeId(event);
 
   if (event.node.req.method === 'GET') {
     // List users in practice
@@ -60,7 +48,7 @@ export default defineEventHandler(async (event) => {
     const bodySchema = z.object({
       email: z.email(),
       name: z.string().min(1),
-      role: z.enum(['PRACTICE_STAFF', 'PRACTICE_ADMIN']),
+      role: practiceRoleSchema,
     });
 
     const { email, name, role } = await readValidatedBody(event, bodySchema.parse);

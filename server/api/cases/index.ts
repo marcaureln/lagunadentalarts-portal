@@ -11,14 +11,7 @@ const createCaseSchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const { user } = await getUserSession(event);
-
-  if (!user) {
-    throw createError({
-      statusCode: 401,
-      statusMessage: 'Unauthorized',
-    });
-  }
+  const { user } = await requireUserSession(event);
 
   if (event.node.req.method === 'GET') {
     const query = getQuery(event);

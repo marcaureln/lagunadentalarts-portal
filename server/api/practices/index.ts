@@ -2,11 +2,7 @@ import { prisma } from '~~/server/utils/prisma';
 import { permissions } from '~~/shared/utils/permissions';
 
 export default defineEventHandler(async (event) => {
-  const { user } = await getUserSession(event);
-
-  if (!user) {
-    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' });
-  }
+  const { user } = await requireUserSession(event);
 
   if (event.node.req.method === 'GET') {
     // Lab users (artist + manager) need this for case filters; managers also use it

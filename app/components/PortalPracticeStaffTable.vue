@@ -3,13 +3,14 @@ import { h, resolveComponent } from 'vue';
 import type { TableColumn, TableRow } from '@nuxt/ui';
 import type { User } from '~~/server/types/user';
 import { getRoleLabel } from '~~/shared/utils/users';
+import { formatDate } from '~~/shared/utils/format';
 
 const props = defineProps<{
   practiceId: string;
 }>();
 
 const UBadge = resolveComponent('UBadge');
-const PortalPracticeStaffModalRemove = resolveComponent('PortalPracticeStaffModalRemove');
+const PortalConfirmDeleteModal = resolveComponent('PortalConfirmDeleteModal');
 
 const { user: currentUser } = useUserSession();
 
@@ -38,9 +39,6 @@ const onEditClose = () => {
 const onRowSelect = (_e: Event, row: TableRow<User>) => {
   openEditUser(row.original);
 };
-
-const formatDate = (date: Date | string): string =>
-  new Date(date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
 
 const columns: TableColumn<User>[] = [
   {
@@ -76,7 +74,19 @@ const columns: TableColumn<User>[] = [
       return h(
         'div',
         { class: 'flex justify-end', onClick: (e: Event) => e.stopPropagation() },
-        h(PortalPracticeStaffModalRemove, { user, practiceId: props.practiceId, onSuccess: refresh })
+        h(
+          PortalConfirmDeleteModal,
+          {
+            endpoint: `/api/practices/${props.practiceId}/users/${user.id}`,
+            title: 'Remove Staff',
+            triggerLabel: 'Remove',
+            confirmLabel: 'Remove',
+            successMsg: 'Staff member removed',
+            failureMsg: 'Failed to remove staff',
+            onSuccess: refresh,
+          },
+          () => `Remove ${user.email} from this practice? They will no longer be able to sign in.`
+        )
       );
     },
   },
@@ -95,7 +105,7 @@ const columns: TableColumn<User>[] = [
       </template>
     </UTable>
 
-    <PortalPracticeStaffModalEditUser
+    <PortalPracticeStaffFormModal
       v-if="editingUser"
       ref="editRef"
       :user="editingUser"

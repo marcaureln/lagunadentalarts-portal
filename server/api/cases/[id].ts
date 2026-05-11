@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { prisma } from '~~/server/utils/prisma';
+import { requireCaseId } from '~~/server/utils/routeParams';
 import { permissions } from '~~/shared/utils/permissions';
 
 const updateCaseSchema = z.object({
@@ -20,23 +21,8 @@ const updateCaseSchema = z.object({
 });
 
 export default defineEventHandler(async (event) => {
-  const { user } = await getUserSession(event);
-
-  if (!user) {
-    throw createError({
-      statusCode: 401,
-      statusMessage: 'Unauthorized',
-    });
-  }
-
-  const caseId = getRouterParam(event, 'id');
-
-  if (!caseId) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: 'Case ID is required',
-    });
-  }
+  const { user } = await requireUserSession(event);
+  const caseId = requireCaseId(event);
 
   // Fetch the case
   const existingCase = await prisma.case.findUnique({

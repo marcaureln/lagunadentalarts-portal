@@ -1,24 +1,15 @@
 import { z } from 'zod';
 import { prisma } from '~~/server/utils/prisma';
-import { permissions } from '~~/shared/utils/permissions';
+import { requireCaseId } from '~~/server/utils/routeParams';
+import { ASSIGNABLE_STATUSES, permissions } from '~~/shared/utils/permissions';
 
 const assignSchema = z.object({
   assigneeId: z.string().nullable(),
 });
 
-const ASSIGNABLE_STATUSES = ['SUBMITTED', 'ACCEPTED', 'IN_PROGRESS'] as const;
-
 export default defineEventHandler(async (event) => {
-  const { user } = await getUserSession(event);
-
-  if (!user) {
-    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' });
-  }
-
-  const caseId = getRouterParam(event, 'id');
-  if (!caseId) {
-    throw createError({ statusCode: 400, statusMessage: 'Case ID is required' });
-  }
+  const { user } = await requireUserSession(event);
+  const caseId = requireCaseId(event);
 
   const { assigneeId } = await readValidatedBody(event, assignSchema.parse);
 

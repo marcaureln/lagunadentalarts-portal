@@ -1,22 +1,16 @@
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client';
-import { z } from 'zod';
 import { requireAdmin } from '~~/server/utils/admin';
 import { prisma } from '~~/server/utils/prisma';
+import { requireUserId } from '~~/server/utils/routeParams';
+import { buildUserUpdateData } from '~~/server/utils/userUpdate';
+import { ldaRoleSchema, updateUserBody } from '~~/shared/schemas/user';
 
-const bodySchema = z
-  .object({
-    name: z.string().min(1).optional(),
-    email: z.email().optional(),
-    role: z.enum(['ADMIN', 'USER']).optional(),
-  })
-  .refine((data) => data.name !== undefined || data.email !== undefined || data.role !== undefined, {
-    message: 'At least one field must be provided',
-  });
+const bodySchema = updateUserBody(ldaRoleSchema);
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event);
 
-  const id = getRouterParam(event, 'id');
+  const id = requireUserId(event);
   const body = await readValidatedBody(event, bodySchema.parse);
 
   try {
@@ -34,11 +28,7 @@ export default defineEventHandler(async (event) => {
 
     const updatedUser = await prisma.user.update({
       where: { id },
-      data: {
-        ...(body.name !== undefined && { name: body.name }),
-        ...(body.email !== undefined && { email: body.email }),
-        ...(body.role !== undefined && { role: body.role }),
-      },
+      data: buildUserUpdateData(body),
       select: {
         id: true,
         name: true,

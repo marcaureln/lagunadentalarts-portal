@@ -3,19 +3,12 @@ import { h, resolveComponent } from 'vue';
 import type { TableColumn, TableRow } from '@nuxt/ui';
 import type { User } from '~~/server/types/user';
 import { getRoleLabel } from '~~/shared/utils/users';
-import { permissions } from '~~/shared/utils/permissions';
+import { formatDate } from '~~/shared/utils/format';
 
 const UBadge = resolveComponent('UBadge');
-const PortalAdminModalRemoveUser = resolveComponent('PortalAdminModalRemoveUser');
+const PortalConfirmDeleteModal = resolveComponent('PortalConfirmDeleteModal');
 
-definePageMeta({
-  middleware: async () => {
-    const { user } = useUserSession();
-    if (!permissions.canManageAllUsers(user.value?.role)) {
-      return navigateTo('/');
-    }
-  },
-});
+definePageMeta({ middleware: 'admin-only' });
 
 useSeoMeta({ title: 'LDA Staff' });
 
@@ -43,9 +36,6 @@ const onEditClose = () => {
 const onRowSelect = (_e: Event, row: TableRow<User>) => {
   openEditUser(row.original);
 };
-
-const formatDate = (date: Date | string): string =>
-  new Date(date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
 
 const columns: TableColumn<User>[] = [
   {
@@ -81,7 +71,19 @@ const columns: TableColumn<User>[] = [
       return h(
         'div',
         { class: 'flex justify-end', onClick: (e: Event) => e.stopPropagation() },
-        h(PortalAdminModalRemoveUser, { user, onSuccess: refresh })
+        h(
+          PortalConfirmDeleteModal,
+          {
+            endpoint: `/api/admin/users/${user.id}`,
+            title: 'Delete User',
+            triggerLabel: 'Delete',
+            confirmLabel: 'Delete',
+            successMsg: 'User deleted successfully',
+            failureMsg: 'Failed to delete user',
+            onSuccess: refresh,
+          },
+          () => `Are you sure you want to delete ${user.email}? They will no longer be able to sign in.`
+        )
       );
     },
   },
@@ -96,7 +98,7 @@ const columns: TableColumn<User>[] = [
           <UDashboardSidebarCollapse />
         </template>
         <template #right>
-          <PortalAdminModalAddUser @success="refresh" />
+          <PortalAdminUserFormModal @success="refresh" />
         </template>
       </UDashboardNavbar>
     </template>
@@ -116,7 +118,7 @@ const columns: TableColumn<User>[] = [
         </UTable>
       </div>
 
-      <PortalAdminModalEditUser
+      <PortalAdminUserFormModal
         v-if="editingUser"
         ref="editRef"
         :user="editingUser"

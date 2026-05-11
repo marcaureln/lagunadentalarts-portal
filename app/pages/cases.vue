@@ -2,6 +2,7 @@
 import { h } from 'vue';
 import type { TableColumn, TableRow } from '@nuxt/ui';
 import { permissions } from '~~/shared/utils/permissions';
+import { formatDate } from '~~/shared/utils/format';
 
 const { user } = useUserSession();
 const route = useRoute();
@@ -245,7 +246,7 @@ const columns = computed<TableColumn<ApiCase>[]>(() => {
       header: 'Created',
       cell: ({ row }) => {
         const date = row.getValue('createdAt') as string;
-        return h('span', { class: 'text-sm' }, new Date(date).toLocaleDateString());
+        return h('span', { class: 'text-sm' }, formatDate(date as string));
       },
     },
     {
@@ -253,7 +254,7 @@ const columns = computed<TableColumn<ApiCase>[]>(() => {
       header: 'Updated',
       cell: ({ row }) => {
         const date = row.getValue('updatedAt') as string;
-        return h('span', { class: 'text-sm text-muted' }, new Date(date).toLocaleDateString());
+        return h('span', { class: 'text-sm text-muted' }, formatDate(date as string));
       },
     },
     {

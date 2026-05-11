@@ -1,17 +1,12 @@
+import type { CaseStatus as CaseStatusName } from '@prisma/client';
 import type { UserRole } from '~~/server/types/user';
 
-export type CaseStatusName =
-  | 'DRAFT'
-  | 'SUBMITTED'
-  | 'NEEDS_INFO'
-  | 'ACCEPTED'
-  | 'IN_PROGRESS'
-  | 'COMPLETED'
-  | 'CANCELLED';
+export type { CaseStatusName };
 
 const LAB_ROLES: UserRole[] = ['USER', 'ADMIN'];
 const PRACTICE_ROLES: UserRole[] = ['PRACTICE_STAFF', 'PRACTICE_ADMIN'];
 const PRACTICE_EDITABLE_STATUSES: CaseStatusName[] = ['DRAFT', 'NEEDS_INFO'];
+export const ASSIGNABLE_STATUSES: readonly CaseStatusName[] = ['SUBMITTED', 'ACCEPTED', 'IN_PROGRESS'] as const;
 
 export const permissions = {
   canManageAllUsers: (role?: UserRole) => role === 'ADMIN',

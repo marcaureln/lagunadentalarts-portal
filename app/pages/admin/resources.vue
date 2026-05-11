@@ -3,6 +3,7 @@ import { h, resolveComponent } from 'vue';
 import type { TableColumn } from '@nuxt/ui';
 import { useSortable } from '@vueuse/integrations/useSortable';
 import { permissions } from '~~/shared/utils/permissions';
+import { formatDate } from '~~/shared/utils/format';
 
 const { user } = useUserSession();
 
@@ -158,8 +159,7 @@ const columns: TableColumn<ApiResource>[] = [
   {
     accessorKey: 'updatedAt',
     header: 'Updated',
-    cell: ({ row }) =>
-      h('span', { class: 'text-sm text-muted' }, new Date(row.original.updatedAt).toLocaleDateString()),
+    cell: ({ row }) => h('span', { class: 'text-sm text-muted' }, formatDate(row.original.updatedAt)),
   },
   {
     id: 'actions',

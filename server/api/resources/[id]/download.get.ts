@@ -1,13 +1,10 @@
 import { prisma } from '~~/server/utils/prisma';
 import { getStorage } from '~~/server/utils/storage';
+import { requireResourceId } from '~~/server/utils/routeParams';
 
 export default defineEventHandler(async (event) => {
   await requireUserSession(event);
-
-  const id = getRouterParam(event, 'id');
-  if (!id) {
-    throw createError({ statusCode: 400, statusMessage: 'Resource ID is required' });
-  }
+  const id = requireResourceId(event);
 
   const resource = await prisma.resource.findUnique({ where: { id } });
   if (!resource) {

@@ -2,11 +2,12 @@ import { z } from 'zod';
 import { prisma } from '~~/server/utils/prisma';
 import { requireAdmin } from '~~/server/utils/admin';
 import { generateTemporaryPassword } from '~~/server/utils/password';
+import { ldaRoleSchema } from '~~/shared/schemas/user';
 
 const bodySchema = z.object({
   email: z.email(),
   name: z.string().min(1),
-  role: z.enum(['USER', 'ADMIN']),
+  role: ldaRoleSchema,
   useSso: z.boolean().optional(),
 });
 

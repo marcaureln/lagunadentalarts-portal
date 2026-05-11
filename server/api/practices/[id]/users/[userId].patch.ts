@@ -1,29 +1,15 @@
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client';
-import { z } from 'zod';
 import { prisma } from '~~/server/utils/prisma';
+import { requirePracticeAndUserId } from '~~/server/utils/routeParams';
+import { buildUserUpdateData } from '~~/server/utils/userUpdate';
 import { permissions } from '~~/shared/utils/permissions';
+import { practiceRoleSchema, updateUserBody } from '~~/shared/schemas/user';
 
-const bodySchema = z
-  .object({
-    name: z.string().min(1).optional(),
-    email: z.email().optional(),
-    role: z.enum(['PRACTICE_STAFF', 'PRACTICE_ADMIN']).optional(),
-  })
-  .refine((data) => data.name !== undefined || data.email !== undefined || data.role !== undefined, {
-    message: 'At least one field must be provided',
-  });
+const bodySchema = updateUserBody(practiceRoleSchema);
 
 export default defineEventHandler(async (event) => {
-  const { user } = await getUserSession(event);
-  if (!user) {
-    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' });
-  }
-
-  const practiceId = getRouterParam(event, 'id');
-  const userId = getRouterParam(event, 'userId');
-  if (!practiceId || !userId) {
-    throw createError({ statusCode: 400, statusMessage: 'Practice ID and User ID are required' });
-  }
+  const { user } = await requireUserSession(event);
+  const { practiceId, userId } = requirePracticeAndUserId(event);
 
   if (!permissions.canManageStaff(user.role, user.practiceId, practiceId)) {
     throw createError({ statusCode: 403, statusMessage: 'Insufficient permissions' });
@@ -39,11 +25,7 @@ export default defineEventHandler(async (event) => {
   try {
     const updated = await prisma.user.update({
       where: { id: userId },
-      data: {
-        ...(body.name !== undefined && { name: body.name }),
-        ...(body.email !== undefined && { email: body.email }),
-        ...(body.role !== undefined && { role: body.role }),
-      },
+      data: buildUserUpdateData(body),
       select: { id: true, name: true, email: true, role: true, createdAt: true, updatedAt: true },
     });
     return updated;

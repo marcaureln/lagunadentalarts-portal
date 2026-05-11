@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { permissions } from '~~/shared/utils/permissions';
+import { formatDateTime as formatDate } from '~~/shared/utils/format';
 
 interface CaseFile {
   slotId: string;
@@ -189,16 +190,6 @@ const close = () => {
   requestInfoOpen.value = false;
   requestInfoMessage.value = '';
   emit('close');
-};
-
-const formatDate = (date: string) => {
-  return new Date(date).toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 };
 
 const formatFileSize = (bytes?: number) => {

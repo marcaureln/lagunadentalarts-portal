@@ -1,13 +1,10 @@
 import { permissions } from '~~/shared/utils/permissions';
 import { getStorage } from '~~/server/utils/storage';
+import { requireCaseId } from '~~/server/utils/routeParams';
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
-  const caseId = getRouterParam(event, 'id');
-
-  if (!caseId) {
-    throw createError({ statusCode: 400, statusMessage: 'Case ID is required' });
-  }
+  const caseId = requireCaseId(event);
 
   // Get the case to verify permissions
   const existingCase = await prisma.case.findUnique({
