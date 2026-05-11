@@ -1,6 +1,7 @@
 import { prisma } from '~~/server/utils/prisma';
 import { requireAdmin } from '~~/server/utils/admin';
 import { getStorage } from '~~/server/utils/storage';
+import { logger } from '~~/server/utils/logger';
 import { requireResourceId } from '~~/server/utils/routeParams';
 
 export default defineEventHandler(async (event) => {
@@ -17,7 +18,7 @@ export default defineEventHandler(async (event) => {
   // Storage cleanup is best-effort: an orphan blob is preferable to a dangling DB row.
   await getStorage()
     .deleteResource(resource.storageKey)
-    .catch((e) => console.error('Failed to delete resource blob', resource.storageKey, e));
+    .catch((e) => logger.error('Failed to delete resource blob', { storageKey: resource.storageKey, error: e }));
 
   return { success: true };
 });

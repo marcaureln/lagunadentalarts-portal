@@ -1,4 +1,5 @@
 import { extractEmailFromMicrosoftUser } from '../../utils/auth';
+import { logger } from '../../utils/logger';
 import { prisma } from '~~/server/utils/prisma';
 import type { H3Event } from 'h3';
 
@@ -46,7 +47,7 @@ export default defineOAuthMicrosoftEventHandler({
     return sendRedirect(event, '/');
   },
   onError(event: H3Event, error: unknown) {
-    console.error('Microsoft OAuth Error:', error);
+    logger.error('Microsoft OAuth Error', { error });
     return sendRedirect(event, '/login?error=OAuthError');
   },
 });

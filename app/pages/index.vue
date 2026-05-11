@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { h } from 'vue';
 import type { TableColumn, TableRow } from '@nuxt/ui';
-import { permissions } from '~~/shared/utils/permissions';
+import { permissions, type CaseStatusName } from '~~/shared/utils/permissions';
 import { formatDate } from '~~/shared/utils/format';
+import { CASE_STATUS_META } from '~~/shared/utils/caseStatus';
 
 const { user } = useUserSession();
 
@@ -47,18 +48,29 @@ const {
 const cases = computed(() => casesData.value || []);
 const isLoadingCases = computed(() => casesStatus.value === 'pending');
 
-const { data: allCasesData } = useFetch<ApiCase[]>('/api/cases', {
-  lazy: true,
-  default: () => [],
+const zeroCounts = (): Record<CaseStatusName, number> => ({
+  DRAFT: 0,
+  SUBMITTED: 0,
+  NEEDS_INFO: 0,
+  ACCEPTED: 0,
+  IN_PROGRESS: 0,
+  COMPLETED: 0,
+  CANCELLED: 0,
 });
 
+const { data: rawStatusCounts } = useFetch<Record<CaseStatusName, number>>('/api/cases/status-counts', {
+  lazy: true,
+  default: zeroCounts,
+});
+
+// Dashboard folds ACCEPTED + IN_PROGRESS into one "In Progress" bucket.
 const statusCounts = computed(() => {
-  const all = allCasesData.value || [];
+  const c = rawStatusCounts.value ?? zeroCounts();
   return {
-    DRAFT: all.filter((c) => c.status === 'DRAFT').length,
-    SUBMITTED: all.filter((c) => c.status === 'SUBMITTED').length,
-    IN_PROGRESS: all.filter((c) => ['ACCEPTED', 'IN_PROGRESS'].includes(c.status)).length,
-    COMPLETED: all.filter((c) => c.status === 'COMPLETED').length,
+    DRAFT: c.DRAFT,
+    SUBMITTED: c.SUBMITTED,
+    IN_PROGRESS: c.ACCEPTED + c.IN_PROGRESS,
+    COMPLETED: c.COMPLETED,
   };
 });
 
@@ -87,16 +99,6 @@ const dashboardCards = computed<DashboardCard[]>(() => {
   cards.push({ status: 'COMPLETED', color: 'success', icon: 'i-ri-checkbox-circle-line', label: 'Completed' });
   return cards;
 });
-
-const allStatusConfig = {
-  DRAFT: { color: 'neutral', label: 'Draft' },
-  SUBMITTED: { color: 'primary', label: 'Submitted' },
-  NEEDS_INFO: { color: 'warning', label: 'Needs Info' },
-  ACCEPTED: { color: 'info', label: 'Accepted' },
-  IN_PROGRESS: { color: 'warning', label: 'In Progress' },
-  COMPLETED: { color: 'success', label: 'Completed' },
-  CANCELLED: { color: 'error', label: 'Cancelled' },
-} as const;
 
 const columns = computed<TableColumn<ApiCase>[]>(() => {
   const cols: TableColumn<ApiCase>[] = [
@@ -133,8 +135,8 @@ const columns = computed<TableColumn<ApiCase>[]>(() => {
       header: 'Status',
       cell: ({ row }) => {
         const status = row.getValue('status') as ApiCase['status'];
-        const config = allStatusConfig[status];
-        return h(UBadge, { color: config.color, variant: 'subtle', label: config.label });
+        const meta = CASE_STATUS_META[status];
+        return h(UBadge, { color: meta.color, variant: 'subtle', label: meta.label });
       },
     },
     {

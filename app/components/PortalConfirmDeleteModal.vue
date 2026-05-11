@@ -10,21 +10,17 @@ const props = defineProps<{
 
 const emit = defineEmits<{ success: [] }>();
 
-const toast = useToast();
-const isDeleting = ref(false);
+const { mutate, isLoading: isDeleting } = useApiMutation();
 
 const onConfirm = async (close: () => void) => {
-  isDeleting.value = true;
-  try {
-    await $fetch(props.endpoint, { method: 'DELETE' });
-    toast.add({ description: props.successMsg, color: 'success' });
+  const result = await mutate(
+    props.endpoint,
+    { method: 'DELETE' },
+    { successMessage: props.successMsg, errorMessage: props.failureMsg }
+  );
+  if (result !== null) {
     emit('success');
     close();
-  } catch (e) {
-    console.error(props.failureMsg, e);
-    toast.add({ description: props.failureMsg, color: 'error' });
-  } finally {
-    isDeleting.value = false;
   }
 };
 </script>

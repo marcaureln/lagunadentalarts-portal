@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { h } from 'vue';
 import type { TableColumn, TableRow } from '@nuxt/ui';
-import { permissions } from '~~/shared/utils/permissions';
+import { permissions, type CaseStatusName } from '~~/shared/utils/permissions';
 import { formatDate } from '~~/shared/utils/format';
+import { CASE_STATUS_META } from '~~/shared/utils/caseStatus';
 
 const { user } = useUserSession();
 const route = useRoute();
@@ -160,47 +161,43 @@ const {
 const cases = computed(() => casesData.value || []);
 const isLoadingCases = computed(() => casesStatus.value === 'pending');
 
-const { data: allCasesData, refresh: refreshAllCases } = useFetch<ApiCase[]>('/api/cases', {
-  lazy: true,
-  default: () => [],
+const zeroCounts = (): Record<CaseStatusName, number> => ({
+  DRAFT: 0,
+  SUBMITTED: 0,
+  NEEDS_INFO: 0,
+  ACCEPTED: 0,
+  IN_PROGRESS: 0,
+  COMPLETED: 0,
+  CANCELLED: 0,
 });
 
-const matchesActiveFilters = (c: ApiCase): boolean => {
-  if (isLabUser.value && assigneeFilter.value !== ASSIGNEE_ALL) {
-    if (assigneeFilter.value === ASSIGNEE_ME) {
-      if (c.assignedTo?.id !== user.value?.id) return false;
-    } else if (assigneeFilter.value === ASSIGNEE_UNASSIGNED) {
-      if (c.assignedTo != null) return false;
-    } else if (c.assignedTo?.id !== assigneeFilter.value) {
-      return false;
-    }
-  }
-  if (caseTypeFilter.value !== TYPE_ALL && c.caseType.id !== caseTypeFilter.value) return false;
-  if (isLabUser.value && practiceFilter.value !== PRACTICE_ALL && c.practice.id !== practiceFilter.value) return false;
-  return true;
-};
+const countsQuery = computed(() => ({
+  assignedToId: isLabUser.value && assigneeFilter.value !== ASSIGNEE_ALL ? assigneeFilter.value : undefined,
+  caseTypeId: caseTypeFilter.value !== TYPE_ALL ? caseTypeFilter.value : undefined,
+  practiceId: isLabUser.value && practiceFilter.value !== PRACTICE_ALL ? practiceFilter.value : undefined,
+}));
 
+const { data: rawStatusCounts, refresh: refreshCounts } = useFetch<Record<CaseStatusName, number>>(
+  '/api/cases/status-counts',
+  {
+    query: countsQuery,
+    lazy: true,
+    default: zeroCounts,
+  }
+);
+
+// Tabs use 6 buckets; ACCEPTED is folded into IN_PROGRESS to match the server's IN_PROGRESS filter.
 const statusCounts = computed(() => {
-  const visible = (allCasesData.value || []).filter(matchesActiveFilters);
+  const c = rawStatusCounts.value ?? zeroCounts();
   return {
-    DRAFT: visible.filter((c) => c.status === 'DRAFT').length,
-    SUBMITTED: visible.filter((c) => c.status === 'SUBMITTED').length,
-    NEEDS_INFO: visible.filter((c) => c.status === 'NEEDS_INFO').length,
-    IN_PROGRESS: visible.filter((c) => ['ACCEPTED', 'IN_PROGRESS'].includes(c.status)).length,
-    COMPLETED: visible.filter((c) => c.status === 'COMPLETED').length,
-    CANCELLED: visible.filter((c) => c.status === 'CANCELLED').length,
+    DRAFT: c.DRAFT,
+    SUBMITTED: c.SUBMITTED,
+    NEEDS_INFO: c.NEEDS_INFO,
+    IN_PROGRESS: c.ACCEPTED + c.IN_PROGRESS,
+    COMPLETED: c.COMPLETED,
+    CANCELLED: c.CANCELLED,
   };
 });
-
-const allStatusConfig = {
-  DRAFT: { color: 'neutral', label: 'Draft' },
-  SUBMITTED: { color: 'primary', label: 'Submitted' },
-  NEEDS_INFO: { color: 'error', label: 'Needs Info' },
-  ACCEPTED: { color: 'info', label: 'Accepted' },
-  IN_PROGRESS: { color: 'warning', label: 'In Progress' },
-  COMPLETED: { color: 'success', label: 'Completed' },
-  CANCELLED: { color: 'neutral', label: 'Cancelled' },
-} as const;
 
 const columns = computed<TableColumn<ApiCase>[]>(() => {
   const cols: TableColumn<ApiCase>[] = [
@@ -236,9 +233,9 @@ const columns = computed<TableColumn<ApiCase>[]>(() => {
       header: 'Status',
       cell: ({ row }) => {
         const status = row.getValue('status') as ApiCase['status'];
-        const config = allStatusConfig[status];
+        const meta = CASE_STATUS_META[status];
         const variant = status === 'NEEDS_INFO' ? 'solid' : 'subtle';
-        return h(UBadge, { color: config.color, variant, label: config.label });
+        return h(UBadge, { color: meta.color, variant, label: meta.label });
       },
     },
     {
@@ -352,7 +349,7 @@ const openEditWizard = (caseId: string) => {
 
 const refreshAll = () => {
   refreshCases();
-  refreshAllCases();
+  refreshCounts();
 };
 
 const onEditWizardSuccess = () => {

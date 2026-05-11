@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { permissions } from '~~/shared/utils/permissions';
+import { CASE_STATUS_META } from '~~/shared/utils/caseStatus';
 import { formatDateTime as formatDate } from '~~/shared/utils/format';
 
 interface CaseFile {
@@ -74,15 +75,7 @@ const actionError = ref('');
 const requestInfoOpen = ref(false);
 const requestInfoMessage = ref('');
 
-const statusConfig = {
-  DRAFT: { color: 'neutral', label: 'Draft' },
-  SUBMITTED: { color: 'primary', label: 'Submitted' },
-  NEEDS_INFO: { color: 'error', label: 'Needs Info' },
-  ACCEPTED: { color: 'info', label: 'Accepted' },
-  IN_PROGRESS: { color: 'warning', label: 'In Progress' },
-  COMPLETED: { color: 'success', label: 'Completed' },
-  CANCELLED: { color: 'neutral', label: 'Cancelled' },
-} as const;
+const statusConfig = CASE_STATUS_META;
 
 const eventTypeLabels: Record<string, string> = {
   CREATED: 'Case created',
