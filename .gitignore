@@ -30,6 +30,3 @@ logs
 .agents
 .claude
 !.claude/settings.json
-
-# Storage
-storage
