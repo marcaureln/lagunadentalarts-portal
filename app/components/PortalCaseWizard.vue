@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { CaseFile, CaseType } from '~~/shared/types/case';
+import { SLIP_MODE_KEY } from '~~/shared/utils/caseTypes';
 
 interface CreatedCase {
   id: string;
@@ -137,7 +138,8 @@ const loadExistingCase = async (caseId: string) => {
     labSlipData.value = (res.data as Record<string, string>) || {};
     uploadedFiles.value = res.files || [];
 
-    const hasLabSlipData = Object.keys(labSlipData.value).length > 0;
+    const meaningfulKeys = Object.keys(labSlipData.value).filter((k) => k !== SLIP_MODE_KEY);
+    const hasLabSlipData = meaningfulKeys.length > 0;
     const hasFiles = uploadedFiles.value.length > 0;
     if (hasFiles) currentStep.value = 4;
     else if (hasLabSlipData) currentStep.value = 3;
@@ -274,15 +276,18 @@ const cancelAndClose = async () => {
         <PortalCaseWizardLabSlip
           v-else-if="currentStep === 2"
           v-model:lab-slip-data="labSlipData"
+          v-model:slot-files="slotFiles"
           :case-type="selectedCaseType"
           :error="error"
           :is-saving-draft="isSavingDraft"
           :is-submitting-case="isSubmittingCase"
           :step1-valid="step1Valid"
+          :uploaded-files="uploadedFiles"
           @cancel="cancelAndClose"
           @back="goBack"
           @save-draft="saveDraft"
           @next="currentStep = 3"
+          @file-selected="handleFileUpload"
         />
 
         <PortalCaseWizardFiles

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { CaseFile, CaseType } from '~~/shared/types/case';
+import { LAB_SLIP_SLOT_ID } from '~~/shared/utils/caseTypes';
 
 const props = defineProps<{
   caseType: CaseType | null;
@@ -13,6 +14,8 @@ const props = defineProps<{
   uploadOverallProgress: number;
 }>();
 
+const visibleFileSlots = computed(() => (props.caseType?.fileSlots ?? []).filter((s) => s.id !== LAB_SLIP_SLOT_ID));
+
 const slotFiles = defineModel<Record<string, File | undefined>>('slotFiles', { required: true });
 
 const emit = defineEmits<{
@@ -23,13 +26,12 @@ const emit = defineEmits<{
   fileSelected: [slotId: string, file: File];
 }>();
 
-const requiredFilesMissing = computed(() => {
-  if (!props.caseType) return [];
-  return props.caseType.fileSlots
+const requiredFilesMissing = computed(() =>
+  visibleFileSlots.value
     .filter((s) => s.required)
     .filter((s) => !props.uploadedFiles.some((f) => f.slotId === s.id))
-    .map((s) => s.label);
-});
+    .map((s) => s.label)
+);
 
 const canProceed = computed(() => requiredFilesMissing.value.length === 0);
 </script>
@@ -39,7 +41,7 @@ const canProceed = computed(() => requiredFilesMissing.value.length === 0);
     <p class="text-sm text-muted">Upload the required files for this case.</p>
 
     <div v-if="caseType" class="space-y-4">
-      <div v-for="slot in caseType.fileSlots" :key="slot.id">
+      <div v-for="slot in visibleFileSlots" :key="slot.id">
         <UFormField
           :label="`${slot.label}${slot.required ? ' *' : ''}`"
           :description="slot.accept ? `Accepted: ${slot.accept}` : undefined"

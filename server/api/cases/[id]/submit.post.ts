@@ -1,6 +1,7 @@
 import { prisma } from '~~/server/utils/prisma';
 import { requireCaseId } from '~~/server/utils/routeParams';
 import { permissions, SUBMITTABLE_STATUSES } from '~~/shared/utils/permissions';
+import { LAB_SLIP_SLOT_ID, SLIP_MODE_KEY, supportsSlipUpload } from '~~/shared/utils/caseTypes';
 import type { CaseData } from '~~/shared/types/case';
 import { caseFilesArraySchema, caseTypeFieldsArraySchema, caseTypeFileSlotsArraySchema } from '~~/shared/schemas/case';
 
@@ -44,33 +45,43 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // Validate required fields from case type
   const fields = caseTypeFieldsArraySchema.parse(existingCase.caseType.fields ?? []);
+  const fileSlots = caseTypeFileSlotsArraySchema.parse(existingCase.caseType.fileSlots ?? []);
   const data = (existingCase.data ?? {}) as CaseData;
-  const missingFields: string[] = [];
+  const files = caseFilesArraySchema.parse(existingCase.files ?? []);
 
-  for (const field of fields) {
-    if (field.required) {
-      const value = data[field.id];
-      if (value === undefined || value === null || value === '') {
-        missingFields.push(field.label);
+  const isSlipUpload = supportsSlipUpload(existingCase.caseType.key) && data[SLIP_MODE_KEY] === 'UPLOAD';
+
+  if (isSlipUpload) {
+    const hasLabSlip = files.some((f) => f.slotId === LAB_SLIP_SLOT_ID);
+    if (!hasLabSlip) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Missing required files: Scanned Lab Slip',
+      });
+    }
+  } else {
+    const missingFields: string[] = [];
+    for (const field of fields) {
+      if (field.required) {
+        const value = data[field.id];
+        if (value === undefined || value === null || value === '') {
+          missingFields.push(field.label);
+        }
       }
+    }
+
+    if (missingFields.length > 0) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: `Missing required fields: ${missingFields.join(', ')}`,
+      });
     }
   }
 
-  if (missingFields.length > 0) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: `Missing required fields: ${missingFields.join(', ')}`,
-    });
-  }
-
-  // Validate required file slots
-  const fileSlots = caseTypeFileSlotsArraySchema.parse(existingCase.caseType.fileSlots ?? []);
-  const files = caseFilesArraySchema.parse(existingCase.files ?? []);
   const missingSlots: string[] = [];
-
   for (const slot of fileSlots) {
+    if (slot.id === LAB_SLIP_SLOT_ID) continue;
     if (slot.required) {
       const hasFile = files.some((f) => f.slotId === slot.id);
       if (!hasFile) {

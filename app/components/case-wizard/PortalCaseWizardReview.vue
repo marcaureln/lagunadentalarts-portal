@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import type { CaseFile, CaseType } from '~~/shared/types/case';
+import { LAB_SLIP_SLOT_ID, SLIP_MODE_KEY, supportsSlipUpload } from '~~/shared/utils/caseTypes';
 
-defineProps<{
+const props = defineProps<{
   patientName: string;
   patientExternalId: string;
   caseType: CaseType | null;
@@ -15,6 +16,11 @@ defineProps<{
   uploadCurrentFileName: string | null;
   uploadOverallProgress: number;
 }>();
+
+const isSlipUploadCaseType = computed(() => !!props.caseType && supportsSlipUpload(props.caseType.key));
+const isSlipUploadMode = computed(() => isSlipUploadCaseType.value && props.labSlipData[SLIP_MODE_KEY] === 'UPLOAD');
+const uploadedLabSlip = computed(() => props.uploadedFiles.find((f) => f.slotId === LAB_SLIP_SLOT_ID));
+const formFields = computed(() => (props.caseType?.fields ?? []).filter((f) => f.id !== SLIP_MODE_KEY));
 
 const consentChecked = defineModel<boolean>('consentChecked', { required: true });
 
@@ -56,9 +62,13 @@ const formatFileSize = (bytes?: number) => {
       </div>
 
       <div class="rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
-        <h4 class="mb-2 font-medium">Lab Slip Details</h4>
-        <dl class="grid grid-cols-2 gap-2 text-sm">
-          <template v-for="field in caseType?.fields" :key="field.id">
+        <h4 class="mb-2 font-medium">Lab Slip</h4>
+        <p v-if="isSlipUploadMode" class="text-sm">
+          <span class="text-muted">Scanned slip:</span>
+          <span class="ml-1">{{ uploadedLabSlip?.fileName ?? '-' }}</span>
+        </p>
+        <dl v-else class="grid grid-cols-2 gap-2 text-sm">
+          <template v-for="field in formFields" :key="field.id">
             <dt class="text-muted">{{ field.label }}:</dt>
             <dd>{{ labSlipData[field.id] || '-' }}</dd>
           </template>

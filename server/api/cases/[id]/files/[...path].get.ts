@@ -47,7 +47,7 @@ export default defineEventHandler(async (event) => {
 
   setResponseHeader(event, 'content-type', contentType);
   setResponseHeader(event, 'content-length', contentLength);
-  setResponseHeader(event, 'content-disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
+  setResponseHeader(event, 'content-disposition', `inline; filename="${encodeURIComponent(fileName)}"`);
 
   return sendStream(event, stream);
 });
