@@ -309,7 +309,15 @@ const onRowSelect = (_e: Event, row: TableRow<ApiCase>) => {
           <div v-if="isLoadingCases && cases.length === 0" class="flex items-center justify-center py-12">
             <UIcon name="i-ri-loader-4-line" class="h-6 w-6 animate-spin text-primary" />
           </div>
-          <UTable v-else :data="cases" :columns="columns" sticky class="max-h-96" @select="onRowSelect">
+          <UTable
+            v-else
+            :data="cases"
+            :columns="columns"
+            sticky
+            class="max-h-96"
+            :ui="{ tr: 'cursor-pointer' }"
+            @select="onRowSelect"
+          >
             <template #empty>
               <div class="flex flex-col items-center justify-center py-12">
                 <UIcon name="i-ri-folder-line" class="mb-4 h-12 w-12 text-gray-400" />

@@ -476,7 +476,7 @@ const showFilterRow = computed(() => isLabUser.value || (caseTypesData.value?.le
           <div v-if="isLoadingCases && cases.length === 0" class="flex items-center justify-center py-16">
             <UIcon name="i-ri-loader-4-line" class="h-6 w-6 animate-spin text-primary" />
           </div>
-          <UTable v-else :data="cases" :columns="columns" @select="onRowSelect">
+          <UTable v-else :data="cases" :columns="columns" :ui="{ tr: 'cursor-pointer' }" @select="onRowSelect">
             <template #empty>
               <div class="flex flex-col items-center justify-center py-16">
                 <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">

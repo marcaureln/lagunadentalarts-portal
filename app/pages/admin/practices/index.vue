@@ -115,7 +115,13 @@ const columns: TableColumn<PracticeWithCount>[] = [
 
     <template #body>
       <div class="w-full flex-1 divide-y divide-accented overflow-hidden rounded-lg border border-accented">
-        <UTable ref="table" :data="practices || []" :columns="columns" @select="onRowSelect">
+        <UTable
+          ref="table"
+          :data="practices || []"
+          :columns="columns"
+          :ui="{ tr: 'cursor-pointer' }"
+          @select="onRowSelect"
+        >
           <template #empty>
             <div v-if="practicesError" class="flex flex-col items-center justify-center py-12">
               <UIcon name="i-ri-error-warning-line" class="mb-4 h-12 w-12 text-error" />

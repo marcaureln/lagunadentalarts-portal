@@ -105,7 +105,7 @@ const columns: TableColumn<User>[] = [
 
     <template #body>
       <div class="w-full flex-1 overflow-hidden rounded-lg border border-accented">
-        <UTable :data="users || []" :columns="columns" @select="onRowSelect">
+        <UTable :data="users || []" :columns="columns" :ui="{ tr: 'cursor-pointer' }" @select="onRowSelect">
           <template #empty>
             <div v-if="usersError" class="flex flex-col items-center justify-center py-8">
               <UIcon name="i-ri-error-warning-line" class="mb-3 h-10 w-10 text-error" />
