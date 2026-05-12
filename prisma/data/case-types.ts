@@ -17,7 +17,7 @@ export const caseTypes = [
         id: 'cementationType',
         label: 'Cementation Type',
         type: 'select',
-        required: true,
+        required: false,
         options: ['Cement Retained', 'Screw Retained'],
       },
       { id: 'occlusion', label: 'Occlusion', type: 'select', required: false, options: ['Light', 'Normal', 'Heavy'] },
@@ -27,6 +27,7 @@ export const caseTypes = [
     fileSlots: [
       { id: 'scan', label: 'Digital Scan Files', required: true, accept: '.zip,.stl,.ply' },
       { id: 'photos', label: 'Patient Photos', required: false, accept: '.zip,.jpg,.jpeg,.png' },
+      { id: 'labSlip', label: 'Scanned Lab Slip', required: false, accept: '.pdf,.jpg,.jpeg,.png,.heic' },
     ],
     instructions:
       'Please provide accurate tooth numbers and shade information. Include any special instructions for contacts or occlusion.',
@@ -116,5 +117,28 @@ export const caseTypes = [
     ],
     fileSlots: [{ id: 'files', label: 'Case Files', required: true, accept: '.zip' }],
     instructions: 'Please describe your case in detail and upload all relevant files.',
+  },
+  {
+    key: 'SURGICAL_GUIDE',
+    label: 'Surgical Guide',
+    fields: [
+      { id: 'description', label: 'Case Description', type: 'textarea', required: true },
+      { id: 'notes', label: 'Special Instructions', type: 'textarea', required: false },
+    ],
+    fileSlots: [
+      { id: 'files', label: 'Case Files', required: true, accept: '.zip' },
+      { id: 'labSlip', label: 'Scanned Lab Slip', required: false, accept: '.pdf,.jpg,.jpeg,.png,.heic' },
+    ],
+    instructions: 'Describe the surgical guide case. Upload either a scanned lab slip or fill the online form.',
+  },
+  {
+    key: 'CT_SCAN',
+    label: 'CT Scan',
+    fields: [
+      { id: 'description', label: 'Case Description', type: 'textarea', required: true },
+      { id: 'notes', label: 'Special Instructions', type: 'textarea', required: false },
+    ],
+    fileSlots: [{ id: 'files', label: 'Case Files', required: true, accept: '.zip' }],
+    instructions: 'Please describe the CT scan case and upload all relevant files.',
   },
 ];
