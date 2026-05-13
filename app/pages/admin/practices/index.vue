@@ -103,7 +103,7 @@ const columns: TableColumn<PracticeWithCount>[] = [
 <template>
   <UDashboardPanel>
     <template #body>
-      <div class="flex flex-col gap-3">
+      <div class="flex flex-col gap-4">
         <div class="flex items-center justify-between">
           <h1 class="text-2xl font-semibold">Practice Management</h1>
           <PortalAdminPracticeFormModal @success="refresh" />

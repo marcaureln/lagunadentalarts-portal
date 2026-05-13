@@ -201,7 +201,7 @@ const columns: TableColumn<ApiResource>[] = [
 <template>
   <UDashboardPanel>
     <template #body>
-      <div class="flex flex-col gap-3">
+      <div class="flex flex-col gap-4">
         <div class="flex items-center justify-between">
           <h1 class="text-2xl font-semibold">Manage Resources</h1>
           <UButton color="primary" icon="i-ri-add-line" @click="openAdd">Add Resource</UButton>

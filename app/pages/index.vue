@@ -274,7 +274,7 @@ const onRowSelect = (_e: Event, row: TableRow<ApiCase>) => {
 <template>
   <UDashboardPanel>
     <template #body>
-      <div class="flex flex-col gap-3">
+      <div class="flex flex-col gap-4">
         <div class="flex items-center justify-between">
           <h1 class="text-2xl font-semibold">Welcome back, {{ user?.name }}!</h1>
           <PortalCaseWizard v-if="canCreateCase" @success="refreshCases">

@@ -426,7 +426,7 @@ const showFilterRow = computed(() => isLabUser.value || (caseTypesData.value?.le
 <template>
   <UDashboardPanel>
     <template #body>
-      <div class="flex flex-col gap-3">
+      <div class="flex flex-col gap-4">
         <div class="flex items-center justify-between">
           <h1 class="text-2xl font-semibold">Cases</h1>
           <PortalCaseWizard v-if="canCreateCase" @success="refreshAll">

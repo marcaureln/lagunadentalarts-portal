@@ -46,7 +46,7 @@ const iconFor = (mime: string) => {
 <template>
   <UDashboardPanel>
     <template #body>
-      <div class="flex flex-col gap-3">
+      <div class="flex flex-col gap-4">
         <h1 class="text-2xl font-semibold">Resources</h1>
         <div v-if="isLoading && resources.length === 0" class="flex items-center justify-center py-16">
           <UIcon name="i-ri-loader-4-line" class="h-6 w-6 animate-spin text-primary" />
