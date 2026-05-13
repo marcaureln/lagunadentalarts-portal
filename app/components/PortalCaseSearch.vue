@@ -11,11 +11,18 @@ interface SearchResult {
 }
 
 const router = useRouter();
+const searchInputRef = useTemplateRef('searchInput');
 const searchQuery = ref('');
 const debouncedQuery = ref('');
 const results = ref<SearchResult[]>([]);
 const isSearching = ref(false);
 const isPopoverOpen = ref(false);
+
+defineShortcuts({
+  '/': () => {
+    searchInputRef.value?.inputRef?.focus();
+  },
+});
 
 const debouncedUpdate = useDebounceFn((q: string) => {
   debouncedQuery.value = q;
@@ -81,6 +88,7 @@ function selectResult(item: SearchResult) {
   <UPopover :open="isPopoverOpen" @update:open="onPopoverOpenChange">
     <div>
       <UInput
+        ref="searchInput"
         v-model="searchQuery"
         placeholder="Search cases..."
         size="lg"
@@ -102,6 +110,9 @@ function selectResult(item: SearchResult) {
               class="-my-1"
               @click.stop="clearSearch"
             />
+          </template>
+          <template v-else>
+            <UKbd value="/" />
           </template>
         </template>
       </UInput>
