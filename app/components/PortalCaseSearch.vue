@@ -82,6 +82,41 @@ function selectResult(item: SearchResult) {
     router.push({ path: '/cases', query: { caseId: item.id } });
   }
 }
+
+function onInputKeydown(e: KeyboardEvent) {
+  if (!isPopoverOpen.value || results.value.length === 0) return;
+
+  if (e.key === 'Escape') {
+    isPopoverOpen.value = false;
+  } else if (e.key === 'Tab' && !e.shiftKey) {
+    e.preventDefault();
+    const first = document.querySelector<HTMLButtonElement>('[data-search-result]');
+    first?.focus();
+  }
+}
+
+function onResultKeydown(e: KeyboardEvent, index: number) {
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    const next = document.querySelector<HTMLButtonElement>(`[data-search-result="${index + 1}"]`);
+    next?.focus();
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (index === 0) {
+      searchInputRef.value?.inputRef?.focus();
+    } else {
+      const prev = document.querySelector<HTMLButtonElement>(`[data-search-result="${index - 1}"]`);
+      prev?.focus();
+    }
+  } else if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    const item = results.value[index];
+    if (item) selectResult(item);
+  } else if (e.key === 'Escape') {
+    isPopoverOpen.value = false;
+    searchInputRef.value?.inputRef?.focus();
+  }
+}
 </script>
 
 <template>
@@ -96,6 +131,7 @@ function selectResult(item: SearchResult) {
         trailing
         class="w-[32rem] lg:w-[40rem]"
         @focus="onFocus"
+        @keydown="onInputKeydown"
       >
         <template #trailing>
           <template v-if="isSearching">
@@ -127,12 +163,15 @@ function selectResult(item: SearchResult) {
 
         <div v-else-if="results.length === 0" class="py-6 text-center text-sm text-muted">No cases found</div>
 
-        <div v-else class="flex flex-col gap-0.5">
+        <div v-else class="flex flex-col gap-0.5" role="listbox">
           <button
-            v-for="item in results"
+            v-for="(item, index) in results"
             :key="item.id"
-            class="flex items-center gap-3 rounded-md px-3 py-2 text-left hover:bg-accented"
-            @mousedown.prevent="selectResult(item)"
+            :data-search-result="index"
+            class="flex items-center gap-3 rounded-md px-3 py-2 text-left hover:bg-accented focus:bg-accented focus:outline-none"
+            role="option"
+            @click="selectResult(item)"
+            @keydown="onResultKeydown($event, index)"
           >
             <div class="min-w-0 flex-1">
               <div class="truncate text-sm font-medium">{{ item.patientName }}</div>

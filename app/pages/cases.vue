@@ -389,6 +389,14 @@ watch(
   }
 );
 
+watch(viewingCaseId, (val) => {
+  if (!val && route.query.caseId) {
+    const query = { ...route.query };
+    delete query.caseId;
+    router.replace({ query });
+  }
+});
+
 const onEditFromDetail = (caseId: string) => {
   viewingCaseId.value = null;
   openEditWizard(caseId);
