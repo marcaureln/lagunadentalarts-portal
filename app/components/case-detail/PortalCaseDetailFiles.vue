@@ -43,7 +43,7 @@ const openPreview = (file: CaseFile) => {
 </script>
 
 <template>
-  <UCard>
+  <UCard :ui="{ body: 'py-0!' }">
     <template #header>
       <h3 class="font-semibold">Uploaded Files</h3>
     </template>
