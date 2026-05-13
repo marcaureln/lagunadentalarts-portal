@@ -42,12 +42,25 @@ export default defineEventHandler(async (event) => {
       practice: { select: { id: true, name: true } },
       caseType: { select: { id: true, key: true, label: true } },
       createdBy: { select: { id: true, name: true } },
-      assignedTo: { select: { id: true, name: true } },
+      assignedTo: { select: { id: true, name: true, avatarUrl: true } },
       _count: {
         select: {
           events: { where: { type: 'FILE_DOWNLOADED' as const } },
         },
       },
+    };
+
+    const projectFileTypes = <T extends { files: unknown }>(c: T) => {
+      const list = Array.isArray(c.files) ? (c.files as Array<{ fileName?: unknown }>) : [];
+      const types = new Set<string>();
+      for (const f of list) {
+        if (typeof f?.fileName === 'string') {
+          const ext = f.fileName.toLowerCase().split('.').pop();
+          if (ext) types.add(ext);
+        }
+      }
+      const { files: _drop, ...rest } = c as T & { files: unknown };
+      return { ...rest, fileTypes: Array.from(types).sort() };
     };
 
     if (permissions.canViewAllCases(user.role)) {
@@ -63,7 +76,7 @@ export default defineEventHandler(async (event) => {
         orderBy: { createdAt: 'desc' },
         ...(limit && { take: limit }),
       });
-      return cases;
+      return cases.map(projectFileTypes);
     }
 
     if (permissions.isPracticeUser(user.role) && user.practiceId) {
@@ -73,7 +86,7 @@ export default defineEventHandler(async (event) => {
         orderBy: { createdAt: 'desc' },
         ...(limit && { take: limit }),
       });
-      return cases;
+      return cases.map(projectFileTypes);
     }
 
     throw createError({

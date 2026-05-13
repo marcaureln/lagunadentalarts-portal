@@ -28,6 +28,7 @@ interface ApiCase {
   practice: { id: string; name: string };
   caseType: { id: string; key: string; label: string };
   createdBy: { id: string; name: string };
+  fileTypes?: string[];
   _count?: { events: number };
 }
 
@@ -152,18 +153,23 @@ const columns = computed<TableColumn<ApiCase>[]>(() => {
       },
     },
     {
+      accessorKey: 'fileTypes',
+      header: 'Files',
+      cell: ({ row }) => {
+        const types = row.original.fileTypes ?? [];
+        if (types.length === 0) return h('span', { class: 'text-xs text-muted italic' }, '—');
+        return h(
+          'div',
+          { class: 'flex flex-wrap gap-1' },
+          types.map((t) => h(UBadge, { variant: 'subtle', color: 'neutral', size: 'xs' }, () => `.${t}`))
+        );
+      },
+    },
+    {
       accessorKey: 'createdAt',
       header: 'Created',
       cell: ({ row }) => {
         return h('span', { class: 'text-sm' }, formatDate(row.original.createdAt));
-      },
-    },
-    {
-      accessorKey: 'createdBy',
-      header: 'Created By',
-      cell: ({ row }) => {
-        const createdBy = row.original.createdBy;
-        return h('span', { class: 'text-gray-600 dark:text-gray-400' }, createdBy?.name || '-');
       },
     }
   );

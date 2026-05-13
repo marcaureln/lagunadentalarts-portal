@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { CaseFile, CaseTypeFileSlot } from '~~/shared/types/case';
+import { getFileExtension, getFileTypeMeta, isImageExtension, isPdfExtension } from '~~/app/utils/fileTypes';
 
 interface CaseEventLite {
   type: string;
@@ -35,12 +36,8 @@ const formatFileSize = (bytes?: number) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-const PDF_EXTENSIONS = ['pdf'];
-const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'heic'];
-
-const fileExtension = (file: CaseFile) => file.fileName.toLowerCase().split('.').pop() ?? '';
-const isPdf = (file: CaseFile) => PDF_EXTENSIONS.includes(fileExtension(file));
-const isImage = (file: CaseFile) => IMAGE_EXTENSIONS.includes(fileExtension(file));
+const isPdf = (file: CaseFile) => isPdfExtension(getFileExtension(file.fileName));
+const isImage = (file: CaseFile) => isImageExtension(getFileExtension(file.fileName));
 const isPreviewable = (file: CaseFile) => isPdf(file) || isImage(file);
 
 const previewFile = ref<CaseFile | null>(null);
@@ -64,7 +61,10 @@ const openPreview = (file: CaseFile) => {
     <ul class="divide-y divide-gray-200 dark:divide-gray-700">
       <li v-for="file in files" :key="file.slotId" class="flex items-center justify-between py-3">
         <div class="flex items-center gap-3">
-          <UIcon name="i-ri-file-line" class="h-5 w-5 text-muted" />
+          <UIcon
+            :name="getFileTypeMeta(file.fileName).icon"
+            :class="['h-5 w-5', getFileTypeMeta(file.fileName).colorClass]"
+          />
           <div>
             <div class="flex items-center gap-2">
               <p class="font-medium">{{ file.fileName }}</p>

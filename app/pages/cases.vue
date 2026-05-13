@@ -17,6 +17,7 @@ const UButton = resolveComponent('UButton');
 const UDropdownMenu = resolveComponent('UDropdownMenu');
 const UIcon = resolveComponent('UIcon');
 const UTooltip = resolveComponent('UTooltip');
+const UAvatar = resolveComponent('UAvatar');
 
 const isPracticeUser = computed(() => permissions.isPracticeUser(user.value?.role));
 const isLabUser = computed(() => permissions.isLabUser(user.value?.role));
@@ -30,7 +31,8 @@ interface ApiCase {
   practice: { id: string; name: string };
   caseType: { id: string; key: string; label: string };
   createdBy: { id: string; name: string };
-  assignedTo: { id: string; name: string } | null;
+  assignedTo: { id: string; name: string; avatarUrl?: string | null } | null;
+  fileTypes?: string[];
   _count?: { events: number };
 }
 
@@ -250,21 +252,16 @@ const columns = computed<TableColumn<ApiCase>[]>(() => {
       },
     },
     {
-      accessorKey: 'createdAt',
-      header: 'Created',
-      cell: ({ row }) => h('span', { class: 'text-sm' }, formatDate(row.original.createdAt)),
-    },
-    {
-      accessorKey: 'updatedAt',
-      header: 'Updated',
-      cell: ({ row }) => h('span', { class: 'text-sm text-muted' }, formatDate(row.original.updatedAt)),
-    },
-    {
-      accessorKey: 'createdBy',
-      header: 'Created By',
+      accessorKey: 'fileTypes',
+      header: 'Files',
       cell: ({ row }) => {
-        const createdBy = row.original.createdBy;
-        return h('span', { class: 'text-gray-600 dark:text-gray-400' }, createdBy?.name || '-');
+        const types = row.original.fileTypes ?? [];
+        if (types.length === 0) return h('span', { class: 'text-xs text-muted italic' }, '—');
+        return h(
+          'div',
+          { class: 'flex flex-wrap gap-1' },
+          types.map((t) => h(UBadge, { variant: 'subtle', color: 'neutral', size: 'xs' }, () => `.${t}`))
+        );
       },
     }
   );
@@ -278,10 +275,26 @@ const columns = computed<TableColumn<ApiCase>[]>(() => {
         if (!assignee) {
           return h('span', { class: 'text-sm text-muted italic' }, 'Unassigned');
         }
-        return h('span', { class: 'text-sm text-gray-700 dark:text-gray-300' }, assignee.name);
+        return h('div', { class: 'flex items-center gap-2' }, [
+          h(UAvatar, { src: assignee.avatarUrl ?? undefined, alt: assignee.name, size: '2xs' }),
+          h('span', { class: 'text-sm text-gray-700 dark:text-gray-300' }, assignee.name),
+        ]);
       },
     });
   }
+
+  cols.push(
+    {
+      accessorKey: 'createdAt',
+      header: 'Created',
+      cell: ({ row }) => h('span', { class: 'text-sm' }, formatDate(row.original.createdAt)),
+    },
+    {
+      accessorKey: 'updatedAt',
+      header: 'Updated',
+      cell: ({ row }) => h('span', { class: 'text-sm text-muted' }, formatDate(row.original.updatedAt)),
+    }
+  );
 
   if (isPracticeUser.value) {
     cols.push({

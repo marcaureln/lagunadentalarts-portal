@@ -31,7 +31,7 @@ export default defineEventHandler(async (event) => {
       practice: { select: { id: true, name: true } },
       caseType: { select: { id: true, key: true, label: true, fields: true, fileSlots: true, instructions: true } },
       createdBy: { select: { id: true, name: true } },
-      assignedTo: { select: { id: true, name: true } },
+      assignedTo: { select: { id: true, name: true, avatarUrl: true } },
       events: {
         orderBy: { createdAt: 'desc' },
         include: {
