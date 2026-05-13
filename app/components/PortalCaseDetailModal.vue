@@ -195,7 +195,6 @@ defineExpose({ open });
     v-model:open="isOpen"
     :title="caseDetail ? `Case: ${caseDetail.patientName}` : 'Case Details'"
     :description="caseDetail ? caseDetail.caseType.label : ''"
-    scrollable
     :ui="{ content: 'sm:max-w-3xl' }"
     @update:open="(val) => !val && close()"
   >

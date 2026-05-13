@@ -92,44 +92,38 @@ const columns: TableColumn<User>[] = [
 
 <template>
   <UDashboardPanel>
-    <template #header>
-      <UDashboardNavbar title="LDA Staff">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
-        <template #right>
-          <PortalAdminUserFormModal @success="refresh" />
-        </template>
-      </UDashboardNavbar>
-    </template>
-
     <template #body>
-      <div class="w-full flex-1 overflow-hidden rounded-lg border border-accented">
-        <UTable :data="users || []" :columns="columns" :ui="{ tr: 'cursor-pointer' }" @select="onRowSelect">
-          <template #empty>
-            <div v-if="usersError" class="flex flex-col items-center justify-center py-8">
-              <UIcon name="i-ri-error-warning-line" class="mb-3 h-10 w-10 text-error" />
-              <h3 class="mb-1 text-base font-medium text-gray-900">Failed to load staff</h3>
-              <UButton class="mt-2" variant="outline" @click="refresh()">Retry</UButton>
-            </div>
-            <div v-else class="flex flex-col items-center justify-center py-8">
-              <UIcon name="i-ri-user-line" class="mb-3 h-10 w-10 text-gray-400" />
-              <h3 class="mb-1 text-base font-medium text-gray-900">No staff found</h3>
-              <p class="max-w-sm text-center text-sm text-gray-500">
-                {{ users ? 'No LDA staff exist yet.' : 'Loading staff…' }}
-              </p>
-            </div>
-          </template>
-        </UTable>
-      </div>
+      <div class="flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <h1 class="text-2xl font-semibold">LDA Staff</h1>
+          <PortalAdminUserFormModal @success="refresh" />
+        </div>
+        <div class="w-full flex-1 overflow-hidden rounded-lg border border-accented">
+          <UTable :data="users || []" :columns="columns" :ui="{ tr: 'cursor-pointer' }" @select="onRowSelect">
+            <template #empty>
+              <div v-if="usersError" class="flex flex-col items-center justify-center py-8">
+                <UIcon name="i-ri-error-warning-line" class="mb-3 h-10 w-10 text-error" />
+                <h3 class="mb-1 text-base font-medium text-gray-900">Failed to load staff</h3>
+                <UButton class="mt-2" variant="outline" @click="refresh()">Retry</UButton>
+              </div>
+              <div v-else class="flex flex-col items-center justify-center py-8">
+                <UIcon name="i-ri-user-line" class="mb-3 h-10 w-10 text-gray-400" />
+                <h3 class="mb-1 text-base font-medium text-gray-900">No staff found</h3>
+                <p class="max-w-sm text-center text-sm text-gray-500">
+                  {{ users ? 'No LDA staff exist yet.' : 'Loading staff…' }}
+                </p>
+              </div>
+            </template>
+          </UTable>
+        </div>
 
-      <PortalAdminUserFormModal
-        v-if="editingUser"
-        ref="editRef"
-        :user="editingUser"
-        @success="onEditSuccess"
-        @close="onEditClose"
-      />
-    </template>
+        <PortalAdminUserFormModal
+          v-if="editingUser"
+          ref="editRef"
+          :user="editingUser"
+          @success="onEditSuccess"
+          @close="onEditClose"
+        /></div
+    ></template>
   </UDashboardPanel>
 </template>

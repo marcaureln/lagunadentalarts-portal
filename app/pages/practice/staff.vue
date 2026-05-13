@@ -21,19 +21,13 @@ const onStaffAdded = () => staffTableRef.value?.refresh();
 
 <template>
   <UDashboardPanel>
-    <template #header>
-      <UDashboardNavbar title="Staff">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
-        <template #right>
-          <PortalPracticeStaffFormModal v-if="practiceId" :practice-id="practiceId" @success="onStaffAdded" />
-        </template>
-      </UDashboardNavbar>
-    </template>
-
     <template #body>
-      <PortalPracticeStaffTable v-if="practiceId" ref="staffTable" :practice-id="practiceId" />
-    </template>
+      <div class="flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <h1 class="text-2xl font-semibold">Staff</h1>
+          <PortalPracticeStaffFormModal v-if="practiceId" :practice-id="practiceId" @success="onStaffAdded" />
+        </div>
+        <PortalPracticeStaffTable v-if="practiceId" ref="staffTable" :practice-id="practiceId" /></div
+    ></template>
   </UDashboardPanel>
 </template>

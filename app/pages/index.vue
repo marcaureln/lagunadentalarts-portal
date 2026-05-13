@@ -262,96 +262,96 @@ const onRowSelect = (_e: Event, row: TableRow<ApiCase>) => {
 
 <template>
   <UDashboardPanel>
-    <template #header>
-      <UDashboardNavbar :title="`Welcome back, ${user?.name}!`">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
-        <template #right>
-          <PortalCaseWizard v-if="canCreateCase" @success="refreshCases">
-            <UButton icon="i-ri-upload-2-line" color="primary"> Upload New Case </UButton>
-          </PortalCaseWizard>
-        </template>
-      </UDashboardNavbar>
-    </template>
-
     <template #body>
-      <div class="space-y-6">
-        <!-- Status Cards -->
-        <div
-          class="grid gap-4 sm:grid-cols-2"
-          :class="dashboardCards.length === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-4'"
-        >
-          <UCard v-for="card in dashboardCards" :key="card.status">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="text-sm text-muted">{{ card.label }}</p>
-                <p class="mt-1 text-2xl font-semibold">{{ statusCounts[card.status] }}</p>
+      <div class="flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <h1 class="text-2xl font-semibold">Welcome back, {{ user?.name }}!</h1>
+          <PortalCaseWizard v-if="canCreateCase" @success="refreshCases">
+            <UButton icon="i-ri-upload-2-line" color="primary">Upload New Case</UButton>
+          </PortalCaseWizard>
+        </div>
+        <div class="space-y-6">
+          <!-- Status Cards -->
+          <div
+            class="grid gap-4 sm:grid-cols-2"
+            :class="dashboardCards.length === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-4'"
+          >
+            <UCard v-for="card in dashboardCards" :key="card.status">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm text-muted">{{ card.label }}</p>
+                  <p class="mt-1 text-2xl font-semibold">{{ statusCounts[card.status] }}</p>
+                </div>
+                <div class="flex h-12 w-12 items-center justify-center rounded-lg" :class="`bg-${card.color}/10`">
+                  <UIcon :name="card.icon" class="h-6 w-6" :class="`text-${card.color}`" />
+                </div>
               </div>
-              <div class="flex h-12 w-12 items-center justify-center rounded-lg" :class="`bg-${card.color}/10`">
-                <UIcon :name="card.icon" class="h-6 w-6" :class="`text-${card.color}`" />
+            </UCard>
+          </div>
+
+          <!-- Cases Table -->
+          <UCard :ui="{ body: 'p-0!' }">
+            <template #header>
+              <div class="flex items-center justify-between">
+                <h2 class="text-lg font-semibold">Recent Cases</h2>
+                <UButton to="/cases" variant="ghost" color="neutral" size="sm" trailing-icon="i-ri-arrow-right-line">
+                  View All
+                </UButton>
               </div>
+            </template>
+
+            <div v-if="isLoadingCases && cases.length === 0" class="flex items-center justify-center py-12">
+              <UIcon name="i-ri-loader-4-line" class="h-6 w-6 animate-spin text-primary" />
             </div>
+            <UTable
+              v-else
+              :data="cases"
+              :columns="columns"
+              sticky
+              class="max-h-96"
+              :ui="{ tr: 'cursor-pointer' }"
+              @select="onRowSelect"
+            >
+              <template #empty>
+                <div class="flex flex-col items-center justify-center py-12">
+                  <UIcon name="i-ri-folder-line" class="mb-2 h-12 w-12 text-gray-400" />
+                  <h3 class="mb-2 text-lg font-medium text-gray-900 dark:text-gray-100">No cases found</h3>
+                  <p v-if="canCreateCase" class="mb-2 text-gray-500">Get started by uploading a new case.</p>
+                  <p v-else class="text-gray-500">Cases submitted by practices will appear here.</p>
+                  <UButton v-if="canCreateCase" icon="i-ri-upload-2-line" color="primary"> Upload New Case </UButton>
+                </div>
+              </template>
+            </UTable>
+
+            <template #footer>
+              <div class="flex items-center justify-end gap-2">
+                <span class="text-sm text-muted">Show</span>
+                <USelectMenu
+                  v-model="recentCasesLimit"
+                  :items="limitOptions"
+                  value-key="value"
+                  class="w-20"
+                  size="xs"
+                />
+              </div>
+            </template>
           </UCard>
         </div>
 
-        <!-- Cases Table -->
-        <UCard :ui="{ body: 'p-0!' }">
-          <template #header>
-            <div class="flex items-center justify-between">
-              <h2 class="text-lg font-semibold">Recent Cases</h2>
-              <UButton to="/cases" variant="ghost" color="neutral" size="sm" trailing-icon="i-ri-arrow-right-line">
-                View All
-              </UButton>
-            </div>
-          </template>
+        <PortalCaseWizard
+          v-if="editingCaseId"
+          ref="editWizardRef"
+          :case-id="editingCaseId"
+          @success="onEditWizardSuccess"
+        />
 
-          <div v-if="isLoadingCases && cases.length === 0" class="flex items-center justify-center py-12">
-            <UIcon name="i-ri-loader-4-line" class="h-6 w-6 animate-spin text-primary" />
-          </div>
-          <UTable
-            v-else
-            :data="cases"
-            :columns="columns"
-            sticky
-            class="max-h-96"
-            :ui="{ tr: 'cursor-pointer' }"
-            @select="onRowSelect"
-          >
-            <template #empty>
-              <div class="flex flex-col items-center justify-center py-12">
-                <UIcon name="i-ri-folder-line" class="mb-4 h-12 w-12 text-gray-400" />
-                <h3 class="mb-2 text-lg font-medium text-gray-900 dark:text-gray-100">No cases found</h3>
-                <p v-if="canCreateCase" class="mb-4 text-gray-500">Get started by uploading a new case.</p>
-                <p v-else class="text-gray-500">Cases submitted by practices will appear here.</p>
-                <UButton v-if="canCreateCase" icon="i-ri-upload-2-line" color="primary"> Upload New Case </UButton>
-              </div>
-            </template>
-          </UTable>
-
-          <template #footer>
-            <div class="flex items-center justify-end gap-2">
-              <span class="text-sm text-muted">Show</span>
-              <USelectMenu v-model="recentCasesLimit" :items="limitOptions" value-key="value" class="w-20" size="xs" />
-            </div>
-          </template>
-        </UCard>
-      </div>
-
-      <PortalCaseWizard
-        v-if="editingCaseId"
-        ref="editWizardRef"
-        :case-id="editingCaseId"
-        @success="onEditWizardSuccess"
-      />
-
-      <PortalCaseDetailModal
-        v-if="viewingCaseId"
-        ref="caseDetailRef"
-        :case-id="viewingCaseId"
-        @close="viewingCaseId = null"
-        @edit="onEditFromDetail"
-      />
-    </template>
+        <PortalCaseDetailModal
+          v-if="viewingCaseId"
+          ref="caseDetailRef"
+          :case-id="viewingCaseId"
+          @close="viewingCaseId = null"
+          @edit="onEditFromDetail"
+        /></div
+    ></template>
   </UDashboardPanel>
 </template>

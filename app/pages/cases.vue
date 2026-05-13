@@ -361,6 +361,23 @@ const openCaseDetail = (caseId: string) => {
   });
 };
 
+const caseIdFromQuery = route.query.caseId as string | undefined;
+if (caseIdFromQuery) {
+  openCaseDetail(caseIdFromQuery);
+}
+
+watch(
+  () => route.query.caseId,
+  (caseId) => {
+    if (caseId) {
+      viewingCaseId.value = caseId as string;
+      nextTick(() => {
+        caseDetailRef.value?.open();
+      });
+    }
+  }
+);
+
 const onEditFromDetail = (caseId: string) => {
   viewingCaseId.value = null;
   openEditWizard(caseId);
@@ -389,132 +406,128 @@ const showFilterRow = computed(() => isLabUser.value || (caseTypesData.value?.le
 
 <template>
   <UDashboardPanel>
-    <template #header>
-      <UDashboardNavbar title="Cases">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
-        <template #right>
-          <PortalCaseWizard v-if="canCreateCase" @success="refreshAll">
-            <UButton icon="i-ri-upload-2-line" color="primary"> Upload New Case </UButton>
-          </PortalCaseWizard>
-        </template>
-      </UDashboardNavbar>
-    </template>
-
     <template #body>
-      <div class="space-y-6">
-        <div class="flex flex-wrap gap-2">
-          <UButton
-            v-for="tab in statusTabs"
-            :key="tab.value"
-            :icon="tab.icon"
-            :color="statusFilter === tab.value ? 'primary' : 'neutral'"
-            :variant="statusFilter === tab.value ? 'solid' : 'ghost'"
-            size="sm"
-            @click="statusFilter = tab.value"
-          >
-            {{ tab.label }}
-            <UBadge
-              v-if="statusCounts[tab.value] > 0"
-              :color="tab.value === 'NEEDS_INFO' ? 'error' : 'neutral'"
-              :variant="statusFilter === tab.value ? 'solid' : 'subtle'"
+      <div class="flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <h1 class="text-2xl font-semibold">Cases</h1>
+          <PortalCaseWizard v-if="canCreateCase" @success="refreshAll">
+            <UButton icon="i-ri-upload-2-line" color="primary">Upload New Case</UButton>
+          </PortalCaseWizard>
+        </div>
+        <div class="space-y-6">
+          <div class="flex flex-wrap gap-2">
+            <UButton
+              v-for="tab in statusTabs"
+              :key="tab.value"
+              :icon="tab.icon"
+              :color="statusFilter === tab.value ? 'primary' : 'neutral'"
+              :variant="statusFilter === tab.value ? 'solid' : 'ghost'"
               size="sm"
-              class="ml-1.5"
+              @click="statusFilter = tab.value"
             >
-              {{ statusCounts[tab.value] }}
-            </UBadge>
-          </UButton>
-        </div>
-
-        <div v-if="showFilterRow" class="flex flex-wrap items-center gap-3">
-          <USelectMenu
-            v-if="isLabUser"
-            v-model="assigneeFilter"
-            :items="assigneeOptions"
-            value-key="value"
-            label-key="label"
-            placeholder="Assignee"
-            icon="i-ri-user-line"
-            class="w-52"
-            size="sm"
-          />
-          <USelectMenu
-            v-model="caseTypeFilter"
-            :items="caseTypeOptions"
-            value-key="value"
-            label-key="label"
-            placeholder="Case type"
-            icon="i-ri-stethoscope-line"
-            class="w-52"
-            size="sm"
-          />
-          <USelectMenu
-            v-if="isLabUser"
-            v-model="practiceFilter"
-            :items="practiceOptions"
-            value-key="value"
-            label-key="label"
-            placeholder="Practice"
-            icon="i-ri-building-line"
-            class="w-52"
-            size="sm"
-          />
-          <UButton
-            v-if="hasActiveFilter"
-            color="neutral"
-            variant="ghost"
-            size="sm"
-            icon="i-ri-close-line"
-            @click="clearFilters"
-          >
-            Clear
-          </UButton>
-        </div>
-
-        <UCard :ui="{ body: 'p-0!' }">
-          <div v-if="isLoadingCases && cases.length === 0" class="flex items-center justify-center py-16">
-            <UIcon name="i-ri-loader-4-line" class="h-6 w-6 animate-spin text-primary" />
+              {{ tab.label }}
+              <UBadge
+                v-if="statusCounts[tab.value] > 0"
+                :color="tab.value === 'NEEDS_INFO' ? 'error' : 'neutral'"
+                :variant="statusFilter === tab.value ? 'solid' : 'subtle'"
+                size="sm"
+                class="ml-1.5"
+              >
+                {{ statusCounts[tab.value] }}
+              </UBadge>
+            </UButton>
           </div>
-          <UTable v-else :data="cases" :columns="columns" :ui="{ tr: 'cursor-pointer' }" @select="onRowSelect">
-            <template #empty>
-              <div class="flex flex-col items-center justify-center py-16">
-                <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
-                  <UIcon
-                    :name="statusTabs.find((t) => t.value === statusFilter)?.icon || 'i-ri-folder-line'"
-                    class="h-8 w-8 text-gray-400"
-                  />
+
+          <div v-if="showFilterRow" class="flex flex-wrap items-center gap-3">
+            <USelectMenu
+              v-if="isLabUser"
+              v-model="assigneeFilter"
+              :items="assigneeOptions"
+              value-key="value"
+              label-key="label"
+              placeholder="Assignee"
+              icon="i-ri-user-line"
+              class="w-52"
+              size="sm"
+            />
+            <USelectMenu
+              v-model="caseTypeFilter"
+              :items="caseTypeOptions"
+              value-key="value"
+              label-key="label"
+              placeholder="Case type"
+              icon="i-ri-stethoscope-line"
+              class="w-52"
+              size="sm"
+            />
+            <USelectMenu
+              v-if="isLabUser"
+              v-model="practiceFilter"
+              :items="practiceOptions"
+              value-key="value"
+              label-key="label"
+              placeholder="Practice"
+              icon="i-ri-building-line"
+              class="w-52"
+              size="sm"
+            />
+            <UButton
+              v-if="hasActiveFilter"
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              icon="i-ri-close-line"
+              @click="clearFilters"
+            >
+              Clear
+            </UButton>
+          </div>
+
+          <UCard :ui="{ body: 'p-0!' }">
+            <div v-if="isLoadingCases && cases.length === 0" class="flex items-center justify-center py-16">
+              <UIcon name="i-ri-loader-4-line" class="h-6 w-6 animate-spin text-primary" />
+            </div>
+            <UTable v-else :data="cases" :columns="columns" :ui="{ tr: 'cursor-pointer' }" @select="onRowSelect">
+              <template #empty>
+                <div class="flex flex-col items-center justify-center py-16">
+                  <div
+                    class="mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800"
+                  >
+                    <UIcon
+                      :name="statusTabs.find((t) => t.value === statusFilter)?.icon || 'i-ri-folder-line'"
+                      class="h-8 w-8 text-gray-400"
+                    />
+                  </div>
+                  <h3 class="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    No {{ statusTabs.find((t) => t.value === statusFilter)?.label.toLowerCase() }}
+                  </h3>
+                  <p class="mb-2 max-w-sm text-center text-gray-500">
+                    There are no cases with this status. Try selecting a different tab.
+                  </p>
+                  <PortalCaseWizard v-if="canCreateCase" @success="refreshAll">
+                    <UButton icon="i-ri-upload-2-line" color="primary">Upload New Case</UButton>
+                  </PortalCaseWizard>
                 </div>
-                <h3 class="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  No {{ statusTabs.find((t) => t.value === statusFilter)?.label.toLowerCase() }}
-                </h3>
-                <p class="mb-6 max-w-sm text-center text-gray-500">
-                  There are no cases with this status. Try selecting a different tab.
-                </p>
-                <PortalCaseWizard v-if="canCreateCase" @success="refreshAll">
-                  <UButton icon="i-ri-upload-2-line" color="primary">Upload New Case</UButton>
-                </PortalCaseWizard>
-              </div>
-            </template>
-          </UTable>
-        </UCard>
-      </div>
+              </template>
+            </UTable>
+          </UCard>
+        </div>
 
-      <PortalCaseWizard
-        v-if="editingCaseId"
-        ref="editWizardRef"
-        :case-id="editingCaseId"
-        @success="onEditWizardSuccess"
-      />
+        <PortalCaseWizard
+          v-if="editingCaseId"
+          ref="editWizardRef"
+          :case-id="editingCaseId"
+          @success="onEditWizardSuccess"
+        />
 
-      <PortalCaseDetailModal
-        v-if="viewingCaseId"
-        ref="caseDetailRef"
-        :case-id="viewingCaseId"
-        @close="viewingCaseId = null"
-        @edit="onEditFromDetail"
-        @changed="refreshAll"
-      />
-    </template>
+        <PortalCaseDetailModal
+          v-if="viewingCaseId"
+          ref="caseDetailRef"
+          :case-id="viewingCaseId"
+          @close="viewingCaseId = null"
+          @edit="onEditFromDetail"
+          @changed="refreshAll"
+        /></div
+    ></template>
   </UDashboardPanel>
 </template>

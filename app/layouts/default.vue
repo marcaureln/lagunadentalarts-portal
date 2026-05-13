@@ -17,7 +17,6 @@ const links = computed(() => {
 
   const items: NavigationMenuItem[] = [];
 
-  // Add home
   if (homeRoute) {
     items.push({
       label: homeRoute.name,
@@ -29,7 +28,6 @@ const links = computed(() => {
     });
   }
 
-  // Add other routes
   otherRoutes.forEach((route) => {
     items.push({
       label: route.name,
@@ -41,7 +39,6 @@ const links = computed(() => {
     });
   });
 
-  // Add administration group if there are admin routes
   if (adminRoutes.length > 0) {
     items.push({
       label: 'Administration',
@@ -79,32 +76,35 @@ async function logout() {
         <template #default="{ collapsed }">
           <UNavigationMenu :collapsed="collapsed" :items="links[0]" orientation="vertical" tooltip />
         </template>
-
-        <template #footer="{ collapsed }">
-          <div class="flex w-full flex-col gap-2 pb-2">
-            <div class="flex w-full items-center gap-2 px-2" :class="{ 'justify-center': collapsed }">
-              <UAvatar :alt="user?.name || 'User'" size="sm" />
-              <div v-if="!collapsed" class="flex-1 truncate text-left text-sm">
-                <div class="text-foreground font-medium">{{ user?.name || 'User' }}</div>
-                <div class="text-muted">{{ role }}</div>
-              </div>
-            </div>
-
-            <UButton
-              color="error"
-              variant="soft"
-              icon="i-ri-logout-box-r-line"
-              block
-              :class="{ 'justify-center': collapsed, 'justify-start': !collapsed }"
-              :label="collapsed ? undefined : 'Logout'"
-              @click="logout"
-            />
-          </div>
-        </template>
       </UDashboardSidebar>
 
-      <NuxtLoadingIndicator color="repeating-linear-gradient(to right, var(--ui-primary) 0%, var(--ui-primary) 100%)" />
-      <NuxtPage />
+      <div class="flex min-h-0 min-w-0 flex-1 flex-col">
+        <UDashboardNavbar class="border-b border-(--ui-border)">
+          <template #leading>
+            <UDashboardSidebarCollapse />
+          </template>
+
+          <div class="flex flex-1 items-center justify-center">
+            <PortalCaseSearch />
+          </div>
+
+          <template #right>
+            <div class="flex items-center gap-4">
+              <UAvatar :alt="user?.name || 'User'" size="sm" />
+              <div class="hidden min-w-0 sm:block">
+                <div class="max-w-40 truncate text-sm leading-tight font-medium">{{ user?.name || 'User' }}</div>
+                <div class="text-xs leading-tight text-muted">{{ role }}</div>
+              </div>
+              <UButton icon="i-ri-logout-box-r-line" variant="soft" size="sm" color="error" @click="logout" />
+            </div>
+          </template>
+        </UDashboardNavbar>
+
+        <NuxtLoadingIndicator
+          color="repeating-linear-gradient(to right, var(--ui-primary) 0%, var(--ui-primary) 100%)"
+        />
+        <NuxtPage class="min-h-0 flex-1 overflow-auto" />
+      </div>
     </UDashboardGroup>
   </UApp>
 </template>

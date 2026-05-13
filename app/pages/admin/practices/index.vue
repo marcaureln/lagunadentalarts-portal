@@ -102,41 +102,35 @@ const columns: TableColumn<PracticeWithCount>[] = [
 
 <template>
   <UDashboardPanel>
-    <template #header>
-      <UDashboardNavbar title="Practice Management">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
-        <template #right>
-          <PortalAdminPracticeFormModal @success="refresh" />
-        </template>
-      </UDashboardNavbar>
-    </template>
-
     <template #body>
-      <div class="w-full flex-1 divide-y divide-accented overflow-hidden rounded-lg border border-accented">
-        <UTable
-          ref="table"
-          :data="practices || []"
-          :columns="columns"
-          :ui="{ tr: 'cursor-pointer' }"
-          @select="onRowSelect"
-        >
-          <template #empty>
-            <div v-if="practicesError" class="flex flex-col items-center justify-center py-12">
-              <UIcon name="i-ri-error-warning-line" class="mb-4 h-12 w-12 text-error" />
-              <h3 class="mb-2 text-lg font-medium text-gray-900">Failed to load practices</h3>
-              <UButton class="mt-2" variant="outline" @click="refresh()">Retry</UButton>
-            </div>
-            <div v-else class="flex flex-col items-center justify-center py-12">
-              <UIcon name="i-ri-building-line" class="mb-4 h-12 w-12 text-gray-400" />
-              <h3 class="mb-2 text-lg font-medium text-gray-900">No practices found</h3>
-              <p class="mb-4 max-w-sm text-center text-gray-500">Get started by adding a new practice.</p>
-              <PortalAdminPracticeFormModal @success="refresh" />
-            </div>
-          </template>
-        </UTable>
-      </div>
-    </template>
+      <div class="flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <h1 class="text-2xl font-semibold">Practice Management</h1>
+          <PortalAdminPracticeFormModal @success="refresh" />
+        </div>
+        <div class="w-full flex-1 divide-y divide-accented overflow-hidden rounded-lg border border-accented">
+          <UTable
+            ref="table"
+            :data="practices || []"
+            :columns="columns"
+            :ui="{ tr: 'cursor-pointer' }"
+            @select="onRowSelect"
+          >
+            <template #empty>
+              <div v-if="practicesError" class="flex flex-col items-center justify-center py-12">
+                <UIcon name="i-ri-error-warning-line" class="mb-2 h-12 w-12 text-error" />
+                <h3 class="mb-2 text-lg font-medium text-gray-900">Failed to load practices</h3>
+                <UButton class="mt-2" variant="outline" @click="refresh()">Retry</UButton>
+              </div>
+              <div v-else class="flex flex-col items-center justify-center py-12">
+                <UIcon name="i-ri-building-line" class="mb-2 h-12 w-12 text-gray-400" />
+                <h3 class="mb-2 text-lg font-medium text-gray-900">No practices found</h3>
+                <p class="mb-2 max-w-sm text-center text-gray-500">Get started by adding a new practice.</p>
+                <PortalAdminPracticeFormModal @success="refresh" />
+              </div>
+            </template>
+          </UTable>
+        </div></div
+    ></template>
   </UDashboardPanel>
 </template>

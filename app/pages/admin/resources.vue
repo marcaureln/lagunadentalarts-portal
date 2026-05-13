@@ -200,40 +200,34 @@ const columns: TableColumn<ApiResource>[] = [
 
 <template>
   <UDashboardPanel>
-    <template #header>
-      <UDashboardNavbar title="Manage Resources">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
-        <template #right>
-          <UButton color="primary" icon="i-ri-add-line" @click="openAdd">Add Resource</UButton>
-        </template>
-      </UDashboardNavbar>
-    </template>
-
     <template #body>
-      <UCard :ui="{ body: 'p-0!' }">
-        <div v-if="isLoading && resources.length === 0" class="flex items-center justify-center py-16">
-          <UIcon name="i-ri-loader-4-line" class="h-6 w-6 animate-spin text-primary" />
+      <div class="flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <h1 class="text-2xl font-semibold">Manage Resources</h1>
+          <UButton color="primary" icon="i-ri-add-line" @click="openAdd">Add Resource</UButton>
         </div>
-        <UTable v-else :data="resources" :columns="columns" :ui="{ tbody: 'resources-tbody' }">
-          <template #empty>
-            <div class="flex flex-col items-center justify-center py-16">
-              <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
-                <UIcon name="i-ri-folder-download-line" class="h-8 w-8 text-gray-400" />
+        <UCard :ui="{ body: 'p-0!' }">
+          <div v-if="isLoading && resources.length === 0" class="flex items-center justify-center py-16">
+            <UIcon name="i-ri-loader-4-line" class="h-6 w-6 animate-spin text-primary" />
+          </div>
+          <UTable v-else :data="resources" :columns="columns" :ui="{ tbody: 'resources-tbody' }">
+            <template #empty>
+              <div class="flex flex-col items-center justify-center py-16">
+                <div class="mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
+                  <UIcon name="i-ri-folder-download-line" class="h-8 w-8 text-gray-400" />
+                </div>
+                <h3 class="mb-2 text-lg font-semibold">No resources yet</h3>
+                <p class="mb-2 max-w-sm text-center text-gray-500">
+                  Upload printable forms or reference documents that practices can download.
+                </p>
+                <UButton color="primary" icon="i-ri-add-line" @click="openAdd">Add Resource</UButton>
               </div>
-              <h3 class="mb-2 text-lg font-semibold">No resources yet</h3>
-              <p class="mb-6 max-w-sm text-center text-gray-500">
-                Upload printable forms or reference documents that practices can download.
-              </p>
-              <UButton color="primary" icon="i-ri-add-line" @click="openAdd">Add Resource</UButton>
-            </div>
-          </template>
-        </UTable>
-      </UCard>
+            </template>
+          </UTable>
+        </UCard>
 
-      <PortalAdminModalResource ref="addRef" @success="onSuccess" />
-      <PortalAdminModalResource v-if="editing" ref="editRef" :resource="editing" @success="onSuccess" />
-    </template>
+        <PortalAdminModalResource ref="addRef" @success="onSuccess" />
+        <PortalAdminModalResource v-if="editing" ref="editRef" :resource="editing" @success="onSuccess" /></div
+    ></template>
   </UDashboardPanel>
 </template>
