@@ -129,7 +129,7 @@ function onResultKeydown(e: KeyboardEvent, index: number) {
         size="lg"
         leading-icon="i-ri-search-line"
         trailing
-        class="w-[32rem] lg:w-[40rem]"
+        class="w-lg lg:w-160"
         @focus="onFocus"
         @keydown="onInputKeydown"
       >
@@ -155,7 +155,7 @@ function onResultKeydown(e: KeyboardEvent, index: number) {
     </div>
 
     <template #content>
-      <div class="max-h-80 w-[32rem] overflow-auto p-1 lg:w-[40rem]">
+      <div class="max-h-80 w-lg overflow-auto p-1 lg:w-160">
         <div v-if="isSearching" class="flex items-center justify-center gap-2 py-6 text-sm text-muted">
           <UIcon name="i-ri-loader-4-line" class="h-4 w-4 animate-spin" />
           Searching...
