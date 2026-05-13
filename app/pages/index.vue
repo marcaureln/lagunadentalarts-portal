@@ -40,17 +40,24 @@ const limitOptions = [
   { label: '20', value: 20 },
 ];
 
+interface CasesPage {
+  items: ApiCase[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
 const {
   data: casesData,
   refresh: refreshCases,
   status: casesStatus,
-} = useFetch<ApiCase[]>('/api/cases', {
+} = useFetch<CasesPage>('/api/cases', {
   query: computed(() => ({ limit: recentCasesLimit.value })),
   lazy: true,
-  default: () => [],
+  default: () => ({ items: [], total: 0, page: 1, pageSize: 25 }),
 });
 
-const cases = computed(() => casesData.value || []);
+const cases = computed(() => casesData.value?.items ?? []);
 const isLoadingCases = computed(() => casesStatus.value === 'pending');
 
 const zeroCounts = (): Record<CaseStatusName, number> => ({
@@ -317,9 +324,11 @@ const onRowSelect = (_e: Event, row: TableRow<ApiCase>) => {
               </div>
             </template>
 
-            <div v-if="isLoadingCases && cases.length === 0" class="flex items-center justify-center py-12">
-              <UIcon name="i-ri-loader-4-line" class="h-6 w-6 animate-spin text-primary" />
-            </div>
+            <PortalTableSkeleton
+              v-if="isLoadingCases && cases.length === 0"
+              :rows="recentCasesLimit"
+              :columns="columns.length"
+            />
             <UTable
               v-else
               :data="cases"

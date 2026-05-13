@@ -90,6 +90,10 @@ const assigneeFilter = ref<string>((route.query.assignee as string) || ASSIGNEE_
 const caseTypeFilter = ref<string>((route.query.caseType as string) || TYPE_ALL);
 const practiceFilter = ref<string>((route.query.practice as string) || PRACTICE_ALL);
 
+const PAGE_SIZE = 25;
+const parsedInitialPage = parseInt((route.query.page as string) ?? '1', 10);
+const initialPage = Number.isFinite(parsedInitialPage) && parsedInitialPage > 0 ? parsedInitialPage : 1;
+
 // Fetch lookups for filter dropdowns
 const { data: labUsersData } = useFetch<LabUser[]>('/api/lab-users', {
   lazy: true,
@@ -137,34 +141,36 @@ const clearFilters = () => {
   practiceFilter.value = PRACTICE_ALL;
 };
 
-watch([statusFilter, assigneeFilter, caseTypeFilter, practiceFilter], ([s, a, t, p]) => {
+const {
+  items: cases,
+  total: totalCases,
+  page,
+  isLoading: isLoadingCases,
+  refresh: refreshCases,
+} = usePaginatedQuery<ApiCase>(
+  '/api/cases',
+  () => ({
+    status: statusFilter.value,
+    assignedToId: isLabUser.value && assigneeFilter.value !== ASSIGNEE_ALL ? assigneeFilter.value : undefined,
+    caseTypeId: caseTypeFilter.value !== TYPE_ALL ? caseTypeFilter.value : undefined,
+    practiceId: isLabUser.value && practiceFilter.value !== PRACTICE_ALL ? practiceFilter.value : undefined,
+  }),
+  { pageSize: PAGE_SIZE, initialPage }
+);
+
+watch([statusFilter, assigneeFilter, caseTypeFilter, practiceFilter], () => {
+  page.value = 1;
+});
+
+watch([statusFilter, assigneeFilter, caseTypeFilter, practiceFilter, page], ([s, a, t, p, pg]) => {
   const query: Record<string, string> = {};
   query.status = s;
   if (a !== ASSIGNEE_ALL) query.assignee = a;
   if (t !== TYPE_ALL) query.caseType = t;
   if (p !== PRACTICE_ALL) query.practice = p;
+  if (pg && pg > 1) query.page = String(pg);
   router.replace({ query });
 });
-
-const casesQuery = computed(() => ({
-  status: statusFilter.value,
-  assignedToId: isLabUser.value && assigneeFilter.value !== ASSIGNEE_ALL ? assigneeFilter.value : undefined,
-  caseTypeId: caseTypeFilter.value !== TYPE_ALL ? caseTypeFilter.value : undefined,
-  practiceId: isLabUser.value && practiceFilter.value !== PRACTICE_ALL ? practiceFilter.value : undefined,
-}));
-
-const {
-  data: casesData,
-  refresh: refreshCases,
-  status: casesStatus,
-} = useFetch<ApiCase[]>('/api/cases', {
-  query: casesQuery,
-  lazy: true,
-  default: () => [],
-});
-
-const cases = computed(() => casesData.value || []);
-const isLoadingCases = computed(() => casesStatus.value === 'pending');
 
 const zeroCounts = (): Record<CaseStatusName, number> => ({
   DRAFT: 0,
@@ -516,9 +522,7 @@ const showFilterRow = computed(() => isLabUser.value || (caseTypesData.value?.le
           </div>
 
           <UCard :ui="{ body: 'p-0!' }">
-            <div v-if="isLoadingCases && cases.length === 0" class="flex items-center justify-center py-16">
-              <UIcon name="i-ri-loader-4-line" class="h-6 w-6 animate-spin text-primary" />
-            </div>
+            <PortalTableSkeleton v-if="isLoadingCases && cases.length === 0" :rows="8" :columns="columns.length" />
             <UTable v-else :data="cases" :columns="columns" :ui="{ tr: 'cursor-pointer' }" @select="onRowSelect">
               <template #empty>
                 <div class="flex flex-col items-center justify-center py-16">
@@ -543,6 +547,10 @@ const showFilterRow = computed(() => isLabUser.value || (caseTypesData.value?.le
               </template>
             </UTable>
           </UCard>
+
+          <div class="mt-3 flex justify-end">
+            <UPagination v-model:page="page" :total="totalCases" :items-per-page="PAGE_SIZE" />
+          </div>
         </div>
 
         <PortalCaseWizard

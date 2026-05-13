@@ -201,9 +201,17 @@ defineExpose({ open });
     <slot />
 
     <template #body>
-      <div v-if="isLoading" class="flex flex-col items-center justify-center py-12">
-        <UIcon name="i-ri-loader-4-line" class="mb-4 h-8 w-8 animate-spin text-primary" />
-        <p class="text-muted">Loading case details...</p>
+      <div v-if="isLoading" class="space-y-6">
+        <div class="flex flex-wrap items-center gap-4">
+          <div class="h-6 w-24 animate-pulse rounded bg-elevated" />
+          <div class="h-4 w-40 animate-pulse rounded bg-elevated" />
+          <div class="h-4 w-28 animate-pulse rounded bg-elevated" />
+        </div>
+        <div v-for="i in 3" :key="i" class="space-y-3 rounded-lg border border-default p-4">
+          <div class="h-5 w-32 animate-pulse rounded bg-elevated" />
+          <div class="h-4 w-full animate-pulse rounded bg-elevated" />
+          <div class="h-4 w-3/4 animate-pulse rounded bg-elevated" />
+        </div>
       </div>
 
       <div v-else-if="error" class="py-8 text-center">

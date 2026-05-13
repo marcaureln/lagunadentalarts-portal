@@ -241,9 +241,14 @@ const cancelAndClose = async () => {
     <slot />
 
     <template #body>
-      <div v-if="isLoading" class="flex flex-col items-center justify-center py-12">
-        <UIcon name="i-ri-loader-4-line" class="mb-4 h-8 w-8 animate-spin text-primary" />
-        <p class="text-muted">Loading case details...</p>
+      <div v-if="isLoading" class="space-y-6">
+        <div class="flex gap-2">
+          <div v-for="step in totalSteps" :key="step" class="h-1 flex-1 animate-pulse rounded-full bg-elevated" />
+        </div>
+        <div v-for="i in 4" :key="i" class="space-y-2">
+          <div class="h-4 w-32 animate-pulse rounded bg-elevated" />
+          <div class="h-10 w-full animate-pulse rounded bg-elevated" />
+        </div>
       </div>
 
       <template v-else>

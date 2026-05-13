@@ -207,9 +207,7 @@ const columns: TableColumn<ApiResource>[] = [
           <UButton color="primary" icon="i-ri-add-line" @click="openAdd">Add Resource</UButton>
         </div>
         <UCard :ui="{ body: 'p-0!' }">
-          <div v-if="isLoading && resources.length === 0" class="flex items-center justify-center py-16">
-            <UIcon name="i-ri-loader-4-line" class="h-6 w-6 animate-spin text-primary" />
-          </div>
+          <PortalTableSkeleton v-if="isLoading && resources.length === 0" :rows="6" :columns="columns.length" />
           <UTable v-else :data="resources" :columns="columns" :ui="{ tbody: 'resources-tbody' }">
             <template #empty>
               <div class="flex flex-col items-center justify-center py-16">

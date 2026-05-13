@@ -48,8 +48,17 @@ const iconFor = (mime: string) => {
     <template #body>
       <div class="flex flex-col gap-4">
         <h1 class="text-2xl font-semibold">Resources</h1>
-        <div v-if="isLoading && resources.length === 0" class="flex items-center justify-center py-16">
-          <UIcon name="i-ri-loader-4-line" class="h-6 w-6 animate-spin text-primary" />
+        <div v-if="isLoading && resources.length === 0" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div v-for="i in 3" :key="i" class="space-y-3 rounded-lg border border-default p-4">
+            <div class="flex items-start gap-3">
+              <div class="h-12 w-12 shrink-0 animate-pulse rounded-lg bg-elevated" />
+              <div class="flex-1 space-y-2">
+                <div class="h-4 w-3/4 animate-pulse rounded bg-elevated" />
+                <div class="h-3 w-full animate-pulse rounded bg-elevated" />
+              </div>
+            </div>
+            <div class="h-8 w-full animate-pulse rounded bg-elevated" />
+          </div>
         </div>
 
         <div v-else-if="resources.length === 0" class="flex flex-col items-center justify-center py-16 text-center">

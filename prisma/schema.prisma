@@ -194,4 +194,5 @@ model CaseEvent {
   createdBy User @relation("CaseEventCreator", fields: [createdById], references: [id])
 
   @@index([caseId])
+  @@index([caseId, type])
 }

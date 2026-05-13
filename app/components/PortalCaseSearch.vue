@@ -156,9 +156,11 @@ function onResultKeydown(e: KeyboardEvent, index: number) {
 
     <template #content>
       <div class="max-h-80 w-lg overflow-auto p-1 lg:w-160">
-        <div v-if="isSearching" class="flex items-center justify-center gap-2 py-6 text-sm text-muted">
-          <UIcon name="i-ri-loader-4-line" class="h-4 w-4 animate-spin" />
-          Searching...
+        <div v-if="isSearching" class="space-y-1 p-1">
+          <div v-for="i in 4" :key="i" class="flex items-center gap-2 rounded px-2 py-2">
+            <div class="h-4 w-4 shrink-0 animate-pulse rounded bg-elevated" />
+            <div class="h-3 flex-1 animate-pulse rounded bg-elevated" />
+          </div>
         </div>
 
         <div v-else-if="results.length === 0" class="py-6 text-center text-sm text-muted">No cases found</div>

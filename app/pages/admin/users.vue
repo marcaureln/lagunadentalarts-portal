@@ -12,7 +12,16 @@ definePageMeta({ middleware: 'admin-only' });
 
 useSeoMeta({ title: 'LDA Staff' });
 
-const { data: users, error: usersError, refresh } = await useFetch<User[]>('/api/admin/users');
+const USERS_PAGE_SIZE = 25;
+const {
+  items: users,
+  total: totalUsers,
+  page,
+  isLoading: isLoadingUsers,
+  error: usersError,
+  refresh,
+} = usePaginatedQuery<User>('/api/admin/users', () => ({}), { pageSize: USERS_PAGE_SIZE });
+
 const { user: currentUser } = useUserSession();
 
 const editingUser = ref<User | null>(null);
@@ -99,7 +108,8 @@ const columns: TableColumn<User>[] = [
           <PortalAdminUserFormModal @success="refresh" />
         </div>
         <div class="w-full flex-1 overflow-hidden rounded-lg border border-accented">
-          <UTable :data="users || []" :columns="columns" :ui="{ tr: 'cursor-pointer' }" @select="onRowSelect">
+          <PortalTableSkeleton v-if="isLoadingUsers && users.length === 0" :rows="8" :columns="columns.length" />
+          <UTable v-else :data="users" :columns="columns" :ui="{ tr: 'cursor-pointer' }" @select="onRowSelect">
             <template #empty>
               <div v-if="usersError" class="flex flex-col items-center justify-center py-8">
                 <UIcon name="i-ri-error-warning-line" class="mb-3 h-10 w-10 text-error" />
@@ -109,12 +119,14 @@ const columns: TableColumn<User>[] = [
               <div v-else class="flex flex-col items-center justify-center py-8">
                 <UIcon name="i-ri-user-line" class="mb-3 h-10 w-10 text-gray-400" />
                 <h3 class="mb-1 text-base font-medium text-gray-900">No staff found</h3>
-                <p class="max-w-sm text-center text-sm text-gray-500">
-                  {{ users ? 'No LDA staff exist yet.' : 'Loading staff…' }}
-                </p>
+                <p class="max-w-sm text-center text-sm text-gray-500">No LDA staff exist yet.</p>
               </div>
             </template>
           </UTable>
+        </div>
+
+        <div class="flex justify-end">
+          <UPagination v-model:page="page" :total="totalUsers" :items-per-page="USERS_PAGE_SIZE" />
         </div>
 
         <PortalAdminUserFormModal

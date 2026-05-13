@@ -16,10 +16,18 @@ export default defineEventHandler(async (event) => {
   if (event.node.req.method === 'GET') {
     const query = getQuery(event);
     const status = query.status as string | undefined;
-    const limit = query.limit ? parseInt(query.limit as string, 10) : undefined;
     const assignee = query.assignedToId as string | undefined;
     const caseTypeId = query.caseTypeId as string | undefined;
     const practiceIdFilter = query.practiceId as string | undefined;
+
+    const MAX_PAGE_SIZE = 100;
+    const DEFAULT_PAGE_SIZE = 25;
+    const rawLimit = query.limit ? parseInt(query.limit as string, 10) : undefined;
+    const rawPageSize = query.pageSize ? parseInt(query.pageSize as string, 10) : undefined;
+    const rawPage = query.page ? parseInt(query.page as string, 10) : undefined;
+    const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, rawPageSize ?? rawLimit ?? DEFAULT_PAGE_SIZE));
+    const page = rawPage && rawPage > 0 ? rawPage : 1;
+    const skip = (page - 1) * pageSize;
 
     const statusFilter = status
       ? status === 'IN_PROGRESS'
@@ -64,29 +72,27 @@ export default defineEventHandler(async (event) => {
     };
 
     if (permissions.canViewAllCases(user.role)) {
-      const cases = await prisma.case.findMany({
-        where: {
-          status: { not: 'DRAFT' },
-          ...statusFilter,
-          ...assigneeFilter,
-          ...caseTypeFilter,
-          ...(practiceIdFilter && { practiceId: practiceIdFilter }),
-        },
-        include,
-        orderBy: { createdAt: 'desc' },
-        ...(limit && { take: limit }),
-      });
-      return cases.map(projectFileTypes);
+      const where = {
+        status: { not: 'DRAFT' as const },
+        ...statusFilter,
+        ...assigneeFilter,
+        ...caseTypeFilter,
+        ...(practiceIdFilter && { practiceId: practiceIdFilter }),
+      };
+      const [items, total] = await Promise.all([
+        prisma.case.findMany({ where, include, orderBy: { createdAt: 'desc' }, take: pageSize, skip }),
+        prisma.case.count({ where }),
+      ]);
+      return { items: items.map(projectFileTypes), total, page, pageSize };
     }
 
     if (permissions.isPracticeUser(user.role) && user.practiceId) {
-      const cases = await prisma.case.findMany({
-        where: { practiceId: user.practiceId, ...statusFilter, ...caseTypeFilter },
-        include,
-        orderBy: { createdAt: 'desc' },
-        ...(limit && { take: limit }),
-      });
-      return cases.map(projectFileTypes);
+      const where = { practiceId: user.practiceId, ...statusFilter, ...caseTypeFilter };
+      const [items, total] = await Promise.all([
+        prisma.case.findMany({ where, include, orderBy: { createdAt: 'desc' }, take: pageSize, skip }),
+        prisma.case.count({ where }),
+      ]);
+      return { items: items.map(projectFileTypes), total, page, pageSize };
     }
 
     throw createError({
