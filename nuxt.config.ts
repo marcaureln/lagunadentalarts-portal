@@ -3,6 +3,7 @@ const cacheTTL = 60 * 60 * 24 * 365; // 1 year – you can set this to whatever 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2025-06-14',
+  ssr: false,
   runtimeConfig: {
     storagePath: process.env.STORAGE_PATH,
     s3Bucket: process.env.S3_BUCKET,
@@ -11,7 +12,7 @@ export default defineNuxtConfig({
     s3AccessKeyId: process.env.S3_ACCESS_KEY_ID,
     s3SecretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
   },
-  sourcemap: true,
+  sourcemap: { server: false, client: process.env.NODE_ENV !== 'production' },
   devtools: { enabled: true },
   app: {
     head: {
@@ -31,24 +32,15 @@ export default defineNuxtConfig({
   },
   vite: {
     server: {
-      // allowedHosts: true, // Uncomment this line if you are using a local tunnel like ngrok
+      allowedHosts: process.env.NODE_ENV !== 'production' ? true : undefined,
     },
   },
-  modules: [
-    '@nuxt/ui',
-    '@nuxt/eslint',
-    '@nuxt/icon',
-    '@nuxt/fonts',
-    '@nuxt/scripts',
-    '@nuxt/image',
-    '@vueuse/nuxt',
-    'nuxt-auth-utils',
-  ],
+  modules: ['@nuxt/ui', '@nuxt/eslint', '@nuxt/icon', '@nuxt/fonts', '@nuxt/image', '@vueuse/nuxt', 'nuxt-auth-utils'],
   components: [{ path: '~/components', pathPrefix: false }],
   fonts: {
     defaults: {
-      weights: [100, 300, 400, 500, 600, 700],
-      styles: ['normal', 'italic'],
+      weights: [300, 400, 500, 600, 700],
+      styles: ['normal'],
     },
   },
   typescript: {
