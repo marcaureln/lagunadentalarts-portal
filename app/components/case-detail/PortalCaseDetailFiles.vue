@@ -1,11 +1,20 @@
 <script setup lang="ts">
 import type { CaseFile, CaseTypeFileSlot } from '~~/shared/types/case';
 
-const props = defineProps<{
-  caseId: string;
-  files: CaseFile[];
-  fileSlots: CaseTypeFileSlot[];
-}>();
+interface CaseEventLite {
+  type: string;
+  message?: string | null;
+}
+
+const props = withDefaults(
+  defineProps<{
+    caseId: string;
+    files: CaseFile[];
+    fileSlots: CaseTypeFileSlot[];
+    events?: CaseEventLite[];
+  }>(),
+  { events: () => [] }
+);
 
 const slotLabel = (slotId: string) => props.fileSlots.find((s) => s.id === slotId)?.label || slotId;
 
@@ -13,6 +22,11 @@ const fileUrl = (file: CaseFile) => {
   const path = file.path ?? `${file.slotId}/${file.fileName}`;
   return `/api/cases/${props.caseId}/files/${path}`;
 };
+
+const downloadUrl = (file: CaseFile) => `${fileUrl(file)}?download=1`;
+
+const wasDownloaded = (file: CaseFile) =>
+  props.events.some((e) => e.type === 'FILE_DOWNLOADED' && e.message === file.fileName);
 
 const formatFileSize = (bytes?: number) => {
   if (!bytes) return '';
@@ -52,7 +66,17 @@ const openPreview = (file: CaseFile) => {
         <div class="flex items-center gap-3">
           <UIcon name="i-ri-file-line" class="h-5 w-5 text-muted" />
           <div>
-            <p class="font-medium">{{ file.fileName }}</p>
+            <div class="flex items-center gap-2">
+              <p class="font-medium">{{ file.fileName }}</p>
+              <UBadge
+                v-if="wasDownloaded(file)"
+                color="success"
+                variant="subtle"
+                size="xs"
+                icon="i-ri-download-line"
+                label="Downloaded"
+              />
+            </div>
             <p class="text-xs text-muted">
               {{ slotLabel(file.slotId) }}
               <span v-if="file.fileSize"> · {{ formatFileSize(file.fileSize) }}</span>
@@ -63,7 +87,7 @@ const openPreview = (file: CaseFile) => {
           <UButton v-if="isPreviewable(file)" variant="ghost" size="sm" icon="i-ri-eye-line" @click="openPreview(file)">
             Preview
           </UButton>
-          <UButton :to="fileUrl(file)" external download variant="ghost" size="sm" icon="i-ri-download-line">
+          <UButton :to="downloadUrl(file)" external download variant="ghost" size="sm" icon="i-ri-download-line">
             Download
           </UButton>
         </div>

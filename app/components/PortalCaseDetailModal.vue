@@ -290,6 +290,7 @@ defineExpose({ open });
           :case-id="caseDetail.id"
           :files="caseDetail.files"
           :file-slots="caseDetail.caseType.fileSlots"
+          :events="caseDetail.events"
         />
 
         <PortalCaseDetailActivity :events="caseDetail.events" />

@@ -13,6 +13,8 @@ useSeoMeta({ title: 'Home' });
 const UBadge = resolveComponent('UBadge');
 const UButton = resolveComponent('UButton');
 const UDropdownMenu = resolveComponent('UDropdownMenu');
+const UIcon = resolveComponent('UIcon');
+const UTooltip = resolveComponent('UTooltip');
 
 const canCreateCase = computed(() => permissions.canCreateCase(user.value?.role));
 const isPracticeUser = computed(() => ['PRACTICE_STAFF', 'PRACTICE_ADMIN'].includes(user.value?.role || ''));
@@ -26,6 +28,7 @@ interface ApiCase {
   practice: { id: string; name: string };
   caseType: { id: string; key: string; label: string };
   createdBy: { id: string; name: string };
+  _count?: { events: number };
 }
 
 // Recent cases limit selector
@@ -137,7 +140,15 @@ const columns = computed<TableColumn<ApiCase>[]>(() => {
       cell: ({ row }) => {
         const status = row.getValue('status') as ApiCase['status'];
         const meta = CASE_STATUS_META[status];
-        return h(UBadge, { color: meta.color, variant: 'subtle', label: meta.label });
+        const downloadCount = row.original._count?.events ?? 0;
+        return h('div', { class: 'flex items-center gap-1' }, [
+          h(UBadge, { color: meta.color, variant: 'subtle', label: meta.label }),
+          downloadCount > 0
+            ? h(UTooltip, { text: 'Files downloaded by lab' }, () =>
+                h(UIcon, { name: 'i-ri-download-cloud-line', class: 'h-4 w-4 text-success' })
+              )
+            : null,
+        ]);
       },
     },
     {

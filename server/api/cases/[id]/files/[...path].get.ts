@@ -42,12 +42,29 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'File not found' });
   }
 
+  const isDownload = getQuery(event).download === '1';
+
   const storage = getStorage();
   const { stream, contentType, contentLength, fileName } = await storage.downloadFile(caseId, filePath);
 
+  if (isDownload && permissions.isLabUser(user.role)) {
+    await prisma.caseEvent.create({
+      data: {
+        caseId,
+        type: 'FILE_DOWNLOADED',
+        message: fileName,
+        createdById: user.id,
+      },
+    });
+  }
+
   setResponseHeader(event, 'content-type', contentType);
   setResponseHeader(event, 'content-length', contentLength);
-  setResponseHeader(event, 'content-disposition', `inline; filename="${encodeURIComponent(fileName)}"`);
+  setResponseHeader(
+    event,
+    'content-disposition',
+    `${isDownload ? 'attachment' : 'inline'}; filename="${encodeURIComponent(fileName)}"`
+  );
 
   return sendStream(event, stream);
 });

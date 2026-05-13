@@ -15,6 +15,8 @@ useSeoMeta({ title: 'Cases' });
 const UBadge = resolveComponent('UBadge');
 const UButton = resolveComponent('UButton');
 const UDropdownMenu = resolveComponent('UDropdownMenu');
+const UIcon = resolveComponent('UIcon');
+const UTooltip = resolveComponent('UTooltip');
 
 const isPracticeUser = computed(() => permissions.isPracticeUser(user.value?.role));
 const isLabUser = computed(() => permissions.isLabUser(user.value?.role));
@@ -29,6 +31,7 @@ interface ApiCase {
   caseType: { id: string; key: string; label: string };
   createdBy: { id: string; name: string };
   assignedTo: { id: string; name: string } | null;
+  _count?: { events: number };
 }
 
 interface LabUser {
@@ -235,7 +238,15 @@ const columns = computed<TableColumn<ApiCase>[]>(() => {
         const status = row.getValue('status') as ApiCase['status'];
         const meta = CASE_STATUS_META[status];
         const variant = status === 'NEEDS_INFO' ? 'solid' : 'subtle';
-        return h(UBadge, { color: meta.color, variant, label: meta.label });
+        const downloadCount = row.original._count?.events ?? 0;
+        return h('div', { class: 'flex items-center gap-1' }, [
+          h(UBadge, { color: meta.color, variant, label: meta.label }),
+          downloadCount > 0
+            ? h(UTooltip, { text: 'Files downloaded by lab' }, () =>
+                h(UIcon, { name: 'i-ri-download-cloud-line', class: 'h-4 w-4 text-success' })
+              )
+            : null,
+        ]);
       },
     },
     {

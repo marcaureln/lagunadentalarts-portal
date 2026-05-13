@@ -23,6 +23,7 @@ const eventTypeLabels: Record<string, string> = {
   STATUS_CHANGED: 'Status changed',
   UPDATED: 'Case updated',
   FILE_UPLOADED: 'File uploaded',
+  FILE_DOWNLOADED: 'File downloaded',
   COMMENT_ADDED: 'Comment added',
   ASSIGNED: 'Case assigned',
   UNASSIGNED: 'Case unassigned',
@@ -36,6 +37,10 @@ const eventIcon = (type: string): string => {
       return 'i-ri-send-plane-line';
     case 'STATUS_CHANGED':
       return 'i-ri-refresh-line';
+    case 'FILE_UPLOADED':
+      return 'i-ri-upload-line';
+    case 'FILE_DOWNLOADED':
+      return 'i-ri-download-line';
     case 'ASSIGNED':
     case 'UNASSIGNED':
       return 'i-ri-user-line';

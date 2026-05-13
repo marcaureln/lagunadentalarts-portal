@@ -43,6 +43,11 @@ export default defineEventHandler(async (event) => {
       caseType: { select: { id: true, key: true, label: true } },
       createdBy: { select: { id: true, name: true } },
       assignedTo: { select: { id: true, name: true } },
+      _count: {
+        select: {
+          events: { where: { type: 'FILE_DOWNLOADED' as const } },
+        },
+      },
     };
 
     if (permissions.canViewAllCases(user.role)) {
